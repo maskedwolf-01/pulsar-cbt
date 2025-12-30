@@ -4,18 +4,16 @@ import {
   CheckCircle, MessageCircle, Phone, Mail, Star, Quote 
 } from 'lucide-react';
 
-// --- CUSTOM COMPONENTS FOR THIS PAGE ---
-
-// 1. The Custom Pulsar Logo (Cap + Bolt)
+// --- 1. Custom Logo Component ---
 const PulsarLogo = ({ className }: { className?: string }) => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
     <path d="M22 10v6M2 10v6"/><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M12 22V7"/><path d="m9 14 2.5 2.5 5-5"/>
   </svg>
 );
 
-// 2. Testimonial Card Component
+// --- 2. Testimonial Card Component ---
 const TestimonialCard = ({ name, dept, level, quote }: { name: string, dept: string, level: string, quote: string }) => (
-  <div className="min-w-[350px] md:min-w-[450px] p-8 rounded-2xl bg-surface border border-white/10 relative flex-shrink-0 snap-center group hover:border-primary/30 transition-all">
+  <div className="min-w-[300px] md:min-w-[400px] p-6 md:p-8 rounded-2xl bg-surface border border-white/10 relative flex-shrink-0 snap-center group hover:border-primary/30 transition-all">
     <Quote className="absolute top-6 right-6 w-8 h-8 text-white/10 group-hover:text-primary/20 transition-colors" />
     <div className="flex items-center gap-1 mb-4">
       {[1, 2, 3, 4, 5].map((star) => (
@@ -24,7 +22,7 @@ const TestimonialCard = ({ name, dept, level, quote }: { name: string, dept: str
     </div>
     <p className="text-sm leading-relaxed text-white mb-6 italic">"{quote}"</p>
     <div className="flex items-center gap-4">
-      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white font-bold text-lg">
+      <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white font-bold text-lg">
         {name.charAt(0)}
       </div>
       <div>
@@ -35,14 +33,13 @@ const TestimonialCard = ({ name, dept, level, quote }: { name: string, dept: str
   </div>
 );
 
-// --- MAIN PAGE COMPONENT ---
-
+// --- 3. MAIN PAGE COMPONENT ---
 export default function Home() {
   return (
     <div className="min-h-screen bg-background text-text font-sans selection:bg-primary selection:text-white overflow-x-hidden scroll-smooth">
       
       {/* NAVBAR */}
-      <nav className="fixed top-0 w-full z-50 backdrop-blur-xl border-b border-white/5 bg-background/90 supports-[backdrop-filter]:bg-background/60">
+      <nav className="fixed top-0 w-full z-50 backdrop-blur-xl border-b border-white/5 bg-background/90">
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-gradient-to-br from-primary to-secondary rounded-xl flex items-center justify-center text-white shadow-[0_0_20px_rgba(160,108,213,0.4)]">
@@ -71,7 +68,7 @@ export default function Home() {
             Official FUOYE Prep Engine
           </div>
           <h1 className="text-5xl md:text-8xl font-extrabold tracking-tight mb-8 text-white leading-tight">
-            Secure Your <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-purple-400 to-secondary filter drop-shadow-[0_0_10px_rgba(160,108,213,0.4)]">5.0 GP</span> <br/>
+            Secure Your <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-purple-400 to-secondary drop-shadow-[0_0_10px_rgba(160,108,213,0.4)]">5.0 GP</span> <br/>
             With Precision.
           </h1>
           <p className="text-lg md:text-xl text-subtext mb-12 max-w-2xl mx-auto leading-relaxed">
@@ -89,12 +86,11 @@ export default function Home() {
         </div>
       </section>
 
-      {/* TRUST SIGNALS (The Juicy Part) */}
+      {/* TRUST SIGNALS */}
       <section className="py-8 border-y border-white/5 bg-[#0a0a0f]">
         <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-6 text-center md:text-left">
           <p className="text-sm text-subtext uppercase tracking-widest font-bold">Curriculum Aligned With Standards From:</p>
           <div className="flex flex-wrap justify-center gap-8 opacity-50 grayscale hover:grayscale-0 hover:opacity-100 transition-all duration-500">
-            {/* Using styled text blocks instead of risky external image links */}
             <div className="text-xl font-serif font-bold text-white">OXFORD</div>
             <div className="text-xl font-serif font-bold text-white">CAMBRIDGE</div>
             <div className="text-xl font-bold text-white flex items-center gap-1"><span className="text-green-500">NUC</span> NIGERIA</div>
@@ -113,7 +109,7 @@ export default function Home() {
               <Zap className="w-8 h-8" />
             </div>
             <h3 className="text-2xl font-bold text-white mb-3">Zero-Lag Engine</h3>
-            <p className="text-subtext leading-relaxed">Our servers are optimized for speed. We are faster than the actual university CBT centers. No loading screens, just answers.</p>
+            <p className="text-subtext leading-relaxed">Our servers are optimized for speed. We are faster than the actual university servers. No loading screens, just answers.</p>
           </div>
           <div className="p-8 rounded-2xl bg-surface border border-white/10 hover:border-secondary/40 transition-all group">
             <div className="w-16 h-16 bg-secondary/10 text-secondary rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform shadow-[inset_0_0_20px_rgba(0,245,212,0.2)]">
@@ -140,27 +136,21 @@ export default function Home() {
              <p className="text-subtext">Comprehensive databases for First Semester.</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Card 1 */}
             <div className="p-8 bg-surface border border-white/10 rounded-2xl hover:border-primary/50 transition-all group cursor-pointer hover:shadow-2xl hover:shadow-primary/10 relative overflow-hidden">
-               <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-bl-full -z-10 group-hover:scale-125 transition-transform"></div>
               <h3 className="text-2xl font-bold text-white group-hover:text-primary transition-colors mb-2">General Studies</h3>
               <p className="text-sm text-subtext mb-8">Compulsory university-wide courses.</p>
               <div className="flex flex-wrap gap-2">
                 <span className="tag">GST 101</span><span className="tag">GST 103</span><span className="tag">ENT 101</span>
               </div>
             </div>
-            {/* Card 2 */}
             <div className="p-8 bg-surface border border-white/10 rounded-2xl hover:border-secondary/50 transition-all group cursor-pointer hover:shadow-2xl hover:shadow-secondary/10 relative overflow-hidden">
-               <div className="absolute top-0 right-0 w-32 h-32 bg-secondary/10 rounded-bl-full -z-10 group-hover:scale-125 transition-transform"></div>
               <h3 className="text-2xl font-bold text-white group-hover:text-secondary transition-colors mb-2">Science Cores</h3>
               <p className="text-sm text-subtext mb-8">Foundation for Science & Engineering.</p>
               <div className="flex flex-wrap gap-2">
                 <span className="tag">BIO 101</span><span className="tag">CHM 101</span><span className="tag">PHY 101</span>
               </div>
             </div>
-            {/* Card 3 */}
             <div className="p-8 bg-surface border border-white/10 rounded-2xl hover:border-accent/50 transition-all group cursor-pointer hover:shadow-2xl hover:shadow-accent/10 relative overflow-hidden">
-               <div className="absolute top-0 right-0 w-32 h-32 bg-accent/10 rounded-bl-full -z-10 group-hover:scale-125 transition-transform"></div>
               <h3 className="text-2xl font-bold text-white group-hover:text-accent transition-colors mb-2">Math & Computational</h3>
               <p className="text-sm text-subtext mb-8">Logical and analytical foundations.</p>
               <div className="flex flex-wrap gap-2">
@@ -177,38 +167,27 @@ export default function Home() {
           <h2 className="text-4xl font-bold text-white mb-4">Hear From The Scholars</h2>
           <p className="text-subtext">Real feedback from FUOYE students who crushed their exams.</p>
         </div>
-        
-        {/* The Sliding Container */}
         <div className="flex overflow-x-auto snap-x snap-mandatory gap-6 pb-8 px-6 no-scrollbar">
           <TestimonialCard 
-            name="Adebayo T." 
-            dept="Computer Science" 
-            level="200L"
-            quote="Honestly, the speed of this platform is insane. The actual GST exam felt slow compared to my practice on PULSAR. I cleared MTH 101 because of the rapid-fire drills here. It's a must-have."
+            name="Adebayo T." dept="Computer Science" level="200L"
+            quote="Honestly, the speed of this platform is insane. The actual GST exam felt slow compared to my practice on PULSAR. I cleared MTH 101 because of the rapid-fire drills here."
           />
           <TestimonialCard 
-            name="Chidinma O." 
-            dept="Microbiology" 
-            level="100L"
-            quote="I was so scared of BIO 101 until I found this site. The explanations for the corrections are better than my textbook. It doesn't just give you the answer, it teaches you the concept. Got a 4.8 GPA first semester!"
+            name="Chidinma O." dept="Microbiology" level="100L"
+            quote="I was so scared of BIO 101 until I found this site. The explanations for the corrections are better than my textbook. It teaches you the concept. Got a 4.8 GPA!"
           />
            <TestimonialCard 
-            name="Emmanuel K." 
-            dept="Mechatronics" 
-            level="300L"
-            quote="I wish this existed when I was in 100 level. The interface is exactly like the one in the ICT center, so on exam day, I wasn't nervous at all. It's the best preparation tool, hands down."
+            name="Emmanuel K." dept="Mechatronics" level="300L"
+            quote="I wish this existed when I was in 100 level. The interface is exactly like the one in the ICT center, so on exam day, I wasn't nervous at all. Best preparation tool."
           />
            <TestimonialCard 
-            name="Zainab A." 
-            dept="Economics" 
-            level="100L"
+            name="Zainab A." dept="Economics" level="100L"
             quote="PULSAR changed the game for my GSTs. The questions are very accurate to past questions, and the mobile view is perfect for studying on the bus to campus."
           />
         </div>
       </section>
 
-
-      {/* FOOTER (Professional & Corrected) */}
+      {/* FOOTER */}
       <footer id="contact" className="border-t border-white/10 bg-[#050508] pt-20 pb-10">
         <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
           <div className="col-span-1 md:col-span-2">
@@ -221,11 +200,6 @@ export default function Home() {
             <p className="text-subtext leading-relaxed max-w-md mb-8">
               The premier academic acceleration platform designed exclusively for FUOYE students. We bridge the critical gap between preparation and excellence through advanced simulation technology.
             </p>
-             <div className="flex gap-4">
-               {/* Social Placeholders */}
-               <div className="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center hover:bg-primary/20 transition-colors cursor-pointer"><Zap className="w-5 h-5"/></div>
-               <div className="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center hover:bg-primary/20 transition-colors cursor-pointer"><Target className="w-5 h-5"/></div>
-             </div>
           </div>
 
           <div>
@@ -248,7 +222,6 @@ export default function Home() {
                 </a>
               </li>
               <li>
-                {/* WHATSAPP INTEGRATION */}
                 <a href="https://wa.me/2349068206698?text=Hello%20PULSAR%2C%20I%20want%20to%20make%20an%20enquiry." target="_blank" rel="noopener noreferrer" className="group flex items-center gap-3 text-subtext hover:text-white transition-colors">
                   <div className="w-8 h-8 bg-white/5 rounded-lg flex items-center justify-center group-hover:bg-green-500/20 transition-colors">
                     <MessageCircle className="w-4 h-4 text-green-500"/>
@@ -260,7 +233,7 @@ export default function Home() {
           </div>
 
           <div>
-            h4 className="font-bold text-lg text-white mb-6">Platform</h4>
+            <h4 className="font-bold text-lg text-white mb-6">Platform</h4>
             <ul className="space-y-3 text-sm text-subtext">
               <li><Link href="/login" className="hover:text-primary transition-colors">Student Terminal</Link></li>
               <li><a href="#courses" className="hover:text-primary transition-colors">Course Database</a></li>
@@ -277,5 +250,5 @@ export default function Home() {
       </footer>
     </div>
   );
-                                                        }
-      
+    }
+                           
