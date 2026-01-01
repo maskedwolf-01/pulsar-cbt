@@ -1,39 +1,66 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { 
   Zap, Target, Smartphone, BookOpen, GraduationCap, ArrowRight, 
-  CheckCircle, MessageCircle, Phone, Mail, Star, Quote 
+  CheckCircle, MessageCircle, Phone, Mail, Star, Quote, ChevronLeft 
 } from 'lucide-react';
 
-// --- 1. Custom Logo Component ---
+// --- COMPONENTS ---
+
 const PulsarLogo = ({ className }: { className?: string }) => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
     <path d="M22 10v6M2 10v6"/><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M12 22V7"/><path d="m9 14 2.5 2.5 5-5"/>
   </svg>
 );
 
-// --- 2. Testimonial Card Component ---
-const TestimonialCard = ({ name, dept, level, quote }: { name: string, dept: string, level: string, quote: string }) => (
-  <div className="min-w-[300px] md:min-w-[400px] p-6 md:p-8 rounded-2xl bg-surface border border-white/10 relative flex-shrink-0 snap-center group hover:border-primary/30 transition-all">
-    <Quote className="absolute top-6 right-6 w-8 h-8 text-white/10 group-hover:text-primary/20 transition-colors" />
-    <div className="flex items-center gap-1 mb-4">
+const TestimonialCard = ({ name, dept, faculty, quote, img }: { name: string, dept: string, faculty: string, quote: string, img: string }) => (
+  <div className="min-w-[320px] md:min-w-[400px] p-8 rounded-3xl bg-surface border border-white/10 relative flex-shrink-0 snap-center group hover:border-secondary/30 transition-all flex flex-col items-center text-center">
+    {/* Avatar */}
+    <div className="w-24 h-24 rounded-full p-1 bg-gradient-to-br from-secondary to-primary mb-6 shadow-xl relative overflow-hidden">
+      <div className="w-full h-full rounded-full bg-black overflow-hidden relative">
+         {/* Fallback to initial if image fails to load, but typically Next/Image is better. Using simple img tag for GitHub simplicity */}
+         <img src={`/${img}`} alt={name} className="w-full h-full object-cover" />
+      </div>
+    </div>
+
+    {/* Name Badge */}
+    <div className="bg-secondary/10 text-secondary border border-secondary/20 px-4 py-1 rounded-full text-sm font-bold mb-2">
+      {name}
+    </div>
+    <p className="text-xs text-subtext uppercase tracking-widest mb-6">{dept} • {faculty}</p>
+
+    {/* Stars */}
+    <div className="flex gap-1 mb-6">
       {[1, 2, 3, 4, 5].map((star) => (
-        <Star key={star} className="w-4 h-4 fill-accent text-accent" />
+        <Star key={star} className="w-5 h-5 fill-secondary text-secondary" />
       ))}
     </div>
-    <p className="text-sm leading-relaxed text-white mb-6 italic">"{quote}"</p>
-    <div className="flex items-center gap-4">
-      <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white font-bold text-lg">
-        {name.charAt(0)}
-      </div>
-      <div>
-        <h4 className="font-bold text-white">{name}</h4>
-        <p className="text-xs text-subtext">{dept} • {level} Level</p>
-      </div>
+
+    {/* Quote */}
+    <div className="relative">
+      <Quote className="absolute -top-4 -left-2 w-6 h-6 text-white/10" />
+      <p className="text-sm leading-relaxed text-white/90 italic relative z-10">
+        "{quote}"
+      </p>
     </div>
   </div>
 );
 
-// --- 3. MAIN PAGE COMPONENT ---
+const TeamCard = ({ name, role, desc, img, isFounder }: { name: string, role: string, desc: string, img: string, isFounder?: boolean }) => (
+  <div className={`p-6 rounded-2xl border ${isFounder ? 'bg-primary/5 border-primary/30' : 'bg-surface border-white/10'} flex flex-col md:flex-row items-center gap-6`}>
+    <div className="w-32 h-32 flex-shrink-0 rounded-2xl overflow-hidden border-2 border-white/10">
+      <img src={`/${img}`} alt={name} className="w-full h-full object-cover" />
+    </div>
+    <div className="text-center md:text-left">
+      <h3 className="text-xl font-bold text-white mb-1">{name}</h3>
+      <p className={`text-sm font-bold mb-3 uppercase tracking-wider ${isFounder ? 'text-primary' : 'text-secondary'}`}>{role}</p>
+      <p className="text-sm text-subtext leading-relaxed">{desc}</p>
+    </div>
+  </div>
+);
+
+// --- MAIN PAGE ---
+
 export default function Home() {
   return (
     <div className="min-h-screen bg-background text-text font-sans selection:bg-primary selection:text-white overflow-x-hidden scroll-smooth">
@@ -42,213 +69,126 @@ export default function Home() {
       <nav className="fixed top-0 w-full z-50 backdrop-blur-xl border-b border-white/5 bg-background/90">
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-primary to-secondary rounded-xl flex items-center justify-center text-white shadow-[0_0_20px_rgba(160,108,213,0.4)]">
+            <div className="w-10 h-10 bg-gradient-to-br from-primary to-secondary rounded-xl flex items-center justify-center text-white shadow-lg">
               <PulsarLogo className="w-6 h-6" />
             </div>
             <span className="text-xl font-extrabold tracking-tight text-white">PULSAR</span>
           </div>
-          <div className="hidden md:flex gap-8 text-sm font-medium text-subtext">
-            <a href="#features" className="hover:text-white transition-colors">Why Us</a>
-            <a href="#courses" className="hover:text-white transition-colors">Courses</a>
-            <a href="#reviews" className="hover:text-white transition-colors">Reviews</a>
-          </div>
-          <Link href="/login" className="px-6 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full text-sm font-bold text-white transition-all flex items-center gap-2 hover:scale-105 active:scale-95">
-            <GraduationCap className="w-4 h-4" />
-            Login Terminal
+          <Link href="/login" className="px-5 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full text-sm font-bold text-white transition-all flex items-center gap-2">
+            Student Login
           </Link>
         </div>
       </nav>
 
-      {/* HERO SECTION */}
-      <section className="relative pt-40 pb-24 px-6 overflow-hidden">
-        <div className="absolute top-[10%] left-[50%] -translate-x-1/2 w-[600px] h-[600px] bg-primary/20 rounded-full blur-[150px] pointer-events-none -z-10"></div>
-        <div className="max-w-4xl mx-auto text-center relative z-10">
-          <div className="inline-flex items-center gap-2 px-4 py-2 mb-8 text-xs font-bold tracking-widest text-secondary bg-secondary/10 border border-secondary/20 rounded-full uppercase animate-pulse">
-            <CheckCircle className="w-3 h-3" />
-            Official FUOYE Prep Engine
-          </div>
-          <h1 className="text-5xl md:text-8xl font-extrabold tracking-tight mb-8 text-white leading-tight">
-            Secure Your <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-purple-400 to-secondary drop-shadow-[0_0_10px_rgba(160,108,213,0.4)]">5.0 GP</span> <br/>
-            With Precision.
-          </h1>
-          <p className="text-lg md:text-xl text-subtext mb-12 max-w-2xl mx-auto leading-relaxed">
-            Don't just read. <span className="text-white font-bold">Simulate.</span> Experience the exact FUOYE CBT environment. Speed drills, instant corrections, and analytics designed to make you unstoppable.
-          </p>
-          <div className="flex flex-col md:flex-row gap-5 justify-center items-center">
-            <Link href="/login" className="group w-full md:w-auto px-10 py-4 bg-gradient-to-r from-primary to-purple-700 text-white font-bold rounded-xl shadow-[0_0_40px_rgba(160,108,213,0.5)] hover:shadow-[0_0_60px_rgba(160,108,213,0.7)] hover:scale-105 transition-all flex items-center justify-center gap-3 text-lg">
-              Start Free Drill 
-              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-            </Link>
-            <a href="#courses" className="w-full md:w-auto px-10 py-4 bg-surface border border-white/10 text-white font-bold rounded-xl hover:bg-white/5 transition-all text-center text-lg flex items-center justify-center gap-2">
-              <BookOpen className="w-5 h-5"/> Explore Catalogue
-            </a>
-          </div>
+      {/* HERO */}
+      <section className="relative pt-40 pb-20 px-6 text-center">
+        <div className="absolute top-[20%] left-[50%] -translate-x-1/2 w-[500px] h-[500px] bg-primary/20 rounded-full blur-[150px] -z-10"></div>
+        <div className="inline-flex items-center gap-2 px-4 py-2 mb-8 text-xs font-bold text-secondary bg-secondary/10 border border-secondary/20 rounded-full uppercase animate-pulse">
+          <CheckCircle className="w-3 h-3" /> FUOYE 100L First Semester
+        </div>
+        <h1 className="text-5xl md:text-8xl font-extrabold tracking-tight mb-8 text-white">
+          Master Your <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary">Frequency</span>
+        </h1>
+        <p className="text-lg text-subtext mb-10 max-w-xl mx-auto">
+          The official 100 Level CBT preparation engine. Built by FUOYE students, for FUOYE students.
+        </p>
+        <div className="flex justify-center gap-4">
+          <Link href="/login" className="px-8 py-4 bg-primary text-white font-bold rounded-xl hover:scale-105 transition-all shadow-[0_0_30px_rgba(160,108,213,0.4)]">
+            Start Practice Free 🚀
+          </Link>
         </div>
       </section>
 
-      {/* TRUST SIGNALS */}
-      <section className="py-8 border-y border-white/5 bg-[#0a0a0f]">
-        <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-6 text-center md:text-left">
-          <p className="text-sm text-subtext uppercase tracking-widest font-bold">Curriculum Aligned With Standards From:</p>
-          <div className="flex flex-wrap justify-center gap-8 opacity-50 grayscale hover:grayscale-0 hover:opacity-100 transition-all duration-500">
-            <div className="text-xl font-serif font-bold text-white">OXFORD</div>
-            <div className="text-xl font-serif font-bold text-white">CAMBRIDGE</div>
-            <div className="text-xl font-bold text-white flex items-center gap-1"><span className="text-green-500">NUC</span> NIGERIA</div>
-            <div className="text-xl font-bold text-white flex items-center gap-1"><span className="text-blue-500">NACOS</span> NATIONAL</div>
-            <div className="text-xl font-mono font-bold text-white">BYTECODE</div>
-          </div>
-        </div>
-      </section>
-
-      {/* FEATURES */}
-      <section id="features" className="py-24 bg-black/20 relative">
-         <div className="absolute bottom-[10%] right-[-10%] w-[400px] h-[400px] bg-secondary/10 rounded-full blur-[120px] pointer-events-none -z-10"></div>
-        <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div className="p-8 rounded-2xl bg-surface border border-white/10 hover:border-primary/40 transition-all group">
-            <div className="w-16 h-16 bg-primary/10 text-primary rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform shadow-[inset_0_0_20px_rgba(160,108,213,0.2)]">
-              <Zap className="w-8 h-8" />
-            </div>
-            <h3 className="text-2xl font-bold text-white mb-3">Zero-Lag Engine</h3>
-            <p className="text-subtext leading-relaxed">Our servers are optimized for speed. We are faster than the actual university servers. No loading screens, just answers.</p>
-          </div>
-          <div className="p-8 rounded-2xl bg-surface border border-white/10 hover:border-secondary/40 transition-all group">
-            <div className="w-16 h-16 bg-secondary/10 text-secondary rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform shadow-[inset_0_0_20px_rgba(0,245,212,0.2)]">
-              <Target className="w-8 h-8" />
-            </div>
-            <h3 className="text-2xl font-bold text-white mb-3">Surgical Precision</h3>
-            <p className="text-subtext leading-relaxed">Instant marking with detailed explanations. We pinpoint exactly why you missed a question so you never miss it again.</p>
-          </div>
-          <div className="p-8 rounded-2xl bg-surface border border-white/10 hover:border-accent/40 transition-all group">
-            <div className="w-16 h-16 bg-accent/10 text-accent rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform shadow-[inset_0_0_20px_rgba(255,137,6,0.2)]">
-              <Smartphone className="w-8 h-8" />
-            </div>
-            <h3 className="text-2xl font-bold text-white mb-3">Anywhere Access</h3>
-            <p className="text-subtext leading-relaxed">Revision in the shuttle? In the long queue? PULSAR is perfectly optimized for mobile. Your study doesn't stop.</p>
-          </div>
-        </div>
-      </section>
-
-      {/* COURSE CATALOG */}
-      <section id="courses" className="py-24">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="text-center mb-16">
-             <h2 className="text-4xl font-bold text-white mb-4">Supported 100L Courses</h2>
-             <p className="text-subtext">Comprehensive databases for First Semester.</p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="p-8 bg-surface border border-white/10 rounded-2xl hover:border-primary/50 transition-all group cursor-pointer hover:shadow-2xl hover:shadow-primary/10 relative overflow-hidden">
-              <h3 className="text-2xl font-bold text-white group-hover:text-primary transition-colors mb-2">General Studies</h3>
-              <p className="text-sm text-subtext mb-8">Compulsory university-wide courses.</p>
-              <div className="flex flex-wrap gap-2">
-                <span className="tag">GST 101</span><span className="tag">GST 103</span><span className="tag">ENT 101</span>
-              </div>
-            </div>
-            <div className="p-8 bg-surface border border-white/10 rounded-2xl hover:border-secondary/50 transition-all group cursor-pointer hover:shadow-2xl hover:shadow-secondary/10 relative overflow-hidden">
-              <h3 className="text-2xl font-bold text-white group-hover:text-secondary transition-colors mb-2">Science Cores</h3>
-              <p className="text-sm text-subtext mb-8">Foundation for Science & Engineering.</p>
-              <div className="flex flex-wrap gap-2">
-                <span className="tag">BIO 101</span><span className="tag">CHM 101</span><span className="tag">PHY 101</span>
-              </div>
-            </div>
-            <div className="p-8 bg-surface border border-white/10 rounded-2xl hover:border-accent/50 transition-all group cursor-pointer hover:shadow-2xl hover:shadow-accent/10 relative overflow-hidden">
-              <h3 className="text-2xl font-bold text-white group-hover:text-accent transition-colors mb-2">Math & Computational</h3>
-              <p className="text-sm text-subtext mb-8">Logical and analytical foundations.</p>
-              <div className="flex flex-wrap gap-2">
-                <span className="tag">MTH 101</span><span className="tag">CSC 101</span><span className="tag">STA 111</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-       {/* SLIDING TESTIMONIALS */}
-      <section id="reviews" className="py-24 bg-black/30 border-t border-white/5 overflow-hidden">
+      {/* REVIEWS SLIDER */}
+      <section className="py-20 bg-black/20 border-y border-white/5">
         <div className="max-w-7xl mx-auto px-6 mb-12 text-center">
-          <h2 className="text-4xl font-bold text-white mb-4">Hear From The Scholars</h2>
-          <p className="text-subtext">Real feedback from FUOYE students who crushed their exams.</p>
+          <h2 className="text-3xl font-bold text-white mb-4">Student Success Stories</h2>
+          <p className="text-subtext">Real feedback from scholars who used PULSAR.</p>
         </div>
-        <div className="flex overflow-x-auto snap-x snap-mandatory gap-6 pb-8 px-6 no-scrollbar">
+        
+        {/* Slider Container */}
+        <div className="flex overflow-x-auto snap-x snap-mandatory gap-6 pb-12 px-6 no-scrollbar">
           <TestimonialCard 
-            name="Adebayo T." dept="Computer Science" level="200L"
-            quote="Honestly, the speed of this platform is insane. The actual GST exam felt slow compared to my practice on PULSAR. I cleared MTH 101 because of the rapid-fire drills here."
+            name="Onipe Joshua" 
+            faculty="Education" 
+            dept="English Edu."
+            img="joshua.jpg"
+            quote="I struggled heavily with the Use of English (GST 101) because the syllabus is so vast. PULSAR's practice questions were almost identical to what I saw in the exam hall. The explanations for the Lexis and Structure section helped me understand the rules, not just memorize answers. I walked out of that exam smiling."
           />
           <TestimonialCard 
-            name="Chidinma O." dept="Microbiology" level="100L"
-            quote="I was so scared of BIO 101 until I found this site. The explanations for the corrections are better than my textbook. It teaches you the concept. Got a 4.8 GPA!"
+            name="Amuemoje Caleb" 
+            faculty="Computing" 
+            dept="Computer Science"
+            img="caleb.jpg"
+            quote="As a CS student, I appreciate the tech behind this. Most CBT sites lag, but PULSAR is instant. I used the 'Rapid Fire' mode to drill MTH 101 formulas until they stuck in my head. It's not just a quiz site; it's a full simulation of the ICT center experience."
           />
-           <TestimonialCard 
-            name="Emmanuel K." dept="Mechatronics" level="300L"
-            quote="I wish this existed when I was in 100 level. The interface is exactly like the one in the ICT center, so on exam day, I wasn't nervous at all. Best preparation tool."
+          <TestimonialCard 
+            name="Raji Muzzamil" 
+            faculty="Physical Science" 
+            dept="Geology"
+            img="raji.jpg"
+            quote="Physics (PHY 101) calculation questions usually scare me, but the step-by-step solutions on PULSAR broke everything down. I practiced the motion and vectors module repeatedly. By exam day, I could solve those questions in my sleep. Highly recommend for any science student."
           />
-           <TestimonialCard 
-            name="Zainab A." dept="Economics" level="100L"
-            quote="PULSAR changed the game for my GSTs. The questions are very accurate to past questions, and the mobile view is perfect for studying on the bus to campus."
+        </div>
+      </section>
+
+      {/* MEET THE TEAM */}
+      <section className="py-20 px-6 max-w-5xl mx-auto">
+        <h2 className="text-3xl font-bold text-center text-white mb-12">Built By Your Peers</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <TeamCard 
+            name="Majeed Abdulwali Michael"
+            role="Founder & Visionary"
+            img="founder.jpg"
+            isFounder={true}
+            desc="A 100-level Computer Science student and active CSC member with a passion for EdTech. Majeed built PULSAR to bridge the gap between hard work and smart preparation, ensuring every FUOYE student has the tools to hit a 5.0 GPA."
+          />
+          <TeamCard 
+            name="Amuemoje Caleb"
+            role="Lead Developer"
+            img="caleb.jpg"
+            desc="The engineering brain behind the platform. Also a Computer Science student, Caleb ensures the site runs with zero latency and perfect uptime. He is responsible for the sleek, responsive interface you are using right now."
           />
         </div>
       </section>
 
       {/* FOOTER */}
-      <footer id="contact" className="border-t border-white/10 bg-[#050508] pt-20 pb-10">
-        <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
-          <div className="col-span-1 md:col-span-2">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 bg-primary/20 border border-primary/30 rounded-xl flex items-center justify-center text-white">
-                <PulsarLogo className="w-5 h-5 text-primary" />
-              </div>
-              <h4 className="text-2xl font-extrabold text-white tracking-tight">PULSAR</h4>
+      <footer className="border-t border-white/10 bg-[#050508] pt-16 pb-8 text-center md:text-left">
+        <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-12 mb-12">
+          <div>
+            <div className="flex items-center justify-center md:justify-start gap-2 mb-4">
+               <PulsarLogo className="w-6 h-6 text-primary" />
+               <h4 className="text-xl font-bold text-white">PULSAR</h4>
             </div>
-            <p className="text-subtext leading-relaxed max-w-md mb-8">
-              The premier academic acceleration platform designed exclusively for FUOYE students. We bridge the critical gap between preparation and excellence through advanced simulation technology.
+            <p className="text-sm text-subtext leading-relaxed">
+              Empowering FUOYE students with cutting-edge technology for academic excellence.
             </p>
           </div>
-
           <div>
-            <h4 className="font-bold text-lg text-white mb-6">Direct Contact</h4>
-            <ul className="space-y-5">
+            <h4 className="font-bold text-white mb-6">Contact</h4>
+            <ul className="space-y-4 text-sm text-subtext">
+              <li><a href="mailto:abdulwalimajeed@gmail.com" className="hover:text-primary">abdulwalimajeed@gmail.com</a></li>
+              <li><a href="tel:09068206698" className="hover:text-secondary">09068206698</a></li>
               <li>
-                <a href="mailto:abdulwalimajeed@gmail.com" className="group flex items-center gap-3 text-subtext hover:text-white transition-colors">
-                  <div className="w-8 h-8 bg-white/5 rounded-lg flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                    <Mail className="w-4 h-4 text-primary"/>
-                  </div>
-                  abdulwalimajeed@gmail.com
-                </a>
-              </li>
-              <li>
-                <a href="tel:+2349068206698" className="group flex items-center gap-3 text-subtext hover:text-white transition-colors">
-                  <div className="w-8 h-8 bg-white/5 rounded-lg flex items-center justify-center group-hover:bg-secondary/20 transition-colors">
-                    <Phone className="w-4 h-4 text-secondary"/>
-                  </div>
-                  09068206698
-                </a>
-              </li>
-              <li>
-                <a href="https://wa.me/2349068206698?text=Hello%20PULSAR%2C%20I%20want%20to%20make%20an%20enquiry." target="_blank" rel="noopener noreferrer" className="group flex items-center gap-3 text-subtext hover:text-white transition-colors">
-                  <div className="w-8 h-8 bg-white/5 rounded-lg flex items-center justify-center group-hover:bg-green-500/20 transition-colors">
-                    <MessageCircle className="w-4 h-4 text-green-500"/>
-                  </div>
-                  Chat on WhatsApp
-                </a>
+                 <a href="https://wa.me/2349068206698" className="flex items-center justify-center md:justify-start gap-2 hover:text-green-500">
+                   <MessageCircle className="w-4 h-4" /> Chat on WhatsApp
+                 </a>
               </li>
             </ul>
           </div>
-
           <div>
-            <h4 className="font-bold text-lg text-white mb-6">Platform</h4>
-            <ul className="space-y-3 text-sm text-subtext">
-              <li><Link href="/login" className="hover:text-primary transition-colors">Student Terminal</Link></li>
-              <li><a href="#courses" className="hover:text-primary transition-colors">Course Database</a></li>
-              <li><a href="#" className="hover:text-primary transition-colors">Tutorial Services</a></li>
-              <li><a href="#" className="hover:text-primary transition-colors">Privacy Policy</a></li>
-              <li><a href="#" className="hover:text-primary transition-colors">Terms of Service</a></li>
+            <h4 className="font-bold text-white mb-6">Legal</h4>
+            <ul className="space-y-2 text-sm text-subtext">
+               <li>Terms of Service</li>
+               <li>Privacy Policy</li>
             </ul>
           </div>
         </div>
-        <div className="text-center text-sm text-subtext/50 pt-8 border-t border-white/5 flex flex-col md:flex-row items-center justify-between gap-4">
-          <p>© 2025 PULSAR CBT. All rights reserved.</p>
-          <p>Built with precision for FUOYE.</p>
+        <div className="text-center text-xs text-white/20 pt-8 border-t border-white/5">
+          © 2025 PULSAR CBT. All rights reserved.
         </div>
       </footer>
     </div>
   );
-    }
-                           
+      }
+      
