@@ -39,34 +39,37 @@ const PulsarLogo = ({ className }: { className?: string }) => (
   </svg>
 );
 
-// New "Longitudinal" Vertical Card Design
+// FIXED: Full-width snapping card
 const ReviewCard = ({ data }: { data: any }) => (
-  <div className="min-w-[300px] max-w-[320px] p-8 rounded-[2rem] bg-surface border border-white/10 flex flex-col items-center text-center snap-center relative group hover:border-primary/30 transition-all mx-4">
-    
-    {/* Avatar bubbling out top */}
-    <div className="w-24 h-24 rounded-full p-1 bg-gradient-to-b from-primary to-secondary mb-6 shadow-2xl">
-      <div className="w-full h-full rounded-full bg-black overflow-hidden">
-        <img src={`/${data.img}`} alt={data.name} className="w-full h-full object-cover" />
+  // w-screen makes it full width, p-6 adds internal padding so text isn't on edge
+  <div className="w-screen flex-shrink-0 snap-center p-6 flex items-center justify-center">
+    <div className="w-full max-w-md p-8 rounded-[2rem] bg-surface border border-white/10 flex flex-col items-center text-center relative group hover:border-primary/30 transition-all">
+      
+      {/* Avatar bubbling out top */}
+      <div className="w-24 h-24 rounded-full p-1 bg-gradient-to-b from-primary to-secondary mb-6 shadow-2xl">
+        <div className="w-full h-full rounded-full bg-black overflow-hidden">
+          <img src={`/${data.img}`} alt={data.name} className="w-full h-full object-cover" />
+        </div>
       </div>
-    </div>
 
-    {/* Name & Badge */}
-    <h3 className="text-xl font-bold text-white mb-1">{data.name}</h3>
-    <p className="text-xs text-primary font-bold uppercase tracking-widest mb-4">{data.dept}</p>
+      {/* Name & Badge */}
+      <h3 className="text-xl font-bold text-white mb-1">{data.name}</h3>
+      <p className="text-xs text-primary font-bold uppercase tracking-widest mb-4">{data.dept}</p>
 
-    {/* Stars */}
-    <div className="flex gap-1 mb-6">
-      {[1, 2, 3, 4, 5].map((star) => (
-        <Star key={star} className="w-4 h-4 fill-secondary text-secondary" />
-      ))}
-    </div>
+      {/* Stars */}
+      <div className="flex gap-1 mb-6">
+        {[1, 2, 3, 4, 5].map((star) => (
+          <Star key={star} className="w-4 h-4 fill-secondary text-secondary" />
+        ))}
+      </div>
 
-    {/* Quote */}
-    <div className="relative">
-      <Quote className="absolute -top-3 -left-2 w-6 h-6 text-white/10" />
-      <p className="text-sm leading-relaxed text-subtext italic">
-        "{data.quote}"
-      </p>
+      {/* Quote */}
+      <div className="relative">
+        <Quote className="absolute -top-3 -left-2 w-6 h-6 text-white/10" />
+        <p className="text-sm leading-relaxed text-subtext italic">
+          "{data.quote}"
+        </p>
+      </div>
     </div>
   </div>
 );
@@ -89,16 +92,19 @@ const TeamCard = ({ name, role, desc, img, isFounder }: { name: string, role: st
 export default function Home() {
   const sliderRef = useRef<HTMLDivElement>(null);
 
-  // Slow Auto-Scroll Logic (8 Seconds)
+  // Slow Auto-Scroll Logic (8 Seconds) - Adapted for full screen width
   useEffect(() => {
     const interval = setInterval(() => {
       if (sliderRef.current) {
         const { scrollLeft, scrollWidth, clientWidth } = sliderRef.current;
-        // If at end, scroll back to start, else scroll one card width
-        const scrollAmount = scrollLeft + clientWidth >= scrollWidth - 10 ? -scrollWidth : 320; 
-        sliderRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+        // Check if we are near the end
+        const isAtEnd = scrollLeft + clientWidth >= scrollWidth - 10;
+        // If at end, scroll back to start (0), else scroll one full screen width
+        const scrollTo = isAtEnd ? 0 : scrollLeft + clientWidth;
+        
+        sliderRef.current.scrollTo({ left: scrollTo, behavior: 'smooth' });
       }
-    }, 8000); // 8 Seconds Speed
+    }, 8000);
     return () => clearInterval(interval);
   }, []);
 
@@ -120,7 +126,7 @@ export default function Home() {
         </div>
       </nav>
 
-      {/* 1. HERO SECTION (RESTORED) */}
+      {/* 1. HERO SECTION */}
       <section className="relative pt-40 pb-20 px-6 text-center overflow-hidden">
         <div className="absolute top-[20%] left-[50%] -translate-x-1/2 w-[500px] h-[500px] bg-primary/20 rounded-full blur-[150px] -z-10"></div>
         
@@ -147,7 +153,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 2. TRUST BADGES (RESTORED) */}
+      {/* 2. TRUST BADGES */}
       <section className="py-8 border-y border-white/5 bg-[#0a0a0f]">
         <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-6 text-center md:text-left">
           <p className="text-sm text-subtext uppercase tracking-widest font-bold">Curriculum Aligned With:</p>
@@ -160,7 +166,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 3. FEATURES GRID (RESTORED) */}
+      {/* 3. FEATURES GRID */}
       <section className="py-24 bg-black/20">
         <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-8">
           <div className="p-8 rounded-3xl bg-surface border border-white/10 hover:border-primary/40 transition-all">
@@ -187,17 +193,17 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 4. REVIEWS SLIDER (FIXED: SLOW + MANUAL + TALL CARDS) */}
-      <section className="py-24 border-y border-white/5 bg-gradient-to-b from-black/40 to-black/0">
+      {/* 4. REVIEWS SLIDER (FIXED: FULL WIDTH SNAP) */}
+      <section className="py-24 border-y border-white/5 bg-gradient-to-b from-black/40 to-black/0 overflow-hidden">
         <div className="max-w-7xl mx-auto mb-12 text-center px-6">
           <h2 className="text-3xl font-bold text-white mb-4">Success Stories</h2>
           <p className="text-subtext">Swipe to see how your seniors cleared their papers.</p>
         </div>
         
-        {/* Scroll Container: Snap-x allows manual swiping, no-scrollbar hides the bar */}
+        {/* Slider Container: Removed padding, added w-screen */}
         <div 
           ref={sliderRef}
-          className="flex overflow-x-auto snap-x snap-mandatory pb-12 px-6 no-scrollbar items-stretch"
+          className="flex overflow-x-auto snap-x snap-mandatory pb-12 no-scrollbar w-screen"
           style={{ scrollBehavior: 'smooth' }}
         >
           {REVIEWS.map((review, i) => (
@@ -263,5 +269,4 @@ export default function Home() {
       </footer>
     </div>
   );
-      }
-    
+    }
