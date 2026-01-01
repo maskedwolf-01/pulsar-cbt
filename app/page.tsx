@@ -1,9 +1,35 @@
+"use client";
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { 
   Zap, Target, Smartphone, BookOpen, GraduationCap, ArrowRight, 
-  CheckCircle, MessageCircle, Phone, Mail, Star, Quote, ChevronLeft 
+  CheckCircle, MessageCircle, Phone, Mail, Star, Quote 
 } from 'lucide-react';
+
+// --- DATA: REVIEWS & TEAM ---
+const REVIEWS = [
+  {
+    name: "Onipe Joshua",
+    dept: "English Education",
+    faculty: "Education",
+    img: "joshua.jpg",
+    quote: "I was drowning in GST 101 notes until I found PULSAR. The 'Rapid Fire' mode didn't just help me memorize; it helped me understand the logic behind Lexis and Structure. I walked into that CBT center feeling like I wrote the exam myself. Cleared with an A!"
+  },
+  {
+    name: "Amuemoje Caleb",
+    dept: "Computer Science",
+    faculty: "Computing",
+    img: "caleb.jpg",
+    quote: "As a developer, I'm picky about software. PULSAR is the only platform that matches the actual speed of the FUOYE ICT center. No lag, no glitches. It’s a full simulation. If you want to know exactly how exam day feels before it happens, this is it."
+  },
+  {
+    name: "Raji Muzzamil",
+    dept: "Geology",
+    faculty: "Physical Science",
+    img: "raji.jpg",
+    quote: "Physics calculations (PHY 101) used to be my nightmare. The step-by-step corrections on this site broke down vectors and motion into simple math I could actually do in my head. I went from fearing the exam to finishing 15 minutes early."
+  }
+];
 
 // --- COMPONENTS ---
 
@@ -13,42 +39,65 @@ const PulsarLogo = ({ className }: { className?: string }) => (
   </svg>
 );
 
-const TestimonialCard = ({ name, dept, faculty, quote, img }: { name: string, dept: string, faculty: string, quote: string, img: string }) => (
-  <div className="min-w-[320px] md:min-w-[400px] p-8 rounded-3xl bg-surface border border-white/10 relative flex-shrink-0 snap-center group hover:border-secondary/30 transition-all flex flex-col items-center text-center">
-    {/* Avatar */}
-    <div className="w-24 h-24 rounded-full p-1 bg-gradient-to-br from-secondary to-primary mb-6 shadow-xl relative overflow-hidden">
-      <div className="w-full h-full rounded-full bg-black overflow-hidden relative">
-         {/* Fallback to initial if image fails to load, but typically Next/Image is better. Using simple img tag for GitHub simplicity */}
-         <img src={`/${img}`} alt={name} className="w-full h-full object-cover" />
+const AutoSlideReviews = () => {
+  const [index, setIndex] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setIndex((prev) => (prev + 1) % REVIEWS.length);
+    }, 6000); // Changes every 6 seconds
+    return () => clearInterval(timer);
+  }, []);
+
+  const active = REVIEWS[index];
+
+  return (
+    <div className="relative w-full max-w-4xl mx-auto min-h-[400px] flex items-center justify-center">
+      <div className="w-full p-8 md:p-12 rounded-3xl bg-surface border border-white/10 relative flex flex-col items-center text-center transition-all duration-700 ease-in-out transform">
+        
+        {/* Animated Avatar */}
+        <div className="w-24 h-24 rounded-full p-1 bg-gradient-to-br from-secondary to-primary mb-6 shadow-xl relative overflow-hidden">
+           <div className="w-full h-full rounded-full bg-black overflow-hidden relative">
+             <img src={`/${active.img}`} alt={active.name} className="w-full h-full object-cover" />
+           </div>
+        </div>
+
+        {/* Name Badge */}
+        <div className="bg-secondary/10 text-secondary border border-secondary/20 px-4 py-1 rounded-full text-sm font-bold mb-2 animate-fade-in">
+          {active.name}
+        </div>
+        <p className="text-xs text-subtext uppercase tracking-widest mb-6">{active.dept} • {active.faculty}</p>
+
+        {/* Stars */}
+        <div className="flex gap-1 mb-6">
+          {[1, 2, 3, 4, 5].map((star) => (
+            <Star key={star} className="w-5 h-5 fill-secondary text-secondary" />
+          ))}
+        </div>
+
+        {/* Quote */}
+        <div className="relative max-w-2xl">
+          <Quote className="absolute -top-6 -left-6 w-8 h-8 text-white/10" />
+          <p className="text-base md:text-lg leading-relaxed text-white/90 italic relative z-10 transition-opacity duration-500">
+            "{active.quote}"
+          </p>
+          <Quote className="absolute -bottom-6 -right-6 w-8 h-8 text-white/10 rotate-180" />
+        </div>
+
+        {/* Dots Indicator */}
+        <div className="flex gap-2 mt-8">
+          {REVIEWS.map((_, i) => (
+            <div key={i} className={`w-2 h-2 rounded-full transition-all duration-300 ${i === index ? 'w-8 bg-primary' : 'bg-white/20'}`} />
+          ))}
+        </div>
       </div>
     </div>
-
-    {/* Name Badge */}
-    <div className="bg-secondary/10 text-secondary border border-secondary/20 px-4 py-1 rounded-full text-sm font-bold mb-2">
-      {name}
-    </div>
-    <p className="text-xs text-subtext uppercase tracking-widest mb-6">{dept} • {faculty}</p>
-
-    {/* Stars */}
-    <div className="flex gap-1 mb-6">
-      {[1, 2, 3, 4, 5].map((star) => (
-        <Star key={star} className="w-5 h-5 fill-secondary text-secondary" />
-      ))}
-    </div>
-
-    {/* Quote */}
-    <div className="relative">
-      <Quote className="absolute -top-4 -left-2 w-6 h-6 text-white/10" />
-      <p className="text-sm leading-relaxed text-white/90 italic relative z-10">
-        "{quote}"
-      </p>
-    </div>
-  </div>
-);
+  );
+};
 
 const TeamCard = ({ name, role, desc, img, isFounder }: { name: string, role: string, desc: string, img: string, isFounder?: boolean }) => (
-  <div className={`p-6 rounded-2xl border ${isFounder ? 'bg-primary/5 border-primary/30' : 'bg-surface border-white/10'} flex flex-col md:flex-row items-center gap-6`}>
-    <div className="w-32 h-32 flex-shrink-0 rounded-2xl overflow-hidden border-2 border-white/10">
+  <div className={`p-6 rounded-2xl border ${isFounder ? 'bg-primary/5 border-primary/30' : 'bg-surface border-white/10'} flex flex-col md:flex-row items-center gap-6 group hover:border-primary/50 transition-all`}>
+    <div className="w-32 h-32 flex-shrink-0 rounded-2xl overflow-hidden border-2 border-white/10 group-hover:scale-105 transition-transform duration-500">
       <img src={`/${img}`} alt={name} className="w-full h-full object-cover" />
     </div>
     <div className="text-center md:text-left">
@@ -99,76 +148,59 @@ export default function Home() {
         </div>
       </section>
 
-      {/* REVIEWS SLIDER */}
-      <section className="py-20 bg-black/20 border-y border-white/5">
+      {/* AUTO-SLIDING REVIEWS */}
+      <section className="py-24 bg-black/20 border-y border-white/5">
         <div className="max-w-7xl mx-auto px-6 mb-12 text-center">
           <h2 className="text-3xl font-bold text-white mb-4">Student Success Stories</h2>
-          <p className="text-subtext">Real feedback from scholars who used PULSAR.</p>
+          <p className="text-subtext">Real feedback from scholars who transformed their GPAs.</p>
         </div>
-        
-        {/* Slider Container */}
-        <div className="flex overflow-x-auto snap-x snap-mandatory gap-6 pb-12 px-6 no-scrollbar">
-          <TestimonialCard 
-            name="Onipe Joshua" 
-            faculty="Education" 
-            dept="English Edu."
-            img="joshua.jpg"
-            quote="I struggled heavily with the Use of English (GST 101) because the syllabus is so vast. PULSAR's practice questions were almost identical to what I saw in the exam hall. The explanations for the Lexis and Structure section helped me understand the rules, not just memorize answers. I walked out of that exam smiling."
-          />
-          <TestimonialCard 
-            name="Amuemoje Caleb" 
-            faculty="Computing" 
-            dept="Computer Science"
-            img="caleb.jpg"
-            quote="As a CS student, I appreciate the tech behind this. Most CBT sites lag, but PULSAR is instant. I used the 'Rapid Fire' mode to drill MTH 101 formulas until they stuck in my head. It's not just a quiz site; it's a full simulation of the ICT center experience."
-          />
-          <TestimonialCard 
-            name="Raji Muzzamil" 
-            faculty="Physical Science" 
-            dept="Geology"
-            img="raji.jpg"
-            quote="Physics (PHY 101) calculation questions usually scare me, but the step-by-step solutions on PULSAR broke everything down. I practiced the motion and vectors module repeatedly. By exam day, I could solve those questions in my sleep. Highly recommend for any science student."
-          />
-        </div>
+        <AutoSlideReviews />
       </section>
 
       {/* MEET THE TEAM */}
-      <section className="py-20 px-6 max-w-5xl mx-auto">
-        <h2 className="text-3xl font-bold text-center text-white mb-12">Built By Your Peers</h2>
+      <section className="py-24 px-6 max-w-6xl mx-auto">
+        <h2 className="text-3xl font-bold text-center text-white mb-4">Brains Behind The Code</h2>
+        <p className="text-subtext text-center mb-12 max-w-2xl mx-auto">
+          We don't just build websites; we build ecosystems. From HealthPad Africa to the Faculty of Computing Portal.
+        </p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           <TeamCard 
             name="Majeed Abdulwali Michael"
             role="Founder & Visionary"
             img="founder.jpg"
             isFounder={true}
-            desc="A 100-level Computer Science student and active CSC member with a passion for EdTech. Majeed built PULSAR to bridge the gap between hard work and smart preparation, ensuring every FUOYE student has the tools to hit a 5.0 GPA."
+            desc="100L Computer Science student and Founder of HealthPad Africa. Majeed combines technical expertise with academic insight to build tools that matter. He leads the vision for PULSAR and the upcoming Faculty of Computing portal."
           />
           <TeamCard 
             name="Amuemoje Caleb"
-            role="Lead Developer"
+            role="Co-Founder & Lead Dev"
             img="caleb.jpg"
-            desc="The engineering brain behind the platform. Also a Computer Science student, Caleb ensures the site runs with zero latency and perfect uptime. He is responsible for the sleek, responsive interface you are using right now."
+            desc="Co-founder of HealthPad Africa and a brilliant software architect. Caleb ensures PULSAR runs with military-grade precision. His code powers the Faculty of Computing website and ensures your exam simulation is glitch-free."
           />
         </div>
       </section>
 
-      {/* FOOTER */}
+      {/* FOOTER (Restored Grid Layout) */}
       <footer className="border-t border-white/10 bg-[#050508] pt-16 pb-8 text-center md:text-left">
-        <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-12 mb-12">
-          <div>
+        <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
+          
+          {/* Column 1: Brand */}
+          <div className="col-span-1 md:col-span-2">
             <div className="flex items-center justify-center md:justify-start gap-2 mb-4">
                <PulsarLogo className="w-6 h-6 text-primary" />
                <h4 className="text-xl font-bold text-white">PULSAR</h4>
             </div>
-            <p className="text-sm text-subtext leading-relaxed">
-              Empowering FUOYE students with cutting-edge technology for academic excellence.
+            <p className="text-sm text-subtext leading-relaxed max-w-sm mx-auto md:mx-0">
+              The premier academic acceleration platform designed exclusively for FUOYE students. Bridging the gap between preparation and excellence.
             </p>
           </div>
+
+          {/* Column 2: Contact */}
           <div>
-            <h4 className="font-bold text-white mb-6">Contact</h4>
+            <h4 className="font-bold text-white mb-6">Direct Contact</h4>
             <ul className="space-y-4 text-sm text-subtext">
-              <li><a href="mailto:abdulwalimajeed@gmail.com" className="hover:text-primary">abdulwalimajeed@gmail.com</a></li>
-              <li><a href="tel:09068206698" className="hover:text-secondary">09068206698</a></li>
+              <li><a href="mailto:abdulwalimajeed@gmail.com" className="hover:text-primary flex items-center justify-center md:justify-start gap-2"><Mail className="w-4 h-4"/> abdulwalimajeed@gmail.com</a></li>
+              <li><a href="tel:09068206698" className="hover:text-secondary flex items-center justify-center md:justify-start gap-2"><Phone className="w-4 h-4"/> 09068206698</a></li>
               <li>
                  <a href="https://wa.me/2349068206698" className="flex items-center justify-center md:justify-start gap-2 hover:text-green-500">
                    <MessageCircle className="w-4 h-4" /> Chat on WhatsApp
@@ -176,9 +208,12 @@ export default function Home() {
               </li>
             </ul>
           </div>
+
+          {/* Column 3: Links */}
           <div>
-            <h4 className="font-bold text-white mb-6">Legal</h4>
+            <h4 className="font-bold text-white mb-6">Platform</h4>
             <ul className="space-y-2 text-sm text-subtext">
+               <li><Link href="/login" className="hover:text-white">Student Terminal</Link></li>
                <li>Terms of Service</li>
                <li>Privacy Policy</li>
             </ul>
@@ -190,5 +225,4 @@ export default function Home() {
       </footer>
     </div>
   );
-      }
-      
+    }
