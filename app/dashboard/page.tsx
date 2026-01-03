@@ -3,12 +3,12 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Header from '../components/Header'; // Ensure app/components/Header.tsx exists
 import { 
-  Zap, Clock, Activity, Play, Bell, FileText, 
-  Share2, TrendingUp, Search, User, Loader2 
+  Activity, Clock, FileText, TrendingUp, Search, User, Loader2 
 } from 'lucide-react';
 
-// Bottom Nav Component
+// Mobile Bottom Navigation
 const BottomNav = ({ active }: { active: string }) => (
   <div className="fixed bottom-0 w-full bg-[#0a0a0f]/90 backdrop-blur-lg border-t border-white/5 h-16 flex items-center justify-around px-6 z-50">
     <Link href="/dashboard" className={`flex flex-col items-center gap-1 ${active === 'home' ? 'text-primary' : 'text-subtext hover:text-white'}`}>
@@ -34,31 +34,43 @@ export default function Dashboard() {
 
   useEffect(() => {
     const getData = async () => {
+      // 1. Check Login Status
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         router.push('/login');
         return;
       }
 
-      // Fetch Profile
-      const { data: profileData } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+      // 2. Fetch Profile Data
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+      
+      // Fallback to Auth Metadata if profile row doesn't exist yet
       setProfile(profileData || { full_name: user.user_metadata.full_name || "Scholar" });
 
-      // Fetch Results
-      const { data: resultsData } = await supabase.from('results').select('*').eq('user_id', user.id).order('created_at', { ascending: false });
-      setResults(resultsData || []);
+      // 3. Fetch Exam History
+      const { data: resultsData } = await supabase
+        .from('results')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
       
+      setResults(resultsData || []);
       setLoading(false);
     };
 
     getData();
   }, [router]);
 
-  // Helper to calculate Average Score
+  // Logic: Calculate CGPA from average scores (Mock conversion: 100% = 5.0)
   const calculateCGPA = () => {
     if (!results || results.length === 0) return "0.00";
     const total = results.reduce((acc, curr) => acc + curr.score, 0);
-    return (total / results.length / 20).toFixed(2); // Rough 5.0 scale conversion
+    const average = total / results.length;
+    return (average / 20).toFixed(2); 
   };
 
   if (loading) return <div className="min-h-screen bg-background flex items-center justify-center text-primary"><Loader2 className="w-8 h-8 animate-spin"/></div>;
@@ -66,24 +78,10 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-background text-text font-sans pb-24">
       
-      {/* Top Bar */}
-      <nav className="sticky top-0 z-40 bg-background/95 backdrop-blur-xl border-b border-white/5 px-6 h-16 flex items-center justify-between">
-        <div className="font-bold text-lg text-white tracking-tight">Terminal</div>
-        <div className="flex items-center gap-4">
-          <button className="text-subtext hover:text-white relative">
-            <Bell className="w-5 h-5" />
-          </button>
-          <Link href="/profile" className="w-9 h-9 rounded-full bg-gradient-to-br from-secondary to-primary flex items-center justify-center font-bold text-sm border border-white/20 text-white shadow-lg overflow-hidden">
-             {profile?.avatar_url ? (
-                <img src={profile.avatar_url} alt="Profile" className="w-full h-full object-cover" />
-             ) : (
-                profile?.full_name?.charAt(0) || 'U'
-             )}
-          </Link>
-        </div>
-      </nav>
+      {/* 1. SMART HEADER (Notifications + Profile) */}
+      <Header title="Terminal" />
 
-      {/* Stats */}
+      {/* 2. WELCOME SECTION */}
       <header className="px-6 pt-8 pb-4">
         <h1 className="text-2xl font-bold text-white mb-6">
           Welcome, <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary">{profile?.full_name?.split(' ')[0]}</span>
@@ -106,13 +104,14 @@ export default function Dashboard() {
         </div>
       </header>
 
-      {/* Main Content */}
+      {/* 3. RECENT ACTIVITY LIST */}
       <section className="px-6 py-4">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-bold text-white">Recent Activity</h2>
         </div>
 
         {results.length === 0 ? (
+          // Empty State
           <div className="py-12 px-6 border border-dashed border-white/10 rounded-3xl text-center bg-white/5">
             <div className="w-16 h-16 bg-black/30 rounded-full flex items-center justify-center mx-auto mb-4">
               <FileText className="w-8 h-8 text-subtext" />
@@ -124,19 +123,22 @@ export default function Dashboard() {
             </Link>
           </div>
         ) : (
+          // Result List
           <div className="space-y-3">
             {results.map((r, i) => (
-              <div key={i} className="p-4 bg-surface border border-white/10 rounded-2xl flex justify-between items-center">
+              <div key={i} className="p-4 bg-surface border border-white/10 rounded-2xl flex justify-between items-center group hover:border-primary/50 transition-colors">
                 <div className="flex items-center gap-4">
                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm ${r.score >= 70 ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
                     {r.grade || 'F'}
                   </div>
                   <div>
                     <h3 className="font-bold text-white text-sm">{r.course_code}</h3>
-                    <p className="text-[10px] text-subtext">Completed</p>
+                    <p className="text-[10px] text-subtext">Completed on {new Date(r.created_at).toLocaleDateString()}</p>
                   </div>
                 </div>
-                <span className="text-lg font-bold text-white">{r.score}%</span>
+                <div className="text-right">
+                  <span className="text-lg font-bold text-white">{r.score}%</span>
+                </div>
               </div>
             ))}
           </div>
@@ -146,5 +148,5 @@ export default function Dashboard() {
       <BottomNav active="home" />
     </div>
   );
-                 }
-          
+        }
+             
