@@ -6,6 +6,32 @@
   --foreground-rgb: 255, 255, 255;
   --background-start-rgb: 15, 14, 23;
   --background-end-rgb: 15, 14, 23;
+
+  @tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ... existing root variables ... */
+
+body {
+  /* ... existing background styles ... */
+  
+  /* ANTI-CHEAT & UX LOCKDOWN */
+  -webkit-user-select: none; /* Chrome/Safari */
+  -moz-user-select: none; /* Firefox */
+  -ms-user-select: none; /* IE/Edge */
+  user-select: none; /* Standard */
+  -webkit-touch-callout: none; /* iOS Safari disable menu */
+  touch-action: manipulation; /* Disables double-tap to zoom */
+}
+
+/* Allow interaction only on inputs */
+input, textarea {
+  -webkit-user-select: text;
+  user-select: text;
+}
+  
+  
 }
 
 body {
