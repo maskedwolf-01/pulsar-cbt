@@ -55,3 +55,30 @@ input, textarea {
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.4);
   }
+/* ... existing code ... */
+
+/* PREMIUM ANIMATIONS */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideInRight {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-slide-in-right {
+  animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Page Transition Wrapper (Add this to layout later if needed) */
+.page-transition {
+  opacity: 0;
+  animation: fadeIn 0.5s ease-out forwards;
+    }
+  
