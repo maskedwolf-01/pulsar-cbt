@@ -4,15 +4,14 @@ import { supabase } from '../lib/supabase';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { 
-  ArrowLeft, User, Mail, BookOpen, LogOut, Save, 
+  ArrowLeft, User, BookOpen, LogOut, Save, 
   Loader2, Camera, Bell, X, CheckCircle, AlertTriangle 
 } from 'lucide-react';
 
-// --- CUSTOM COMPONENTS ---
+// --- COMPONENTS ---
 
-// 1. Custom Toast (Notification Popup)
 const Toast = ({ message, type, onClose }: { message: string, type: 'success' | 'error', onClose: () => void }) => (
-  <div className={`fixed top-6 left-1/2 -translate-x-1/2 z-[100] flex items-center gap-3 px-6 py-4 rounded-2xl shadow-2xl backdrop-blur-md border animate-fade-in-down transition-all ${
+  <div className={`fixed top-6 left-1/2 -translate-x-1/2 z-[200] flex items-center gap-3 px-6 py-4 rounded-2xl shadow-2xl backdrop-blur-md border animate-fade-in ${
     type === 'success' ? 'bg-green-500/10 border-green-500 text-green-400' : 'bg-red-500/10 border-red-500 text-red-400'
   }`}>
     {type === 'success' ? <CheckCircle className="w-5 h-5"/> : <AlertTriangle className="w-5 h-5"/>}
@@ -21,47 +20,12 @@ const Toast = ({ message, type, onClose }: { message: string, type: 'success' | 
   </div>
 );
 
-// 2. Notification Dropdown
-const NotificationPanel = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) => {
-  if (!isOpen) return null;
-  return (
-    <div className="absolute top-16 right-6 w-80 bg-[#1a1a1a] border border-white/10 rounded-2xl shadow-2xl z-50 overflow-hidden animate-fade-in-up">
-      <div className="p-4 border-b border-white/5 flex justify-between items-center bg-black/40">
-        <h3 className="font-bold text-white text-sm">Notifications</h3>
-        <button onClick={onClose}><X className="w-4 h-4 text-subtext hover:text-white"/></button>
-      </div>
-      <div className="max-h-[300px] overflow-y-auto">
-        {/* Mock Notifications - We will connect this to DB later */}
-        <div className="p-4 border-b border-white/5 hover:bg-white/5 transition-colors cursor-pointer">
-          <div className="flex justify-between mb-1">
-            <span className="text-xs font-bold text-primary">System</span>
-            <span className="text-[10px] text-subtext">Just now</span>
-          </div>
-          <p className="text-sm text-white">Welcome to PULSAR! Complete your profile to get started.</p>
-        </div>
-        <div className="p-4 hover:bg-white/5 transition-colors cursor-pointer">
-          <div className="flex justify-between mb-1">
-            <span className="text-xs font-bold text-secondary">New Course</span>
-            <span className="text-[10px] text-subtext">2h ago</span>
-          </div>
-          <p className="text-sm text-white">CSC 101 Practice Exam is now live. Share your results!</p>
-        </div>
-      </div>
-      <div className="p-3 bg-black/40 text-center border-t border-white/5">
-        <button className="text-xs text-subtext hover:text-white transition-colors">Mark all as read</button>
-      </div>
-    </div>
-  );
-};
-
-// --- MAIN PROFILE PAGE ---
-
 export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [user, setUser] = useState<any>(null);
   
-  // Form State
+  // Data State
   const [fullName, setFullName] = useState('');
   const [dept, setDept] = useState('');
   const [level, setLevel] = useState('100L');
@@ -69,12 +33,12 @@ export default function ProfilePage() {
   
   // UI State
   const [toast, setToast] = useState<{msg: string, type: 'success' | 'error'} | null>(null);
-  const [showNotifs, setShowNotifs] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Auto-hide toast after 3s
+  // Auto-hide toast
   useEffect(() => {
     if (toast) {
       const timer = setTimeout(() => setToast(null), 3000);
@@ -108,7 +72,7 @@ export default function ProfilePage() {
     getProfile();
   }, [router]);
 
-  // Handle Image Upload
+  // Image Upload
   const handleAvatarUpload = async (event: any) => {
     try {
       setSaving(true);
@@ -119,14 +83,11 @@ export default function ProfilePage() {
       const fileName = `${user.id}-${Math.random()}.${fileExt}`;
       const filePath = `${fileName}`;
 
-      // 1. Upload
       const { error: uploadError } = await supabase.storage.from('avatars').upload(filePath, file);
       if (uploadError) throw uploadError;
 
-      // 2. Get URL
       const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(filePath);
 
-      // 3. Save to Profile
       const { error: updateError } = await supabase
         .from('profiles')
         .upsert({ id: user.id, avatar_url: publicUrl });
@@ -143,7 +104,7 @@ export default function ProfilePage() {
     }
   };
 
-  // Handle Text Update
+  // Text Update
   const handleUpdate = async () => {
     setSaving(true);
     const { error } = await supabase
@@ -158,7 +119,7 @@ export default function ProfilePage() {
       });
 
     if (!error) {
-      setToast({ msg: "Profile details saved successfully.", type: 'success' });
+      setToast({ msg: "Profile details saved.", type: 'success' });
     } else {
       setToast({ msg: "Failed to save profile.", type: 'error' });
     }
@@ -173,9 +134,9 @@ export default function ProfilePage() {
   if (loading) return <div className="min-h-screen bg-background flex items-center justify-center text-primary"><Loader2 className="w-8 h-8 animate-spin"/></div>;
 
   return (
-    <div className="min-h-screen bg-background text-text font-sans p-6 pb-24 relative" onClick={() => setShowNotifs(false)}>
+    <div className="min-h-screen bg-background text-text font-sans p-6 pb-24 relative">
       
-      {/* Toast Notification */}
+      {/* Toast */}
       {toast && <Toast message={toast.msg} type={toast.type} onClose={() => setToast(null)} />}
 
       {/* Header */}
@@ -186,21 +147,9 @@ export default function ProfilePage() {
           </Link>
           <h1 className="text-xl font-bold text-white">Settings</h1>
         </div>
-        
-        {/* Notification Bell */}
-        <div className="relative" onClick={(e) => e.stopPropagation()}>
-          <button 
-            onClick={() => setShowNotifs(!showNotifs)}
-            className="p-2 bg-surface border border-white/10 rounded-full hover:bg-white/10 transition-colors relative"
-          >
-            <Bell className="w-5 h-5 text-white" />
-            <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-background"></span>
-          </button>
-          <NotificationPanel isOpen={showNotifs} onClose={() => setShowNotifs(false)} />
-        </div>
       </header>
 
-      {/* Avatar Section */}
+      {/* Avatar */}
       <div className="flex flex-col items-center mb-8">
         <div className="w-28 h-28 rounded-full bg-gradient-to-br from-primary to-secondary p-1 relative mb-4 shadow-2xl">
           <div className="w-full h-full bg-surface rounded-full flex items-center justify-center text-4xl font-bold text-white overflow-hidden relative group">
@@ -209,14 +158,7 @@ export default function ProfilePage() {
             ) : (
               fullName ? fullName.charAt(0).toUpperCase() : <User className="w-10 h-10"/>
             )}
-            
-            {/* Hover Effect overlay */}
-            <div className="absolute inset-0 bg-black/50 hidden group-hover:flex items-center justify-center">
-               <Camera className="w-6 h-6 text-white"/>
-            </div>
           </div>
-          
-          {/* Camera Button */}
           <button 
             onClick={() => fileInputRef.current?.click()} 
             className="absolute bottom-0 right-0 p-2.5 bg-primary text-white rounded-full shadow-lg border-4 border-background hover:scale-110 transition-transform active:scale-95"
@@ -237,11 +179,10 @@ export default function ProfilePage() {
         </p>
       </div>
 
-      {/* Form Section */}
+      {/* Form */}
       <div className="space-y-6 max-w-md mx-auto">
         <div className="p-6 bg-surface border border-white/10 rounded-3xl space-y-5">
           
-          {/* Full Name */}
           <div>
             <label className="text-[10px] text-subtext uppercase font-bold ml-1 mb-2 block tracking-widest">Display Name</label>
             <div className="relative group">
@@ -255,7 +196,6 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          {/* Department */}
           <div>
             <label className="text-[10px] text-subtext uppercase font-bold ml-1 mb-2 block tracking-widest">Department</label>
             <div className="relative group">
@@ -269,7 +209,6 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          {/* Level Selector */}
           <div>
             <label className="text-[10px] text-subtext uppercase font-bold ml-1 mb-2 block tracking-widest">Academic Level</label>
             <div className="grid grid-cols-4 gap-2">
@@ -284,10 +223,8 @@ export default function ProfilePage() {
               ))}
             </div>
           </div>
-
         </div>
 
-        {/* Action Buttons */}
         <button 
           onClick={handleUpdate}
           disabled={saving}
@@ -296,24 +233,29 @@ export default function ProfilePage() {
           {saving ? <Loader2 className="w-5 h-5 animate-spin"/> : <><Save className="w-5 h-5"/> Save Profile</>}
         </button>
 
-        // 1. Add State
-const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-
-// 2. Update Button onClick
-<button onClick={() => setShowLogoutConfirm(true)} ... >Log Out</button>
-
-// 3. Add Modal Component at the bottom of the return
-{showLogoutConfirm && (
-  <div className="fixed inset-0 z-[200] bg-black/80 backdrop-blur-sm flex items-center justify-center p-6 animate-fade-in">
-    <div className="w-full max-w-sm bg-surface border border-white/10 p-6 rounded-3xl text-center">
-      <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-      <h3 className="text-xl font-bold text-white mb-2">Sign Out?</h3>
-      <p className="text-subtext text-sm mb-6">You will need to sign in again to access your dashboard.</p>
-      <div className="flex gap-3">
-        <button onClick={() => setShowLogoutConfirm(false)} className="flex-1 py-3 bg-white/5 border border-white/10 rounded-xl text-white font-bold">Cancel</button>
-        <button onClick={handleLogout} className="flex-1 py-3 bg-red-500 text-white font-bold rounded-xl shadow-lg shadow-red-500/20">Log Out</button>
+        <button 
+          onClick={() => setShowLogoutConfirm(true)}
+          className="w-full py-4 bg-red-500/5 text-red-500 border border-red-500/20 font-bold rounded-xl flex items-center justify-center gap-2 hover:bg-red-500/10 transition-colors"
+        >
+          <LogOut className="w-5 h-5"/> Log Out
+        </button>
       </div>
+
+      {/* Logout Confirmation Modal */}
+      {showLogoutConfirm && (
+        <div className="fixed inset-0 z-[200] bg-black/80 backdrop-blur-sm flex items-center justify-center p-6 animate-fade-in">
+          <div className="w-full max-w-sm bg-surface border border-white/10 p-6 rounded-3xl text-center">
+            <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+            <h3 className="text-xl font-bold text-white mb-2">Sign Out?</h3>
+            <p className="text-subtext text-sm mb-6">You will need to sign in again to access your dashboard.</p>
+            <div className="flex gap-3">
+              <button onClick={() => setShowLogoutConfirm(false)} className="flex-1 py-3 bg-white/5 border border-white/10 rounded-xl text-white font-bold">Cancel</button>
+              <button onClick={handleLogout} className="flex-1 py-3 bg-red-500 text-white font-bold rounded-xl shadow-lg shadow-red-500/20">Log Out</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
-  </div>
-)}
-  
+  );
+  }
+        
