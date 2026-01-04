@@ -1,7 +1,8 @@
 "use client";
 import { useState, useEffect, useRef } from 'react';
-import { supabase } from '../../lib/supabase'; // Adjust path depending on folder depth
+import { supabase } from '../../lib/supabase'; 
 import { useParams, useRouter } from 'next/navigation';
+import Link from 'next/link'; // <--- THIS WAS MISSING
 import { 
   Clock, Calculator, ChevronLeft, ChevronRight, 
   AlertTriangle, CheckCircle, X, Grid, Lock, LogOut, Loader2, AlertOctagon 
@@ -107,15 +108,13 @@ export default function DynamicExamPage() {
         .single();
 
       if (examError || !exam) {
-        alert("Exam not found.");
+        // Handle error gracefully or redirect
         router.push('/courses');
         return;
       }
       setExamData(exam);
 
-      // Get Questions (Assuming you have a 'questions' table linked to exams)
-      // Since we haven't created the 'questions' table yet, this will return empty
-      // causing the "No Questions" state to trigger correctly.
+      // Get Questions
       const { data: qs, error: qsError } = await supabase
         .from('questions') 
         .select('*')
@@ -150,7 +149,7 @@ export default function DynamicExamPage() {
       <div className="w-20 h-20 bg-surface rounded-full flex items-center justify-center mb-6 border border-white/10">
         <AlertOctagon className="w-10 h-10 text-subtext" />
       </div>
-      <h1 className="text-2xl font-bold text-white mb-2">{examData.course_code}</h1>
+      <h1 className="text-2xl font-bold text-white mb-2">{examData?.course_code}</h1>
       <p className="text-white font-bold text-lg mb-2">No Questions Uploaded Yet</p>
       <p className="text-subtext max-w-md mb-8">The administrator has created this exam shell but has not uploaded the question bank yet.</p>
       <Link href="/courses" className="px-8 py-3 bg-white/10 text-white font-bold rounded-xl hover:bg-white/20">Return to Catalog</Link>
@@ -276,5 +275,5 @@ export default function DynamicExamPage() {
 
     </div>
   );
-    }
-          
+      }
+             
