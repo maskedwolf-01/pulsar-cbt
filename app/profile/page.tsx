@@ -296,14 +296,24 @@ export default function ProfilePage() {
           {saving ? <Loader2 className="w-5 h-5 animate-spin"/> : <><Save className="w-5 h-5"/> Save Profile</>}
         </button>
 
-        <button 
-          onClick={handleLogout}
-          className="w-full py-4 bg-red-500/5 text-red-500 border border-red-500/20 font-bold rounded-xl flex items-center justify-center gap-2 hover:bg-red-500/10 transition-colors"
-        >
-          <LogOut className="w-5 h-5"/> Log Out
-        </button>
+        // 1. Add State
+const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+
+// 2. Update Button onClick
+<button onClick={() => setShowLogoutConfirm(true)} ... >Log Out</button>
+
+// 3. Add Modal Component at the bottom of the return
+{showLogoutConfirm && (
+  <div className="fixed inset-0 z-[200] bg-black/80 backdrop-blur-sm flex items-center justify-center p-6 animate-fade-in">
+    <div className="w-full max-w-sm bg-surface border border-white/10 p-6 rounded-3xl text-center">
+      <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+      <h3 className="text-xl font-bold text-white mb-2">Sign Out?</h3>
+      <p className="text-subtext text-sm mb-6">You will need to sign in again to access your dashboard.</p>
+      <div className="flex gap-3">
+        <button onClick={() => setShowLogoutConfirm(false)} className="flex-1 py-3 bg-white/5 border border-white/10 rounded-xl text-white font-bold">Cancel</button>
+        <button onClick={handleLogout} className="flex-1 py-3 bg-red-500 text-white font-bold rounded-xl shadow-lg shadow-red-500/20">Log Out</button>
       </div>
     </div>
-  );
-    }
+  </div>
+)}
   
