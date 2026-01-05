@@ -1,36 +1,25 @@
 import { NextResponse } from 'next/server';
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const API_URL = "https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent";
+const API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent";
 
 export async function POST(req: Request) {
   if (!GEMINI_API_KEY) return NextResponse.json({ reply: "SYSTEM: API Key Missing" });
 
   try {
-    const { prompt, image_url } = await req.json();
-
-    // Standard Request (Text Only for Gemini Pro v1)
-    // Note: Free tier v1 often limits image input. If image fails, we fallback to text.
-    let requestBody = {
-      contents: [{ parts: [{ text: "You are Nexus. Be concise. User: " + prompt }] }]
-    };
-
+    const { prompt } = await req.json();
     const response = await fetch(`${API_URL}?key=${GEMINI_API_KEY}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(requestBody)
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: "You are Nexus. Answer concisely. User: " + prompt }] }]
+      })
     });
-
     const data = await response.json();
-
-    if (data.error) {
-        return NextResponse.json({ reply: `NEXUS ERROR: ${data.error.message}. (Try sending text only)` });
-    }
-
+    if (data.error) return NextResponse.json({ reply: `GOOGLE ERROR: ${data.error.message}` });
     return NextResponse.json({ reply: data.candidates?.[0]?.content?.parts?.[0]?.text || "No response." });
-
   } catch (error: any) {
     return NextResponse.json({ reply: `SERVER ERROR: ${error.message}` });
   }
-        }
-        
+}
+  
