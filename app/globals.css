@@ -2,12 +2,21 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ===========================================
+   ROOT VARIABLES
+=========================================== */
 :root {
   --foreground-rgb: 255, 255, 255;
   --background-start-rgb: 5, 5, 8;
   --background-end-rgb: 0, 0, 0;
+  --primary-purple: 147, 51, 234;
+  --secondary-pink: 236, 72, 153;
+  --subtext: 156, 163, 175;
 }
 
+/* ===========================================
+   BODY & GLOBAL STYLES
+=========================================== */
 body {
   color: rgb(var(--foreground-rgb));
   background: linear-gradient(
@@ -16,23 +25,36 @@ body {
       rgb(var(--background-end-rgb))
     )
     rgb(var(--background-start-rgb));
+  font-family: 'Inter', sans-serif;
+  margin: 0;
+  padding: 0;
+  min-height: 100dvh;
 
   /* ANTI-CHEAT & UX LOCKDOWN */
   -webkit-user-select: none; /* Chrome/Safari */
-  -moz-user-select: none; /* Firefox */
-  -ms-user-select: none; /* IE/Edge */
-  user-select: none; /* Standard */
+  -moz-user-select: none;    /* Firefox */
+  -ms-user-select: none;     /* IE/Edge */
+  user-select: none;         /* Standard */
   -webkit-touch-callout: none; /* iOS Safari disable menu */
   touch-action: manipulation; /* Disables double-tap to zoom */
 }
 
-/* Allow typing in inputs */
-input, textarea {
+/* ===========================================
+   INPUT / TEXTAREA EXCEPTIONS
+=========================================== */
+input,
+textarea {
   -webkit-user-select: text;
   user-select: text;
+  color: inherit;
+  font-family: inherit;
+  outline: none;
 }
 
-/* Utility to hide scrollbars */
+/* ===========================================
+   SCROLLBARS
+=========================================== */
+/* Hide default scrollbar */
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
@@ -41,9 +63,9 @@ input, textarea {
   scrollbar-width: none;
 }
 
-/* Custom Scrollbar for other areas */
+/* Custom Scrollbar */
 .custom-scrollbar::-webkit-scrollbar {
-  width: 5px;
+  width: 6px;
 }
 .custom-scrollbar::-webkit-scrollbar-track {
   background: rgba(255, 255, 255, 0.05);
@@ -54,10 +76,11 @@ input, textarea {
 }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.4);
-  }
-/* ... existing code ... */
+}
 
-/* PREMIUM ANIMATIONS */
+/* ===========================================
+   PREMIUM ANIMATIONS
+=========================================== */
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(-5px); }
   to { opacity: 1; transform: translateY(0); }
@@ -68,6 +91,11 @@ input, textarea {
   to { transform: translateX(0); }
 }
 
+@keyframes blink {
+  0%, 50%, 100% { opacity: 1; }
+  25%, 75% { opacity: 0; }
+}
+
 .animate-fade-in {
   animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
@@ -76,9 +104,73 @@ input, textarea {
   animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-/* Page Transition Wrapper (Add this to layout later if needed) */
+.blinking-cursor {
+  animation: blink 1s infinite;
+}
+
+/* ===========================================
+   TEXT & TYPOGRAPHY
+=========================================== */
+.text-subtext {
+  color: rgb(var(--subtext));
+}
+
+/* Gradient text utilities */
+.text-gradient {
+  background: linear-gradient(to right, rgb(var(--primary-purple)), rgb(var(--secondary-pink)));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* ===========================================
+   PAGE TRANSITIONS
+=========================================== */
 .page-transition {
   opacity: 0;
   animation: fadeIn 0.5s ease-out forwards;
-    }
-  
+}
+
+/* ===========================================
+   BUTTON / INTERACTIVE ELEMENTS
+=========================================== */
+button {
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+}
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* ===========================================
+   CHAT SPECIFIC STYLING
+=========================================== */
+.chat-message-user {
+  background-color: rgb(var(--primary-purple) / 0.85);
+  color: white;
+  border-radius: 1.25rem 1.25rem 0 1.25rem;
+  max-width: 85%;
+  padding: 1rem;
+}
+
+.chat-message-ai {
+  background-color: #1a1a1a;
+  color: #d1d5db;
+  border-radius: 1.25rem 1.25rem 1.25rem 0;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  max-width: 85%;
+  padding: 1rem;
+}
+
+/* Sidebar hover utilities */
+.sidebar-session {
+  transition: all 0.2s;
+}
+.sidebar-session:hover {
+  background-color: rgba(255,255,255,0.05);
+}
+
+/* Utilities for spacing */
+.h-100dvh {
+  height: 100dvh;
+  }
