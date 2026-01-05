@@ -120,5 +120,5 @@ export default function ResultPage() {
       <BottomNav active="home" />
     </div>
   );
-            }
+              }
                 
