@@ -1,8 +1,6 @@
 import { NextResponse } from 'next/server';
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-// SWITCHED TO 'gemini-flash-latest' (The Universal Free Model)
-// This fixes the "Limit: 0" error by using the standard model your account is allowed to access.
 const API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent";
 
 export async function POST(req: Request) {
@@ -11,22 +9,19 @@ export async function POST(req: Request) {
   try {
     const { prompt, type, context } = await req.json();
 
-    // 1. BUILD THE PROMPT
     let finalPrompt = "";
     
-    // Logic: Explain Failed Exams
     if (type === 'explain' && context) {
-        finalPrompt = `You are a helpful tutor.
+        finalPrompt = `You are an academic tutor.
         Question: "${context.question}"
         Student Answer: "${context.userAnswer}" (Wrong)
         Correct Answer: "${context.correctAnswer}"
-        Briefly explain why the student is wrong and the correct answer is right. Max 2 sentences.`;
+        Explain the error and the correct answer clearly.`;
     } else {
-        // Logic: Standard Chat
-        finalPrompt = "You are Nexus. Be helpful and concise. User: " + prompt;
+        // UPDATED PERSONALITY: Friendly, Academic, Human-like
+        finalPrompt = "You are Nexus, an intelligent academic assistant. Be helpful, clear, and encouraging. Use Markdown for bolding and lists. User: " + prompt;
     }
 
-    // 2. CALL GOOGLE
     const response = await fetch(`${API_URL}?key=${GEMINI_API_KEY}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -37,11 +32,9 @@ export async function POST(req: Request) {
 
     const data = await response.json();
 
-    // 3. HANDLE ERRORS (Gracefully)
     if (data.error) {
-        // Rate Limit Handling (Standard for Free Tier)
         if (data.error.message.includes('Quota') || data.error.code === 429) {
-             return NextResponse.json({ reply: "⚠️ Nexus is busy. Please wait 10 seconds." });
+             return NextResponse.json({ reply: "⚠️ Nexus is thinking... (High Traffic). Please try again in 10 seconds." });
         }
         return NextResponse.json({ reply: `System Error: ${data.error.message}` });
     }
@@ -50,6 +43,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ reply: reply || "No response." });
 
   } catch (error: any) {
-    return NextResponse.json({ reply: "Connection failed." });
+    return NextResponse.json({ reply: "Network connection unstable." });
   }
-}
+  }
