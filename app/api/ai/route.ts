@@ -1,26 +1,67 @@
-import { NextResponse } from 'next/server';
+export const runtime = "edge";
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+import { NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
 
-const API_URL =
-  "https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent";
+/* =======================
+   ENV VARIABLES
+======================= */
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY!;
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
+/* =======================
+   CLIENTS
+======================= */
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+/* =======================
+   GEMINI CONFIG
+======================= */
+const GEMINI_API_URL =
+  "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
+
+/* =======================
+   API ROUTE
+======================= */
 export async function POST(req: Request) {
   if (!GEMINI_API_KEY) {
-    return NextResponse.json({ reply: "SYSTEM: API Key Missing" });
+    return NextResponse.json({ reply: "SYSTEM ERROR: Missing Gemini API key" });
   }
 
   try {
-    const { prompt } = await req.json();
+    const { prompt, userId } = await req.json();
 
-    const response = await fetch(`${API_URL}?key=${GEMINI_API_KEY}`, {
+    if (!prompt) {
+      return NextResponse.json({ reply: "No prompt provided." });
+    }
+
+    /* =======================
+       SAVE USER MESSAGE
+    ======================= */
+    if (userId) {
+      await supabase.from("messages").insert({
+        user_id: userId,
+        role: "user",
+        content: prompt
+      });
+    }
+
+    /* =======================
+       CALL GEMINI
+    ======================= */
+    const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         contents: [
           {
             role: "user",
-            parts: [{ text: prompt }]
+            parts: [
+              {
+                text: `You are Nexus, a smart, concise, friendly AI assistant.\n\nUser: ${prompt}`
+              }
+            ]
           }
         ]
       })
@@ -34,15 +75,26 @@ export async function POST(req: Request) {
       });
     }
 
-    return NextResponse.json({
-      reply:
-        data.candidates?.[0]?.content?.parts?.[0]?.text ??
-        "No response from Gemini."
-    });
+    const reply =
+      data.candidates?.[0]?.content?.parts?.[0]?.text ??
+      "No response from AI.";
 
-  } catch (error: any) {
+    /* =======================
+       SAVE AI MESSAGE
+    ======================= */
+    if (userId) {
+      await supabase.from("messages").insert({
+        user_id: userId,
+        role: "assistant",
+        content: reply
+      });
+    }
+
+    return NextResponse.json({ reply });
+
+  } catch (err: any) {
     return NextResponse.json({
-      reply: `SERVER ERROR: ${error.message}`
+      reply: `SERVER ERROR: ${err.message}`
     });
   }
-      }
+}
