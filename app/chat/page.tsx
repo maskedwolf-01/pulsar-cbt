@@ -6,7 +6,7 @@ import {
   Send, Bot, Plus, MessageSquare, Menu, Loader2, Sparkles, Trash2, Edit2, ArrowLeft, User
 } from 'lucide-react';
 
-// --- MARKDOWN & TABLE RENDERER ---
+// --- MARKDOWN RENDERER ---
 const MarkdownRenderer = ({ text }: { text: string }) => {
   const lines = text.split('\n');
   const renderedContent = [];
@@ -57,9 +57,9 @@ const MarkdownRenderer = ({ text }: { text: string }) => {
 
 const formatBold = (text: string) => text ? text.replace(/\*\*(.*?)\*\*/g, '<strong class="text-purple-300 font-semibold">$1</strong>') : "";
 
-// --- DYNAMIC STATUS ---
-const DynamicLoader = ({ retryAttempt }: { retryAttempt: number }) => {
-  const states = ["Analyzing Request...", "Searching Database...", "Refining Answer...", "Optimizing Output..."];
+// --- DYNAMIC LOADER (Fixed Typo Here) ---
+const DynamicLoader = ({ attempt }: { attempt: number }) => {
+  const states = ["Analyzing...", "Searching...", "Refining...", "Optimizing..."];
   const [index, setIndex] = useState(0);
   useEffect(() => { const t = setInterval(() => setIndex(prev => (prev + 1) % states.length), 1500); return () => clearInterval(t); }, []);
   
@@ -67,7 +67,7 @@ const DynamicLoader = ({ retryAttempt }: { retryAttempt: number }) => {
     <div className="flex items-center gap-3 text-xs text-purple-400 bg-purple-500/5 px-4 py-2 rounded-full border border-purple-500/20 w-fit animate-pulse">
       <Loader2 className="w-3 h-3 animate-spin"/>
       <span className="uppercase tracking-widest font-bold">
-        {retryAttempt > 0 ? `High Traffic... Retrying (${retryAttempt}/3)` : states[index]}
+        {attempt > 0 ? `High Traffic... Retrying (${attempt}/3)` : states[index]}
       </span>
     </div>
   );
@@ -128,6 +128,7 @@ export default function ChatPage() {
     }
   };
 
+  // --- RETRY LOGIC (Recursive) ---
   const sendRequestWithRetry = async (text: string, currentId: string, attempt = 0): Promise<string | null> => {
     setRetryCount(attempt);
     try {
@@ -136,6 +137,7 @@ export default function ChatPage() {
             body: JSON.stringify({ prompt: text, type: 'chat' }) 
         });
         
+        // 429 = QUOTA HIT
         if (res.status === 429) {
             throw new Error("QUOTA_HIT");
         }
@@ -146,8 +148,9 @@ export default function ChatPage() {
         return data.reply;
 
     } catch (error: any) {
+        // If quota hit, wait 5 seconds and try again (up to 3 times)
         if (error.message === "QUOTA_HIT" && attempt < 3) {
-            await new Promise(resolve => setTimeout(resolve, 4000));
+            await new Promise(resolve => setTimeout(resolve, 5000));
             return sendRequestWithRetry(text, currentId, attempt + 1);
         }
         return null; 
@@ -168,13 +171,14 @@ export default function ChatPage() {
     setMessages(prev => [...prev, { role: 'user', text }]);
     if(user && currentId) await supabase.from('chat_history').insert({ user_id: user.id, session_id: currentId, role: 'user', message: text });
 
+    // Send with Retry
     const reply = await sendRequestWithRetry(text, currentId || '');
 
     if (reply) {
         setMessages(prev => [...prev, { role: 'ai', text: reply }]);
         if(user && currentId) await supabase.from('chat_history').insert({ user_id: user.id, session_id: currentId, role: 'model', message: reply });
     } else {
-        setMessages(prev => [...prev, { role: 'ai', text: "⚠️ Server is exceptionally busy. Please wait 30 seconds and try again." }]);
+        setMessages(prev => [...prev, { role: 'ai', text: "⚠️ Server busy. Please wait 1 minute." }]);
     }
     setLoading(false); setRetryCount(0);
     scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -248,7 +252,7 @@ export default function ChatPage() {
             ))
           )}
           
-          {loading && <div className="flex gap-4 mb-6 max-w-3xl mx-auto"><div className="w-8 h-8 rounded-full bg-purple-600/10 flex items-center justify-center"><Bot className="w-4 h-4 text-purple-500"/></div><DynamicLoader retryAttempt={retryCount} /></div>}
+          {loading && <div className="flex gap-4 mb-6 max-w-3xl mx-auto"><div className="w-8 h-8 rounded-full bg-purple-600/10 flex items-center justify-center"><Bot className="w-4 h-4 text-purple-500"/></div><DynamicLoader attempt={retryCount} /></div>}
           
           <div ref={scrollRef}></div>
           <div className="h-24"></div>
@@ -263,5 +267,5 @@ export default function ChatPage() {
       </div>
     </div>
   );
-                           }
-                                        
+    }
+    
