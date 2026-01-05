@@ -76,7 +76,7 @@ const DynamicLoader = ({ retryAttempt }: { retryAttempt: number }) => {
 export default function ChatPage() {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const [retryCount, setRetryCount] = useState(0); // Track retries
+  const [retryCount, setRetryCount] = useState(0); 
   const [messages, setMessages] = useState<any[]>([]);
   const [sessions, setSessions] = useState<any[]>([]);
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -128,7 +128,6 @@ export default function ChatPage() {
     }
   };
 
-  // --- THE INVISIBLE AUTO-RETRY LOGIC ---
   const sendRequestWithRetry = async (text: string, currentId: string, attempt = 0): Promise<string | null> => {
     setRetryCount(attempt);
     try {
@@ -137,23 +136,21 @@ export default function ChatPage() {
             body: JSON.stringify({ prompt: text, type: 'chat' }) 
         });
         
-        // Check for Quota Error (429)
         if (res.status === 429) {
             throw new Error("QUOTA_HIT");
         }
 
         const data = await res.json();
-        if (data.error) throw new Error(data.error); // Catch other errors
+        if (data.error) throw new Error(data.error); 
         
         return data.reply;
 
     } catch (error: any) {
         if (error.message === "QUOTA_HIT" && attempt < 3) {
-            // WAIT 4 SECONDS AND RETRY AUTOMATICALLY
             await new Promise(resolve => setTimeout(resolve, 4000));
             return sendRequestWithRetry(text, currentId, attempt + 1);
         }
-        return null; // Failed after retries
+        return null; 
     }
   };
 
@@ -171,7 +168,6 @@ export default function ChatPage() {
     setMessages(prev => [...prev, { role: 'user', text }]);
     if(user && currentId) await supabase.from('chat_history').insert({ user_id: user.id, session_id: currentId, role: 'user', message: text });
 
-    // Call the Retry Logic
     const reply = await sendRequestWithRetry(text, currentId || '');
 
     if (reply) {
@@ -187,7 +183,6 @@ export default function ChatPage() {
   return (
     <div className="flex h-[100dvh] bg-[#09090b] text-zinc-200 font-sans overflow-hidden relative">
       
-      {/* PULSAR DELETE MODAL */}
       {showDeleteModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
           <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-3xl w-full max-w-sm shadow-2xl">
@@ -204,7 +199,6 @@ export default function ChatPage() {
         </div>
       )}
 
-      {/* SIDEBAR */}
       <div className={`fixed inset-y-0 left-0 z-50 w-72 bg-zinc-900 border-r border-zinc-800 transform transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:relative md:translate-x-0`}>
         <div className="p-4 flex flex-col h-full">
           <div className="flex items-center gap-2 mb-6">
@@ -230,7 +224,6 @@ export default function ChatPage() {
 
       {sidebarOpen && <div onClick={() => setSidebarOpen(false)} className="fixed inset-0 bg-black/80 z-40 md:hidden"></div>}
 
-      {/* MAIN CHAT */}
       <div className="flex-1 flex flex-col relative h-full">
         <header className="md:hidden flex items-center justify-between p-4 bg-zinc-900 border-b border-zinc-800 z-30 flex-none">
           <div className="flex items-center gap-4"><button onClick={() => setSidebarOpen(true)}><Menu className="w-6 h-6"/></button><span className="font-bold text-purple-400">Nexus 1.0</span></div>
@@ -247,27 +240,20 @@ export default function ChatPage() {
             messages.map((msg, i) => (
               <div key={i} className={`flex gap-4 mb-6 max-w-3xl mx-auto ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 {msg.role === 'ai' && <div className="w-8 h-8 rounded-full bg-purple-600/20 flex items-center justify-center mt-1 flex-shrink-0"><Bot className="w-4 h-4 text-purple-400"/></div>}
-                
-                {/* MESSAGE BUBBLE */}
-                <div className={`p-4 rounded-2xl text-sm leading-relaxed shadow-sm max-w-[95%] md:max-w-[85%] ${
-                  msg.role === 'ai' ? 'bg-transparent text-zinc-300' : 'bg-zinc-800 text-white rounded-tr-none'
-                }`}>
+                <div className={`p-4 rounded-2xl text-sm leading-relaxed shadow-sm max-w-[95%] md:max-w-[85%] ${msg.role === 'ai' ? 'bg-transparent text-zinc-300' : 'bg-zinc-800 text-white rounded-tr-none'}`}>
                   {msg.role === 'ai' ? <MarkdownRenderer text={msg.text} /> : msg.text}
                 </div>
-
                 {msg.role === 'user' && <div className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center mt-1 flex-shrink-0"><User className="w-4 h-4 text-zinc-400"/></div>}
               </div>
             ))
           )}
           
-          {/* LOADER SHOWS RETRY STATUS */}
-          {loading && <div className="flex gap-4 mb-6 max-w-3xl mx-auto"><div className="w-8 h-8 rounded-full bg-purple-600/10 flex items-center justify-center"><Bot className="w-4 h-4 text-purple-500"/></div><DynamicLoader retryAttempt={retryAttempt} /></div>}
+          {loading && <div className="flex gap-4 mb-6 max-w-3xl mx-auto"><div className="w-8 h-8 rounded-full bg-purple-600/10 flex items-center justify-center"><Bot className="w-4 h-4 text-purple-500"/></div><DynamicLoader retryAttempt={retryCount} /></div>}
           
           <div ref={scrollRef}></div>
           <div className="h-24"></div>
         </div>
 
-        {/* INPUT */}
         <div className="p-4 bg-gradient-to-t from-black via-zinc-950 to-transparent z-20 flex-none pb-8 md:pb-4">
           <div className="max-w-3xl mx-auto bg-zinc-900 border border-zinc-800 rounded-2xl p-2 flex items-center shadow-2xl">
             <input value={input} onChange={(e) => setInput(e.target.value)} placeholder="Ask Nexus anything..." className="flex-1 bg-transparent border-none text-white px-4 py-3 focus:outline-none placeholder:text-zinc-600" onKeyDown={(e) => e.key === 'Enter' && handleSend()}/>
@@ -277,5 +263,5 @@ export default function ChatPage() {
       </div>
     </div>
   );
-            }
+                           }
                                         
