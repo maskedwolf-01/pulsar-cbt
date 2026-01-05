@@ -3,24 +3,42 @@ import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import Link from 'next/link';
 import {
-  Send, Bot, Plus, MessageSquare, Menu, Loader2, Sparkles, Trash2, Edit2, ArrowLeft, User, AlertTriangle
+  Send, Bot, Plus, MessageSquare, Menu, Loader2, Sparkles, Trash2, Edit2, ArrowLeft, User
 } from 'lucide-react';
 
-// --- SLOW TYPEWRITER (Fixes "Too Fast" Text) ---
+// --- FIXED TYPEWRITER (No dropped letters) ---
 const Typewriter = ({ text }: { text: string }) => {
-  const [displayedText, setDisplayedText] = useState('');
+  const [display, setDisplay] = useState('');
+  
   useEffect(() => {
     let i = 0;
-    setDisplayedText('');
-    const intervalId = setInterval(() => {
-      setDisplayedText((prev) => prev + text.charAt(i));
+    // Faster, smoother typing (10ms)
+    const interval = setInterval(() => {
+      setDisplay(text.slice(0, i)); // Slice is safe, never drops letters
       i++;
-      if (i === text.length) clearInterval(intervalId);
-    }, 20); 
-    return () => clearInterval(intervalId);
+      if (i > text.length) clearInterval(interval);
+    }, 10);
+    return () => clearInterval(interval);
   }, [text]);
-  return <p>{displayedText}</p>;
+
+  // RENDER MARKDOWN (Bold & Newlines)
+  return (
+    <div className="whitespace-pre-wrap">
+      {display.split('**').map((part, index) => 
+        index % 2 === 1 ? <strong key={index} className="text-purple-300">{part}</strong> : part
+      )}
+    </div>
+  );
 };
+
+// --- STATIC MESSAGE RENDERER (For History) ---
+const StaticMessage = ({ text }: { text: string }) => (
+  <div className="whitespace-pre-wrap">
+    {text.split('**').map((part, index) => 
+      index % 2 === 1 ? <strong key={index} className="text-purple-300">{part}</strong> : part
+    )}
+  </div>
+);
 
 export default function ChatPage() {
   const [input, setInput] = useState('');
@@ -30,7 +48,6 @@ export default function ChatPage() {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   
-  // Edit & Delete State
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState('');
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -72,20 +89,14 @@ export default function ChatPage() {
     setEditingId(null);
   };
 
-  // --- CUSTOM DELETE LOGIC ---
-  const confirmDelete = (id: string, e: any) => {
-    e.stopPropagation();
-    setChatToDelete(id);
-    setShowDeleteModal(true); // Open the Pulsar Modal
-  };
-
+  const confirmDelete = (id: string, e: any) => { e.stopPropagation(); setChatToDelete(id); setShowDeleteModal(true); };
+  
   const executeDelete = async () => {
     if (!chatToDelete) return;
     await supabase.from('chat_sessions').delete().eq('id', chatToDelete);
     setSessions(sessions.filter(s => s.id !== chatToDelete));
     if (sessionId === chatToDelete) { setSessionId(null); setMessages([]); }
     setShowDeleteModal(false);
-    setChatToDelete(null);
   };
 
   const handleSend = async () => {
@@ -98,18 +109,12 @@ export default function ChatPage() {
       if(data) { setSessions([data, ...sessions]); setSessionId(data.id); currentId = data.id; }
     }
 
-    const text = input; 
-    setInput(''); 
-    setLoading(true);
+    const text = input; setInput(''); setLoading(true);
     setMessages(prev => [...prev, { role: 'user', text, isHistory: true }]);
     await supabase.from('chat_history').insert({ user_id: user!.id, session_id: currentId, role: 'user', message: text });
 
     try {
-      // Pass 'type: chat' context
-      const res = await fetch('/api/ai', { 
-          method: 'POST', 
-          body: JSON.stringify({ prompt: text, type: 'chat' }) 
-      });
+      const res = await fetch('/api/ai', { method: 'POST', body: JSON.stringify({ prompt: text, type: 'chat' }) });
       const data = await res.json();
       setMessages(prev => [...prev, { role: 'ai', text: data.reply, isHistory: false }]);
       await supabase.from('chat_history').insert({ user_id: user!.id, session_id: currentId, role: 'model', message: data.reply });
@@ -124,24 +129,18 @@ export default function ChatPage() {
   return (
     <div className="flex h-[100dvh] bg-[#050508] text-white font-sans overflow-hidden relative">
       
-      {/* --- PULSAR DELETE MODAL --- */}
+      {/* DELETE MODAL */}
       {showDeleteModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-          <div className="bg-[#1a1a1a] border border-white/10 p-6 rounded-3xl w-full max-w-sm shadow-2xl scale-100">
+          <div className="bg-[#1a1a1a] border border-white/10 p-6 rounded-3xl w-full max-w-sm shadow-2xl">
             <div className="flex flex-col items-center text-center mb-6">
-              <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mb-4 border border-red-500/20">
-                <Trash2 className="w-8 h-8 text-red-500"/>
-              </div>
-              <h3 className="text-xl font-bold text-white">Delete Chat?</h3>
-              <p className="text-sm text-subtext mt-2">This will permanently erase this conversation.</p>
+              <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mb-4 border border-red-500/20"><Trash2 className="w-8 h-8 text-red-500"/></div>
+              <h3 className="text-xl font-bold">Delete Chat?</h3>
+              <p className="text-sm text-subtext mt-2">This cannot be undone.</p>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <button onClick={() => setShowDeleteModal(false)} className="py-3 rounded-xl bg-white/5 hover:bg-white/10 font-bold text-sm transition-colors border border-white/5">
-                Cancel
-              </button>
-              <button onClick={executeDelete} className="py-3 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-sm shadow-[0_0_20px_rgba(239,68,68,0.3)] transition-all">
-                Delete
-              </button>
+              <button onClick={() => setShowDeleteModal(false)} className="py-3 rounded-xl bg-white/5 font-bold text-sm">Cancel</button>
+              <button onClick={executeDelete} className="py-3 rounded-xl bg-red-600 font-bold text-sm">Delete</button>
             </div>
           </div>
         </div>
@@ -152,20 +151,18 @@ export default function ChatPage() {
         <div className="p-4 flex flex-col h-full">
           <div className="flex items-center gap-2 mb-6">
             <Link href="/dashboard" className="p-2 hover:bg-white/5 rounded-full"><ArrowLeft className="w-5 h-5"/></Link>
-            <button onClick={createSession} className="flex-1 flex items-center gap-2 bg-purple-600 hover:bg-purple-500 p-2 rounded-xl text-sm font-bold justify-center transition-colors"><Plus className="w-4 h-4" /> New Chat</button>
+            <button onClick={createSession} className="flex-1 flex items-center gap-2 bg-purple-600 hover:bg-purple-500 p-2 rounded-xl text-sm font-bold justify-center"><Plus className="w-4 h-4" /> New Chat</button>
           </div>
           <div className="flex-1 overflow-y-auto custom-scrollbar space-y-2">
             <div className="text-[10px] text-subtext uppercase font-bold tracking-widest pl-2 mb-2">History</div>
             {sessions.map(s => (
-              <div key={s.id} onClick={() => { setSessionId(s.id); setSidebarOpen(false); }} className={`group w-full text-left p-3 rounded-xl flex justify-between items-center cursor-pointer transition-all ${sessionId === s.id ? 'bg-white/10 text-white border border-white/5' : 'text-gray-400 hover:bg-white/5 border border-transparent'}`}>
+              <div key={s.id} onClick={() => { setSessionId(s.id); setSidebarOpen(false); }} className={`group w-full text-left p-3 rounded-xl flex justify-between items-center cursor-pointer transition-all ${sessionId === s.id ? 'bg-white/10 text-white' : 'text-gray-400 hover:bg-white/5'}`}>
                 {editingId === s.id ? (
                   <input autoFocus className="bg-black border border-white/20 rounded px-2 py-1 w-full text-xs text-white" value={editTitle} onChange={e => setEditTitle(e.target.value)} onBlur={() => renameSession(s.id)} onKeyDown={e => e.key === 'Enter' && renameSession(s.id)} />
                 ) : ( <div className="flex items-center gap-3 truncate w-full"><MessageSquare className={`w-4 h-4 flex-shrink-0 ${sessionId === s.id?'text-purple-400':'text-gray-600'}`}/><span className="text-sm truncate max-w-[130px]">{s.title}</span></div> )}
-                
-                {/* LARGER ACTION BUTTONS */}
                 <div className="flex gap-1 md:opacity-0 md:group-hover:opacity-100 transition-opacity bg-[#0a0a0f] pl-2">
-                  <button onClick={(e) => { e.stopPropagation(); setEditingId(s.id); setEditTitle(s.title); }} className="p-2 hover:bg-white/10 rounded-lg text-gray-400 hover:text-white"><Edit2 className="w-3.5 h-3.5"/></button>
-                  <button onClick={(e) => confirmDelete(s.id, e)} className="p-2 hover:bg-red-500/10 rounded-lg text-gray-400 hover:text-red-500"><Trash2 className="w-3.5 h-3.5"/></button>
+                  <button onClick={(e) => { e.stopPropagation(); setEditingId(s.id); setEditTitle(s.title); }} className="p-2 hover:bg-white/10 rounded-lg"><Edit2 className="w-3.5 h-3.5"/></button>
+                  <button onClick={(e) => confirmDelete(s.id, e)} className="p-2 hover:bg-red-500/10 rounded-lg text-red-500"><Trash2 className="w-3.5 h-3.5"/></button>
                 </div>
               </div>
             ))}
@@ -193,7 +190,8 @@ export default function ChatPage() {
               <div key={i} className={`flex gap-4 mb-6 max-w-3xl mx-auto ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 {msg.role === 'ai' && <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-600 to-pink-600 p-[1px] mt-1"><div className="w-full h-full bg-black rounded-full flex items-center justify-center"><Bot className="w-4 h-4 text-white"/></div></div>}
                 <div className={`p-4 rounded-2xl text-sm leading-relaxed shadow-lg ${msg.role === 'ai' ? 'bg-[#1a1a1a] text-gray-200 rounded-tl-none border border-white/5 max-w-[85%]' : 'bg-purple-600 text-white rounded-tr-none max-w-[80%]'}`}>
-                  {msg.role === 'ai' && !msg.isHistory ? <Typewriter text={msg.text} /> : msg.text}
+                  {/* USE STATIC MESSAGE FOR HISTORY TO PREVENT RE-TYPING ON RELOAD */}
+                  {msg.role === 'ai' && !msg.isHistory ? <Typewriter text={msg.text} /> : <StaticMessage text={msg.text} />}
                 </div>
                 {msg.role === 'user' && <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center mt-1"><User className="w-4 h-4 text-white"/></div>}
               </div>
@@ -204,7 +202,7 @@ export default function ChatPage() {
           <div className="h-24"></div>
         </div>
 
-        {/* INPUT AREA */}
+        {/* INPUT */}
         <div className="p-4 bg-gradient-to-t from-black via-black/90 to-transparent z-20 flex-none pb-8 md:pb-4">
           <div className="max-w-3xl mx-auto bg-[#1a1a1a] border border-white/10 rounded-2xl p-2 flex items-center shadow-2xl">
             <input value={input} onChange={(e) => setInput(e.target.value)} placeholder="Ask Nexus anything..." className="flex-1 bg-transparent border-none text-white px-4 py-3 focus:outline-none" onKeyDown={(e) => e.key === 'Enter' && handleSend()}/>
@@ -215,4 +213,4 @@ export default function ChatPage() {
     </div>
   );
     }
-    
+                               
