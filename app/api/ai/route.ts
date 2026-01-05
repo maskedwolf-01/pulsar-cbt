@@ -1,40 +1,34 @@
-export const runtime = "edge";
+import { NextResponse } from 'next/server';
 
-import { NextResponse } from "next/server";
-
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY!;
-
-const GEMINI_API_URL =
-  "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.0-pro:generateContent";
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+// Standard Flash URL (Best for Free Tier New Projects)
+const API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
 
 export async function POST(req: Request) {
+  if (!GEMINI_API_KEY) return NextResponse.json({ reply: "SYSTEM: API Key Missing" });
+
   try {
     const { prompt } = await req.json();
 
-    const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+    const response = await fetch(`${API_URL}?key=${GEMINI_API_KEY}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        contents: [
-          {
-            role: "user",
-            parts: [{ text: prompt }]
-          }
-        ]
+        contents: [{ parts: [{ text: "You are Nexus. Be concise. User: " + prompt }] }]
       })
     });
 
     const data = await response.json();
 
-    if (!response.ok) {
-      return NextResponse.json({ reply: data.error?.message });
+    if (data.error) {
+        return NextResponse.json({ reply: `GOOGLE ERROR: ${data.error.message}` });
     }
 
-    return NextResponse.json({
-      reply: data.candidates[0].content.parts[0].text
-    });
+    const reply = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    return NextResponse.json({ reply: reply || "Nexus is silent." });
 
-  } catch (e: any) {
-    return NextResponse.json({ reply: e.message });
+  } catch (error: any) {
+    return NextResponse.json({ reply: `SERVER ERROR: ${error.message}` });
   }
-       }
+                }
+  
