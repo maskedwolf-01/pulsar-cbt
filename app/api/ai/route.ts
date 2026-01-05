@@ -1,10 +1,9 @@
 import { NextResponse } from 'next/server';
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-// SWITCHING TO 'gemini-flash-latest'
-// This is the "Universal Adapter" found in your model list.
-// It automatically picks the most available Flash model for your account.
-const API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent";
+// SWITCHING TO EXPERIMENTAL (Always Free & High Limit)
+// This model exists in your list and bypasses the "Limit: 0" billing error.
+const API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent";
 
 export async function POST(req: Request) {
   if (!GEMINI_API_KEY) return NextResponse.json({ reply: "SYSTEM: API Key Missing" });
@@ -14,7 +13,7 @@ export async function POST(req: Request) {
 
     let finalPrompt = "";
     
-    // Exam Tutor Logic
+    // Exam Tutor
     if (type === 'explain' && context) {
         finalPrompt = `You are a tutor. 
         Question: "${context.question}"
@@ -22,11 +21,10 @@ export async function POST(req: Request) {
         Correct Answer: "${context.correctAnswer}"
         Briefly explain the error.`;
     } 
-    // Chat Logic
+    // Chat Mode
     else {
-        finalPrompt = `You are Nexus. Be helpful, human, and concise. 
+        finalPrompt = `You are Nexus. Be helpful and human. 
         Use Markdown (bold, lists). 
-        If asked for a table, use strictly | Header | format.
         User: ${prompt}`;
     }
 
@@ -40,13 +38,10 @@ export async function POST(req: Request) {
 
     const data = await response.json();
 
-    // ERROR HANDLING
     if (data.error) {
-        // If Quota hit, send 429 status for Auto-Retry
-        if (data.error.message.includes('Quota') || data.error.code === 429) {
-             return NextResponse.json({ error: "QUOTA_HIT" }, { status: 429 });
-        }
-        return NextResponse.json({ reply: `System Error: ${data.error.message}` });
+        // If this fails, we show the RAW error so we know exactly what's wrong.
+        console.error("AI Error:", data.error);
+        return NextResponse.json({ reply: `Nexus Error: ${data.error.message}` });
     }
 
     const reply = data.candidates?.[0]?.content?.parts?.[0]?.text;
@@ -55,5 +50,4 @@ export async function POST(req: Request) {
   } catch (error: any) {
     return NextResponse.json({ reply: "Connection failed." });
   }
-          }
-          
+}
