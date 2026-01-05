@@ -1,39 +1,25 @@
 "use client";
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { Upload, FileText, Trash2, Loader2, RefreshCw, Bell, Send } from 'lucide-react';
+import { Upload, FileText, Trash2, Loader2, RefreshCw, Bell, Send, CheckCircle, XCircle } from 'lucide-react';
 
 export default function AdminPage() {
   const [activeTab, setActiveTab] = useState('pdf');
   const [files, setFiles] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
-  
-  // Notification State
   const [notifTitle, setNotifTitle] = useState('');
   const [notifMsg, setNotifMsg] = useState('');
+  const [toast, setToast] = useState<{msg: string, type: 'success' | 'error'} | null>(null);
 
   // PDF State
   const [title, setTitle] = useState('');
   const [code, setCode] = useState('');
 
-  useEffect(() => { 
-    fetchFiles(); 
-    runAutoCleanup(); // <--- MAGIC CLEANUP FUNCTION
-  }, []);
-
-  // 1. AUTO DELETE OLD DATA (The "Secret" Cleaner)
-  const runAutoCleanup = async () => {
-    // Logic: If we had a backend, we'd delete here. 
-    // Since we are client-side only, we just notify Admin to clean up manually for now
-    // or trigger a specific SQL function if we had one.
-    console.log("System check: Storage optimized.");
-  };
+  useEffect(() => { fetchFiles(); }, []);
+  useEffect(() => { if(toast) setTimeout(()=>setToast(null), 3000); }, [toast]);
 
   const fetchFiles = async () => {
-    setLoading(true);
     const { data } = await supabase.from('resources').select('*').order('created_at', { ascending: false });
     setFiles(data || []);
-    setLoading(false);
   };
 
   const handleUpload = async (e: any) => {
@@ -44,25 +30,34 @@ export default function AdminPage() {
       await supabase.storage.from('resources').upload(fileName, file);
       const { data: { publicUrl } } = supabase.storage.from('resources').getPublicUrl(fileName);
       await supabase.from('resources').insert({ title, course_code: code, file_url: publicUrl, file_size: '0.5 MB' });
-      alert("Uploaded!"); fetchFiles();
-    } catch (e:any) { alert(e.message); }
+      setToast({msg: "File Uploaded!", type: 'success'}); fetchFiles();
+    } catch (e:any) { setToast({msg: e.message, type: 'error'}); }
   };
 
   const handleDelete = async (id: number) => {
     if(!confirm("Delete?")) return;
     await supabase.from('resources').delete().eq('id', id);
-    fetchFiles(); // Refresh list immediately
+    fetchFiles();
   };
 
   const sendBroadcast = async () => {
-      if(!confirm("Send to ALL students?")) return;
-      // Fetch all users (Simplified: In real app, you'd insert to a 'global_notifications' table)
-      // For now, we simulate by alerting success
-      alert("Broadcast Sent! (Requires 'profiles' loop in backend to function fully)");
+      if(!notifMsg.trim()) return;
+      try {
+          await supabase.from('broadcasts').insert({ title: notifTitle || 'Announcement', message: notifMsg });
+          setToast({msg: "Broadcast Sent to All Users!", type: 'success'});
+          setNotifMsg(''); setNotifTitle('');
+      } catch (e:any) { setToast({msg: e.message, type: 'error'}); }
   };
 
   return (
     <div className="min-h-screen bg-black p-6 text-white font-sans pb-24">
+      {toast && (
+        <div className={`fixed top-5 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-6 py-3 rounded-xl border backdrop-blur-md ${toast.type === 'success' ? 'bg-green-500/10 border-green-500 text-green-400' : 'bg-red-500/10 border-red-500 text-red-400'}`}>
+          {toast.type === 'success' ? <CheckCircle className="w-5 h-5"/> : <XCircle className="w-5 h-5"/>}
+          <span className="font-bold text-sm">{toast.msg}</span>
+        </div>
+      )}
+
       <h1 className="text-3xl font-bold mb-8 text-purple-500">Command Center</h1>
 
       <div className="flex gap-4 mb-8">
@@ -81,11 +76,10 @@ export default function AdminPage() {
                     <span className="text-sm font-bold">Select PDF</span>
                 </label>
             </div>
-            
             <div className="bg-gray-900 p-6 rounded-3xl border border-white/10">
                 <div className="flex justify-between mb-4">
                     <h2 className="text-xl font-bold">Manage</h2>
-                    <button onClick={fetchFiles}><RefreshCw className={`w-4 h-4 ${loading?'animate-spin':''}`}/></button>
+                    <button onClick={fetchFiles}><RefreshCw className="w-4 h-4"/></button>
                 </div>
                 <div className="space-y-2 max-h-[400px] overflow-y-auto">
                     {files.map(f => (
@@ -109,5 +103,5 @@ export default function AdminPage() {
       )}
     </div>
   );
-  }
+        }
       
