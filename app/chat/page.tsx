@@ -6,7 +6,7 @@ import {
   Send, Bot, Plus, MessageSquare, Menu, Loader2, Sparkles, Trash2, Edit2, ArrowLeft, User
 } from 'lucide-react';
 
-// --- MARKDOWN RENDERER ---
+// --- MARKDOWN RENDERER (Fixed Width Issue) ---
 const MarkdownRenderer = ({ text }: { text: string }) => {
   const lines = text.split('\n');
   const renderedContent = [];
@@ -29,7 +29,7 @@ const MarkdownRenderer = ({ text }: { text: string }) => {
           <tbody>
             {rows.map((row, i) => (
               <tr key={i} className="border-b border-zinc-700/30 last:border-0 hover:bg-zinc-800/20">
-                {row.map((cell, j) => <td key={j} className="p-3 align-top text-zinc-300" dangerouslySetInnerHTML={{__html: formatBold(cell)}}></td>)}
+                {row.map((cell, j) => <td key={j} className="p-3 align-top text-zinc-300 break-words" dangerouslySetInnerHTML={{__html: formatBold(cell)}}></td>)}
               </tr>
             ))}
           </tbody>
@@ -44,20 +44,26 @@ const MarkdownRenderer = ({ text }: { text: string }) => {
       inTable = true; tableBuffer.push(line);
     } else {
       if (inTable) { renderedContent.push(flushTable(i)); tableBuffer = []; inTable = false; }
-      if (line.startsWith('### ')) renderedContent.push(<h3 key={i} className="text-purple-300 font-bold text-lg mt-4 mb-2">{line.replace('### ', '')}</h3>);
-      else if (line.startsWith('## ')) renderedContent.push(<h2 key={i} className="text-purple-400 font-bold text-xl mt-5 mb-3 border-b border-zinc-700 pb-2">{line.replace('## ', '')}</h2>);
-      else if (line.startsWith('* ')) renderedContent.push(<div key={i} className="flex gap-2 ml-1 my-1"><span className="text-purple-500 font-bold">•</span><span dangerouslySetInnerHTML={{ __html: formatBold(line.replace('* ', '')) }}></span></div>);
+      
+      // HEADERS
+      if (line.startsWith('### ')) renderedContent.push(<h3 key={i} className="text-purple-300 font-bold text-lg mt-4 mb-2 break-words">{line.replace('### ', '')}</h3>);
+      else if (line.startsWith('## ')) renderedContent.push(<h2 key={i} className="text-purple-400 font-bold text-xl mt-5 mb-3 border-b border-zinc-700 pb-2 break-words">{line.replace('## ', '')}</h2>);
+      
+      // LISTS
+      else if (line.startsWith('* ')) renderedContent.push(<div key={i} className="flex gap-2 ml-1 my-1"><span className="text-purple-500 font-bold">•</span><span className="break-words" dangerouslySetInnerHTML={{ __html: formatBold(line.replace('* ', '')) }}></span></div>);
+      
+      // STANDARD TEXT (Added break-words and whitespace-pre-wrap)
       else if (line === '') renderedContent.push(<div key={i} className="h-2"></div>);
-      else renderedContent.push(<p key={i} className="leading-relaxed" dangerouslySetInnerHTML={{ __html: formatBold(line) }}></p>);
+      else renderedContent.push(<p key={i} className="leading-relaxed break-words whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: formatBold(line) }}></p>);
     }
   }
   if (inTable) renderedContent.push(flushTable(lines.length));
-  return <div className="space-y-1">{renderedContent}</div>;
+  return <div className="space-y-1 w-full">{renderedContent}</div>;
 };
 
 const formatBold = (text: string) => text ? text.replace(/\*\*(.*?)\*\*/g, '<strong class="text-purple-300 font-semibold">$1</strong>') : "";
 
-// --- DYNAMIC LOADER (Fixed Typo Here) ---
+// --- DYNAMIC LOADER ---
 const DynamicLoader = ({ attempt }: { attempt: number }) => {
   const states = ["Analyzing...", "Searching...", "Refining...", "Optimizing..."];
   const [index, setIndex] = useState(0);
@@ -67,7 +73,7 @@ const DynamicLoader = ({ attempt }: { attempt: number }) => {
     <div className="flex items-center gap-3 text-xs text-purple-400 bg-purple-500/5 px-4 py-2 rounded-full border border-purple-500/20 w-fit animate-pulse">
       <Loader2 className="w-3 h-3 animate-spin"/>
       <span className="uppercase tracking-widest font-bold">
-        {attempt > 0 ? `High Traffic... Retrying (${attempt}/3)` : states[index]}
+        {attempt > 0 ? `Traffic High... Retrying (${attempt}/3)` : states[index]}
       </span>
     </div>
   );
@@ -128,7 +134,7 @@ export default function ChatPage() {
     }
   };
 
-  // --- RETRY LOGIC (Recursive) ---
+  // --- RETRY LOGIC (Slower Wait Time) ---
   const sendRequestWithRetry = async (text: string, currentId: string, attempt = 0): Promise<string | null> => {
     setRetryCount(attempt);
     try {
@@ -137,20 +143,15 @@ export default function ChatPage() {
             body: JSON.stringify({ prompt: text, type: 'chat' }) 
         });
         
-        // 429 = QUOTA HIT
-        if (res.status === 429) {
-            throw new Error("QUOTA_HIT");
-        }
-
+        if (res.status === 429) throw new Error("QUOTA_HIT");
         const data = await res.json();
         if (data.error) throw new Error(data.error); 
-        
         return data.reply;
 
     } catch (error: any) {
-        // If quota hit, wait 5 seconds and try again (up to 3 times)
+        // Wait 8 Seconds if Quota Hit (Allows Free Tier to Reset)
         if (error.message === "QUOTA_HIT" && attempt < 3) {
-            await new Promise(resolve => setTimeout(resolve, 5000));
+            await new Promise(resolve => setTimeout(resolve, 8000));
             return sendRequestWithRetry(text, currentId, attempt + 1);
         }
         return null; 
@@ -171,7 +172,6 @@ export default function ChatPage() {
     setMessages(prev => [...prev, { role: 'user', text }]);
     if(user && currentId) await supabase.from('chat_history').insert({ user_id: user.id, session_id: currentId, role: 'user', message: text });
 
-    // Send with Retry
     const reply = await sendRequestWithRetry(text, currentId || '');
 
     if (reply) {
@@ -244,9 +244,16 @@ export default function ChatPage() {
             messages.map((msg, i) => (
               <div key={i} className={`flex gap-4 mb-6 max-w-3xl mx-auto ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 {msg.role === 'ai' && <div className="w-8 h-8 rounded-full bg-purple-600/20 flex items-center justify-center mt-1 flex-shrink-0"><Bot className="w-4 h-4 text-purple-400"/></div>}
-                <div className={`p-4 rounded-2xl text-sm leading-relaxed shadow-sm max-w-[95%] md:max-w-[85%] ${msg.role === 'ai' ? 'bg-transparent text-zinc-300' : 'bg-zinc-800 text-white rounded-tr-none'}`}>
+                
+                {/* --- CHAT BUBBLE (Break Words Added Here) --- */}
+                <div className={`p-4 rounded-2xl text-sm leading-relaxed shadow-sm max-w-[95%] md:max-w-[85%] break-words ${
+                  msg.role === 'ai' 
+                  ? 'bg-transparent text-zinc-300' 
+                  : 'bg-zinc-800 text-white rounded-tr-none'
+                }`}>
                   {msg.role === 'ai' ? <MarkdownRenderer text={msg.text} /> : msg.text}
                 </div>
+
                 {msg.role === 'user' && <div className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center mt-1 flex-shrink-0"><User className="w-4 h-4 text-zinc-400"/></div>}
               </div>
             ))
@@ -267,5 +274,5 @@ export default function ChatPage() {
       </div>
     </div>
   );
-    }
-    
+                      }
+          
