@@ -1,30 +1,14 @@
 "use client";
 import { useState, useEffect } from 'react';
-// FIXED IMPORT PATH: Changed from '../../..' to '../..'
-import { supabase } from '../../../lib/supabase'; 
-// WAIT! If the line above fails again, change it to:
-// import { supabase } from '@/lib/supabase';
-// But based on your chat page working, let's try the relative path that matches your structure.
-
-// Let's try the safest path calculation based on your chat page:
-// Chat is at: app/chat/page.tsx -> uses '../lib/supabase'
-// Exam is at: app/exam/gst103/page.tsx 
-// So we need to go: up to gst103 (..), up to exam (..), then into lib.
-// Actually, let's use the absolute alias if possible, but for safety, here is the corrected relative path:
+import { createClient } from '@supabase/supabase-js';
 import { useRouter } from 'next/navigation';
 import { Loader2, CheckCircle, Clock, ChevronRight, ChevronLeft } from 'lucide-react';
 
-// We need to fix the import dynamically. 
-// If your 'lib' folder is inside 'app', use this:
-import { createClient } from '@supabase/supabase-js';
-
-// Since we can't see your exact folder structure, I will define the supabase client 
-// directly here to BYPASS the import error entirely.
-// This is a "Bulletproof" fix for the build.
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-const supabaseClient = createClient(supabaseUrl, supabaseAnonKey);
+// --- DIRECT CONNECTION (Bypasses the "File Not Found" error) ---
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 export default function ExamPage() {
   const router = useRouter();
@@ -54,14 +38,14 @@ export default function ExamPage() {
 
   const fetchAndShuffleQuestions = async () => {
     // 1. Fetch ALL questions for GST 103
-    // We use the local 'supabaseClient' we defined above to avoid import errors
-    const { data, error } = await supabaseClient
+    const { data, error } = await supabase
       .from('questions')
       .select('*')
       .eq('course_code', 'GST 103');
 
     if (error || !data) {
-      alert("Error loading exam. Please refresh.");
+      console.error(error);
+      alert("Error loading exam. Please check your connection.");
       return;
     }
 
@@ -110,9 +94,9 @@ export default function ExamPage() {
     });
     setScore(calculatedScore);
     
-    const { data: { user } } = await supabaseClient.auth.getUser();
+    const { data: { user } } = await supabase.auth.getUser();
     if(user) {
-        await supabaseClient.from('results').insert({
+        await supabase.from('results').insert({
             user_id: user.id,
             course_code: 'GST 103',
             score: Math.round((calculatedScore / 100) * 100),
@@ -239,5 +223,5 @@ export default function ExamPage() {
       )}
     </div>
   );
-                              }
-           
+    }
+            
