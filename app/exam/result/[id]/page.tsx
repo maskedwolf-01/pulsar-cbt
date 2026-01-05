@@ -4,7 +4,9 @@ import { supabase } from '../../../lib/supabase';
 import { useParams, useRouter } from 'next/navigation';
 import Header from '../../../components/Header';
 import BottomNav from '../../../components/BottomNav';
-import { CheckCircle, XCircle, Brain, Loader2, Share2, RefreshCw } from 'lucide-react';
+import { 
+  CheckCircle, XCircle, Brain, Loader2, Share2, RefreshCw, Sparkles 
+} from 'lucide-react'; // <--- Added Sparkles here
 
 export default function ResultPage() {
   const params = useParams();
@@ -29,10 +31,6 @@ export default function ResultPage() {
       // 2. TRIGGER AI ANALYSIS FOR FAILED QUESTIONS
       // In a real app, you would save the 'wrong_answers' array in the DB result.
       // For this demo, we will simulate the "Automatic Explanation" effect.
-      
-      // Let's pretend question 3 was failed for demonstration
-      // (To make this real, we need to save detailed logs in the exam engine, 
-      //  but here is how the AI connects):
       
       const mockFailedQuestion = {
         question: "The brain of the computer is the:",
@@ -124,4 +122,5 @@ export default function ResultPage() {
       <BottomNav active="home" />
     </div>
   );
-}
+                                                                                      }
+          
