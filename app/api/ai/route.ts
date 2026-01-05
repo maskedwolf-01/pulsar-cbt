@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server';
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-// SWITCHING TO LITE: This model is in your list and has higher rate limits.
-const API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite-001:generateContent";
+// SWITCHING TO 'gemini-flash-latest'
+// This is the "Universal Adapter" found in your model list.
+// It automatically picks the most available Flash model for your account.
+const API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent";
 
 export async function POST(req: Request) {
   if (!GEMINI_API_KEY) return NextResponse.json({ reply: "SYSTEM: API Key Missing" });
@@ -12,7 +14,7 @@ export async function POST(req: Request) {
 
     let finalPrompt = "";
     
-    // Exam Logic
+    // Exam Tutor Logic
     if (type === 'explain' && context) {
         finalPrompt = `You are a tutor. 
         Question: "${context.question}"
@@ -22,7 +24,7 @@ export async function POST(req: Request) {
     } 
     // Chat Logic
     else {
-        finalPrompt = `You are Nexus. Be helpful and human. 
+        finalPrompt = `You are Nexus. Be helpful, human, and concise. 
         Use Markdown (bold, lists). 
         If asked for a table, use strictly | Header | format.
         User: ${prompt}`;
@@ -40,12 +42,11 @@ export async function POST(req: Request) {
 
     // ERROR HANDLING
     if (data.error) {
-        // If we hit a limit, send 429 so the frontend retries silently
+        // If Quota hit, send 429 status for Auto-Retry
         if (data.error.message.includes('Quota') || data.error.code === 429) {
              return NextResponse.json({ error: "QUOTA_HIT" }, { status: 429 });
         }
-        // If the model is wrong/missing, tell us exactly which one
-        return NextResponse.json({ reply: `Config Error: ${data.error.message}` });
+        return NextResponse.json({ reply: `System Error: ${data.error.message}` });
     }
 
     const reply = data.candidates?.[0]?.content?.parts?.[0]?.text;
@@ -54,4 +55,5 @@ export async function POST(req: Request) {
   } catch (error: any) {
     return NextResponse.json({ reply: "Connection failed." });
   }
-      }
+          }
+          
