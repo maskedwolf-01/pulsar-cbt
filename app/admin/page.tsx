@@ -1,4 +1,4 @@
-"use client";
+ "use client";
 import { useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { Upload, FileText, Plus, BookOpen, Loader2, CheckCircle } from 'lucide-react';
