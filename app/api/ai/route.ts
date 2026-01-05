@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-// SWITCHED TO STABLE MODEL (gemini-pro)
-const API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent";
+// Using the Flash model which is faster and supports the free tier better
+const API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
 
 export async function POST(req: Request) {
   if (!GEMINI_API_KEY) {
@@ -16,20 +16,21 @@ export async function POST(req: Request) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        contents: [{ parts: [{ text: "You are Nexus AI. Be concise. User: " + prompt }] }]
+        contents: [{ parts: [{ text: "You are Nexus 1.0, an academic AI. Be helpful and concise. User: " + prompt }] }]
       })
     });
 
     const data = await response.json();
 
     if (data.error) {
-      return NextResponse.json({ reply: `GOOGLE ERROR: ${data.error.message}` });
+      console.error("Google Error:", data.error);
+      return NextResponse.json({ reply: `NEXUS ERROR: ${data.error.message}` });
     }
 
     const reply = data.candidates?.[0]?.content?.parts?.[0]?.text;
-    return NextResponse.json({ reply: reply || "No response generated." });
+    return NextResponse.json({ reply: reply || "Nexus received no data." });
 
   } catch (error: any) {
-    return NextResponse.json({ reply: `CRITICAL FAIL: ${error.message}` });
+    return NextResponse.json({ reply: `CONNECTION FAIL: ${error.message}` });
   }
-}
+      }
