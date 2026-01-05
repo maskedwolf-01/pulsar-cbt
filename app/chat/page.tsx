@@ -3,10 +3,10 @@ import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import Link from 'next/link';
 import {
-  Send, Bot, Plus, MessageSquare, Menu, Loader2, Sparkles, Trash2, Edit2, ArrowLeft, User, X, AlertTriangle
+  Send, Bot, Plus, MessageSquare, Menu, Loader2, Sparkles, Trash2, Edit2, ArrowLeft, User, AlertTriangle
 } from 'lucide-react';
 
-// --- SLOWER TYPEWRITER (Readable Speed) ---
+// --- SLOW TYPEWRITER (Fixes "Too Fast" Text) ---
 const Typewriter = ({ text }: { text: string }) => {
   const [displayedText, setDisplayedText] = useState('');
   useEffect(() => {
@@ -16,7 +16,7 @@ const Typewriter = ({ text }: { text: string }) => {
       setDisplayedText((prev) => prev + text.charAt(i));
       i++;
       if (i === text.length) clearInterval(intervalId);
-    }, 25); // Increased to 25ms (Slower, smoother)
+    }, 20); 
     return () => clearInterval(intervalId);
   }, [text]);
   return <p>{displayedText}</p>;
@@ -30,11 +30,9 @@ export default function ChatPage() {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   
-  // Edit State
+  // Edit & Delete State
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState('');
-
-  // DELETE MODAL STATE
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [chatToDelete, setChatToDelete] = useState<string | null>(null);
 
@@ -74,11 +72,11 @@ export default function ChatPage() {
     setEditingId(null);
   };
 
-  // TRIGGER THE CUSTOM MODAL (No more system alert)
+  // --- CUSTOM DELETE LOGIC ---
   const confirmDelete = (id: string, e: any) => {
     e.stopPropagation();
     setChatToDelete(id);
-    setShowDeleteModal(true);
+    setShowDeleteModal(true); // Open the Pulsar Modal
   };
 
   const executeDelete = async () => {
@@ -107,7 +105,11 @@ export default function ChatPage() {
     await supabase.from('chat_history').insert({ user_id: user!.id, session_id: currentId, role: 'user', message: text });
 
     try {
-      const res = await fetch('/api/ai', { method: 'POST', body: JSON.stringify({ prompt: text }) });
+      // Pass 'type: chat' context
+      const res = await fetch('/api/ai', { 
+          method: 'POST', 
+          body: JSON.stringify({ prompt: text, type: 'chat' }) 
+      });
       const data = await res.json();
       setMessages(prev => [...prev, { role: 'ai', text: data.reply, isHistory: false }]);
       await supabase.from('chat_history').insert({ user_id: user!.id, session_id: currentId, role: 'model', message: data.reply });
@@ -122,22 +124,22 @@ export default function ChatPage() {
   return (
     <div className="flex h-[100dvh] bg-[#050508] text-white font-sans overflow-hidden relative">
       
-      {/* --- CUSTOM DELETE MODAL --- */}
+      {/* --- PULSAR DELETE MODAL --- */}
       {showDeleteModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
           <div className="bg-[#1a1a1a] border border-white/10 p-6 rounded-3xl w-full max-w-sm shadow-2xl scale-100">
-            <div className="flex flex-col items-center text-center mb-4">
-              <div className="w-12 h-12 bg-red-500/10 rounded-full flex items-center justify-center mb-3">
-                <Trash2 className="w-6 h-6 text-red-500"/>
+            <div className="flex flex-col items-center text-center mb-6">
+              <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mb-4 border border-red-500/20">
+                <Trash2 className="w-8 h-8 text-red-500"/>
               </div>
-              <h3 className="text-lg font-bold text-white">Delete Chat?</h3>
-              <p className="text-sm text-subtext mt-1">This action cannot be undone.</p>
+              <h3 className="text-xl font-bold text-white">Delete Chat?</h3>
+              <p className="text-sm text-subtext mt-2">This will permanently erase this conversation.</p>
             </div>
-            <div className="flex gap-3">
-              <button onClick={() => setShowDeleteModal(false)} className="flex-1 py-3 rounded-xl bg-white/5 hover:bg-white/10 font-bold text-sm transition-colors">
+            <div className="grid grid-cols-2 gap-3">
+              <button onClick={() => setShowDeleteModal(false)} className="py-3 rounded-xl bg-white/5 hover:bg-white/10 font-bold text-sm transition-colors border border-white/5">
                 Cancel
               </button>
-              <button onClick={executeDelete} className="flex-1 py-3 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-sm shadow-lg shadow-red-500/20 transition-all">
+              <button onClick={executeDelete} className="py-3 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-sm shadow-[0_0_20px_rgba(239,68,68,0.3)] transition-all">
                 Delete
               </button>
             </div>
@@ -152,18 +154,18 @@ export default function ChatPage() {
             <Link href="/dashboard" className="p-2 hover:bg-white/5 rounded-full"><ArrowLeft className="w-5 h-5"/></Link>
             <button onClick={createSession} className="flex-1 flex items-center gap-2 bg-purple-600 hover:bg-purple-500 p-2 rounded-xl text-sm font-bold justify-center transition-colors"><Plus className="w-4 h-4" /> New Chat</button>
           </div>
-          <div className="flex-1 overflow-y-auto custom-scrollbar space-y-1">
-            <div className="text-[10px] text-subtext uppercase font-bold tracking-widest pl-2 mb-3">History</div>
+          <div className="flex-1 overflow-y-auto custom-scrollbar space-y-2">
+            <div className="text-[10px] text-subtext uppercase font-bold tracking-widest pl-2 mb-2">History</div>
             {sessions.map(s => (
-              <div key={s.id} onClick={() => { setSessionId(s.id); setSidebarOpen(false); }} className={`group w-full text-left p-3 rounded-xl flex justify-between items-center cursor-pointer transition-all ${sessionId === s.id ? 'bg-white/10 text-white' : 'text-gray-400 hover:bg-white/5'}`}>
+              <div key={s.id} onClick={() => { setSessionId(s.id); setSidebarOpen(false); }} className={`group w-full text-left p-3 rounded-xl flex justify-between items-center cursor-pointer transition-all ${sessionId === s.id ? 'bg-white/10 text-white border border-white/5' : 'text-gray-400 hover:bg-white/5 border border-transparent'}`}>
                 {editingId === s.id ? (
                   <input autoFocus className="bg-black border border-white/20 rounded px-2 py-1 w-full text-xs text-white" value={editTitle} onChange={e => setEditTitle(e.target.value)} onBlur={() => renameSession(s.id)} onKeyDown={e => e.key === 'Enter' && renameSession(s.id)} />
-                ) : ( <div className="flex items-center gap-3 truncate w-full"><MessageSquare className="w-4 h-4 flex-shrink-0"/><span className="text-sm truncate max-w-[140px]">{s.title}</span></div> )}
+                ) : ( <div className="flex items-center gap-3 truncate w-full"><MessageSquare className={`w-4 h-4 flex-shrink-0 ${sessionId === s.id?'text-purple-400':'text-gray-600'}`}/><span className="text-sm truncate max-w-[130px]">{s.title}</span></div> )}
                 
-                {/* ACTIONS */}
-                <div className="flex gap-1 md:opacity-0 md:group-hover:opacity-100 transition-opacity bg-[#0a0a0f] pl-1">
-                  <button onClick={(e) => { e.stopPropagation(); setEditingId(s.id); setEditTitle(s.title); }} className="p-1.5 hover:text-white"><Edit2 className="w-3 h-3"/></button>
-                  <button onClick={(e) => confirmDelete(s.id, e)} className="p-1.5 hover:text-red-500"><Trash2 className="w-3 h-3"/></button>
+                {/* LARGER ACTION BUTTONS */}
+                <div className="flex gap-1 md:opacity-0 md:group-hover:opacity-100 transition-opacity bg-[#0a0a0f] pl-2">
+                  <button onClick={(e) => { e.stopPropagation(); setEditingId(s.id); setEditTitle(s.title); }} className="p-2 hover:bg-white/10 rounded-lg text-gray-400 hover:text-white"><Edit2 className="w-3.5 h-3.5"/></button>
+                  <button onClick={(e) => confirmDelete(s.id, e)} className="p-2 hover:bg-red-500/10 rounded-lg text-gray-400 hover:text-red-500"><Trash2 className="w-3.5 h-3.5"/></button>
                 </div>
               </div>
             ))}
@@ -212,5 +214,5 @@ export default function ChatPage() {
       </div>
     </div>
   );
-  }
+    }
     
