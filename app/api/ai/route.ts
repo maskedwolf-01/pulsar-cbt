@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-// REVERTED TO THE WORKING MODEL (Gemini 2.0 Flash)
-const API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
+// SWITCHING TO LITE: This model is in your list and has higher rate limits.
+const API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite-001:generateContent";
 
 export async function POST(req: Request) {
   if (!GEMINI_API_KEY) return NextResponse.json({ reply: "SYSTEM: API Key Missing" });
@@ -12,18 +12,18 @@ export async function POST(req: Request) {
 
     let finalPrompt = "";
     
-    // --- EXAM TUTOR MODE ---
+    // Exam Logic
     if (type === 'explain' && context) {
-        finalPrompt = `You are a helpful tutor.
+        finalPrompt = `You are a tutor. 
         Question: "${context.question}"
         Student Answer: "${context.userAnswer}" (Incorrect)
         Correct Answer: "${context.correctAnswer}"
-        Explain the error briefly.`;
+        Briefly explain the error.`;
     } 
-    // --- CHAT MODE ---
+    // Chat Logic
     else {
-        finalPrompt = `You are Nexus. Be helpful, human, and concise. 
-        Use Markdown (bold, lists, tables). 
+        finalPrompt = `You are Nexus. Be helpful and human. 
+        Use Markdown (bold, lists). 
         If asked for a table, use strictly | Header | format.
         User: ${prompt}`;
     }
@@ -38,14 +38,14 @@ export async function POST(req: Request) {
 
     const data = await response.json();
 
-    // --- QUOTA HANDLING ---
+    // ERROR HANDLING
     if (data.error) {
-        // If we hit the rate limit, send 429 status.
-        // The frontend will catch this and auto-retry silently.
+        // If we hit a limit, send 429 so the frontend retries silently
         if (data.error.message.includes('Quota') || data.error.code === 429) {
              return NextResponse.json({ error: "QUOTA_HIT" }, { status: 429 });
         }
-        return NextResponse.json({ reply: `System Error: ${data.error.message}` });
+        // If the model is wrong/missing, tell us exactly which one
+        return NextResponse.json({ reply: `Config Error: ${data.error.message}` });
     }
 
     const reply = data.candidates?.[0]?.content?.parts?.[0]?.text;
@@ -54,4 +54,4 @@ export async function POST(req: Request) {
   } catch (error: any) {
     return NextResponse.json({ reply: "Connection failed." });
   }
-}
+      }
