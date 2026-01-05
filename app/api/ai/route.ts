@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-// The ONLY stable endpoint for new Free Tier keys
-const API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
+// SWITCHED TO 'gemini-1.5-flash-latest' (Fixes "Model not found" error)
+const API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent";
 
 export async function POST(req: Request) {
   if (!GEMINI_API_KEY) return NextResponse.json({ reply: "SYSTEM: API Key Missing" });
@@ -24,10 +24,9 @@ export async function POST(req: Request) {
         return NextResponse.json({ reply: `GOOGLE ERROR: ${data.error.message}` });
     }
 
-    const reply = data.candidates?.[0]?.content?.parts?.[0]?.text;
-    return NextResponse.json({ reply: reply || "Nexus is silent." });
+    return NextResponse.json({ reply: data.candidates?.[0]?.content?.parts?.[0]?.text || "No response." });
 
   } catch (error: any) {
     return NextResponse.json({ reply: `SERVER ERROR: ${error.message}` });
   }
-      }
+  }
