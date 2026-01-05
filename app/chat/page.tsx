@@ -3,13 +3,12 @@ import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import Link from 'next/link';
 import {
-  Send, Bot, Plus, MessageSquare, Menu, Loader2, Sparkles, Trash2, Edit2, ArrowLeft, User
+  Send, Bot, Plus, MessageSquare, Menu, Loader2, Sparkles, Trash2, Edit2, ArrowLeft, User, X, AlertTriangle
 } from 'lucide-react';
 
-// --- TYPEWRITER COMPONENT (Fixes "Text too fast") ---
+// --- SLOWER TYPEWRITER (Readable Speed) ---
 const Typewriter = ({ text }: { text: string }) => {
   const [displayedText, setDisplayedText] = useState('');
-  
   useEffect(() => {
     let i = 0;
     setDisplayedText('');
@@ -17,10 +16,9 @@ const Typewriter = ({ text }: { text: string }) => {
       setDisplayedText((prev) => prev + text.charAt(i));
       i++;
       if (i === text.length) clearInterval(intervalId);
-    }, 15); // Adjust speed here (lower is faster)
+    }, 25); // Increased to 25ms (Slower, smoother)
     return () => clearInterval(intervalId);
   }, [text]);
-
   return <p>{displayedText}</p>;
 };
 
@@ -31,8 +29,14 @@ export default function ChatPage() {
   const [sessions, setSessions] = useState<any[]>([]);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  
+  // Edit State
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState('');
+
+  // DELETE MODAL STATE
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [chatToDelete, setChatToDelete] = useState<string | null>(null);
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -60,7 +64,6 @@ export default function ChatPage() {
 
   const fetchMessages = async (id: string) => {
     const { data } = await supabase.from('chat_history').select('*').eq('session_id', id).order('created_at', { ascending: true });
-    // Load without typewriter effect for history (instant load)
     setMessages(data ? data.map(d => ({ role: d.role === 'model' ? 'ai' : 'user', text: d.message, isHistory: true })) : []);
   };
 
@@ -71,12 +74,20 @@ export default function ChatPage() {
     setEditingId(null);
   };
 
-  const deleteSession = async (id: string, e: any) => {
+  // TRIGGER THE CUSTOM MODAL (No more system alert)
+  const confirmDelete = (id: string, e: any) => {
     e.stopPropagation();
-    if(!confirm("Permanently delete chat?")) return;
-    await supabase.from('chat_sessions').delete().eq('id', id);
-    setSessions(sessions.filter(s => s.id !== id));
-    if (sessionId === id) { setSessionId(null); setMessages([]); }
+    setChatToDelete(id);
+    setShowDeleteModal(true);
+  };
+
+  const executeDelete = async () => {
+    if (!chatToDelete) return;
+    await supabase.from('chat_sessions').delete().eq('id', chatToDelete);
+    setSessions(sessions.filter(s => s.id !== chatToDelete));
+    if (sessionId === chatToDelete) { setSessionId(null); setMessages([]); }
+    setShowDeleteModal(false);
+    setChatToDelete(null);
   };
 
   const handleSend = async () => {
@@ -92,16 +103,12 @@ export default function ChatPage() {
     const text = input; 
     setInput(''); 
     setLoading(true);
-    
-    // Add user message
     setMessages(prev => [...prev, { role: 'user', text, isHistory: true }]);
     await supabase.from('chat_history').insert({ user_id: user!.id, session_id: currentId, role: 'user', message: text });
 
     try {
       const res = await fetch('/api/ai', { method: 'POST', body: JSON.stringify({ prompt: text }) });
       const data = await res.json();
-      
-      // Add AI message (isHistory: false triggers Typewriter)
       setMessages(prev => [...prev, { role: 'ai', text: data.reply, isHistory: false }]);
       await supabase.from('chat_history').insert({ user_id: user!.id, session_id: currentId, role: 'model', message: data.reply });
     } catch {
@@ -113,52 +120,50 @@ export default function ChatPage() {
   };
 
   return (
-    <div className="flex h-[100dvh] bg-[#050508] text-white font-sans overflow-hidden">
+    <div className="flex h-[100dvh] bg-[#050508] text-white font-sans overflow-hidden relative">
       
+      {/* --- CUSTOM DELETE MODAL --- */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+          <div className="bg-[#1a1a1a] border border-white/10 p-6 rounded-3xl w-full max-w-sm shadow-2xl scale-100">
+            <div className="flex flex-col items-center text-center mb-4">
+              <div className="w-12 h-12 bg-red-500/10 rounded-full flex items-center justify-center mb-3">
+                <Trash2 className="w-6 h-6 text-red-500"/>
+              </div>
+              <h3 className="text-lg font-bold text-white">Delete Chat?</h3>
+              <p className="text-sm text-subtext mt-1">This action cannot be undone.</p>
+            </div>
+            <div className="flex gap-3">
+              <button onClick={() => setShowDeleteModal(false)} className="flex-1 py-3 rounded-xl bg-white/5 hover:bg-white/10 font-bold text-sm transition-colors">
+                Cancel
+              </button>
+              <button onClick={executeDelete} className="flex-1 py-3 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-sm shadow-lg shadow-red-500/20 transition-all">
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* SIDEBAR */}
-      <div className={`fixed inset-y-0 left-0 z-50 w-72 bg-[#0a0a0f] border-r border-white/5 transform transition-transform duration-300 ${sidebarOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'} md:relative md:translate-x-0`}>
+      <div className={`fixed inset-y-0 left-0 z-50 w-72 bg-[#0a0a0f] border-r border-white/5 transform transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:relative md:translate-x-0`}>
         <div className="p-4 flex flex-col h-full">
           <div className="flex items-center gap-2 mb-6">
-            <Link href="/dashboard" className="p-2 hover:bg-white/5 rounded-full text-subtext hover:text-white transition-colors">
-              <ArrowLeft className="w-5 h-5"/>
-            </Link>
-            <button onClick={createSession} className="flex-1 flex items-center gap-2 bg-white/5 hover:bg-white/10 border border-white/5 p-3 rounded-xl text-sm font-bold justify-center transition-all">
-              <Plus className="w-4 h-4 text-purple-500"/> New Chat
-            </button>
+            <Link href="/dashboard" className="p-2 hover:bg-white/5 rounded-full"><ArrowLeft className="w-5 h-5"/></Link>
+            <button onClick={createSession} className="flex-1 flex items-center gap-2 bg-purple-600 hover:bg-purple-500 p-2 rounded-xl text-sm font-bold justify-center transition-colors"><Plus className="w-4 h-4" /> New Chat</button>
           </div>
-
           <div className="flex-1 overflow-y-auto custom-scrollbar space-y-1">
-            <div className="text-[10px] text-subtext uppercase font-bold tracking-widest pl-2 mb-3">Recent Sessions</div>
+            <div className="text-[10px] text-subtext uppercase font-bold tracking-widest pl-2 mb-3">History</div>
             {sessions.map(s => (
-              <div 
-                key={s.id} 
-                onClick={() => { setSessionId(s.id); setSidebarOpen(false); }} 
-                className={`group relative w-full text-left p-3 rounded-xl flex justify-between items-center cursor-pointer transition-all ${sessionId === s.id ? 'bg-purple-600/10 border border-purple-600/30 text-white' : 'text-gray-400 hover:bg-white/5 border border-transparent'}`}
-              >
+              <div key={s.id} onClick={() => { setSessionId(s.id); setSidebarOpen(false); }} className={`group w-full text-left p-3 rounded-xl flex justify-between items-center cursor-pointer transition-all ${sessionId === s.id ? 'bg-white/10 text-white' : 'text-gray-400 hover:bg-white/5'}`}>
                 {editingId === s.id ? (
-                  <input 
-                    autoFocus 
-                    className="bg-black border border-white/20 rounded px-2 py-1 w-full text-xs text-white" 
-                    value={editTitle} 
-                    onChange={e => setEditTitle(e.target.value)} 
-                    onBlur={() => renameSession(s.id)} 
-                    onKeyDown={e => e.key === 'Enter' && renameSession(s.id)} 
-                  />
-                ) : (
-                  <div className="flex items-center gap-3 truncate w-full">
-                    <MessageSquare className={`w-4 h-4 flex-shrink-0 ${sessionId === s.id ? 'text-purple-400' : 'text-subtext'}`}/>
-                    <span className="text-sm truncate max-w-[140px]">{s.title}</span>
-                  </div>
-                )}
+                  <input autoFocus className="bg-black border border-white/20 rounded px-2 py-1 w-full text-xs text-white" value={editTitle} onChange={e => setEditTitle(e.target.value)} onBlur={() => renameSession(s.id)} onKeyDown={e => e.key === 'Enter' && renameSession(s.id)} />
+                ) : ( <div className="flex items-center gap-3 truncate w-full"><MessageSquare className="w-4 h-4 flex-shrink-0"/><span className="text-sm truncate max-w-[140px]">{s.title}</span></div> )}
                 
-                {/* ALWAYS VISIBLE ACTIONS FOR BETTER UX */}
-                <div className="flex gap-1 pl-2 bg-[#0a0a0f]/80 backdrop-blur-sm md:opacity-0 md:group-hover:opacity-100 transition-opacity">
-                  <button onClick={(e) => { e.stopPropagation(); setEditingId(s.id); setEditTitle(s.title); }} className="p-1.5 hover:text-white hover:bg-white/10 rounded-md">
-                    <Edit2 className="w-3 h-3"/>
-                  </button>
-                  <button onClick={(e) => deleteSession(s.id, e)} className="p-1.5 hover:text-red-400 hover:bg-red-500/10 rounded-md">
-                    <Trash2 className="w-3 h-3"/>
-                  </button>
+                {/* ACTIONS */}
+                <div className="flex gap-1 md:opacity-0 md:group-hover:opacity-100 transition-opacity bg-[#0a0a0f] pl-1">
+                  <button onClick={(e) => { e.stopPropagation(); setEditingId(s.id); setEditTitle(s.title); }} className="p-1.5 hover:text-white"><Edit2 className="w-3 h-3"/></button>
+                  <button onClick={(e) => confirmDelete(s.id, e)} className="p-1.5 hover:text-red-500"><Trash2 className="w-3 h-3"/></button>
                 </div>
               </div>
             ))}
@@ -171,85 +176,41 @@ export default function ChatPage() {
       {/* MAIN CHAT */}
       <div className="flex-1 flex flex-col relative h-full">
         <header className="md:hidden flex items-center justify-between p-4 bg-[#0a0a0f] border-b border-white/5 z-30 flex-none">
-          <div className="flex items-center gap-4">
-            <button onClick={() => setSidebarOpen(true)} className="p-2 -ml-2 text-white"><Menu className="w-6 h-6"/></button>
-            <span className="font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-500">Nexus 1.0</span>
-          </div>
+          <div className="flex items-center gap-4"><button onClick={() => setSidebarOpen(true)}><Menu className="w-6 h-6"/></button><span className="font-bold text-purple-400">Nexus 1.0</span></div>
         </header>
 
         <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
           {messages.length === 0 ? (
-            <div className="h-full flex flex-col items-center justify-center opacity-50 animate-fade-in">
-              <div className="w-16 h-16 bg-white/5 rounded-2xl flex items-center justify-center mb-6 border border-white/5 shadow-2xl">
-                <Sparkles className="w-8 h-8 text-purple-500"/>
-              </div>
-              <h1 className="text-2xl font-bold text-white mb-2">Hello, Scholar</h1>
-              <p className="text-subtext text-sm">How can I help you excel today?</p>
+            <div className="h-full flex flex-col items-center justify-center opacity-50">
+              <div className="w-16 h-16 bg-white/5 rounded-2xl flex items-center justify-center mb-4"><Sparkles className="w-8 h-8 text-purple-500"/></div>
+              <h1 className="text-2xl font-bold text-white">Hello, Scholar</h1>
+              <p className="text-subtext mt-2">Ready to assist.</p>
             </div>
           ) : (
             messages.map((msg, i) => (
-              <div key={i} className={`flex gap-4 mb-6 max-w-3xl mx-auto ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in`}>
-                {msg.role === 'ai' && (
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-600 to-pink-600 p-[1px] flex-shrink-0 mt-1">
-                    <div className="w-full h-full bg-black rounded-full flex items-center justify-center">
-                      <Bot className="w-4 h-4 text-white"/>
-                    </div>
-                  </div>
-                )}
-                
-                <div className={`p-4 rounded-2xl text-sm leading-relaxed shadow-lg ${
-                  msg.role === 'ai' 
-                  ? 'bg-[#1a1a1a] text-gray-200 rounded-tl-none border border-white/5 max-w-[85%]' 
-                  : 'bg-purple-600 text-white rounded-tr-none max-w-[80%]'
-                }`}>
+              <div key={i} className={`flex gap-4 mb-6 max-w-3xl mx-auto ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                {msg.role === 'ai' && <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-600 to-pink-600 p-[1px] mt-1"><div className="w-full h-full bg-black rounded-full flex items-center justify-center"><Bot className="w-4 h-4 text-white"/></div></div>}
+                <div className={`p-4 rounded-2xl text-sm leading-relaxed shadow-lg ${msg.role === 'ai' ? 'bg-[#1a1a1a] text-gray-200 rounded-tl-none border border-white/5 max-w-[85%]' : 'bg-purple-600 text-white rounded-tr-none max-w-[80%]'}`}>
                   {msg.role === 'ai' && !msg.isHistory ? <Typewriter text={msg.text} /> : msg.text}
                 </div>
-
-                {msg.role === 'user' && (
-                   <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0 mt-1">
-                     <User className="w-4 h-4 text-white"/>
-                   </div>
-                )}
+                {msg.role === 'user' && <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center mt-1"><User className="w-4 h-4 text-white"/></div>}
               </div>
             ))
           )}
-          {loading && (
-            <div className="flex gap-4 mb-6 max-w-3xl mx-auto pl-2">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center"><Bot className="w-4 h-4 text-purple-500"/></div>
-                <div className="flex gap-1">
-                  <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
-                  <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
-                  <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce"></div>
-                </div>
-              </div>
-            </div>
-          )}
+          {loading && <div className="flex gap-4 mb-6 max-w-3xl mx-auto"><div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center"><Bot className="w-4 h-4 text-purple-500"/></div><Loader2 className="w-4 h-4 animate-spin text-subtext"/></div>}
           <div ref={scrollRef}></div>
           <div className="h-24"></div>
         </div>
 
         {/* INPUT AREA */}
-        <div className="p-4 bg-gradient-to-t from-black via-black/80 to-transparent z-20 flex-none pb-8 md:pb-4">
-          <div className="max-w-3xl mx-auto bg-[#1a1a1a] border border-white/10 rounded-2xl p-2 flex items-center shadow-[0_0_50px_rgba(0,0,0,0.5)]">
-            <input
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder="Ask Nexus anything..."
-              // REMOVED 'blinking-cursor' CLASS HERE
-              className="flex-1 bg-transparent border-none text-white px-4 py-3 focus:outline-none placeholder:text-gray-600 text-sm"
-              onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-            />
-            <button
-              onClick={handleSend}
-              disabled={!input.trim() || loading}
-              className={`p-3 rounded-xl transition-all duration-200 ${input.trim() ? 'bg-white text-black hover:bg-gray-200 scale-100' : 'bg-white/5 text-gray-600 scale-95'}`}
-            >
-              <Send className="w-5 h-5"/>
-            </button>
+        <div className="p-4 bg-gradient-to-t from-black via-black/90 to-transparent z-20 flex-none pb-8 md:pb-4">
+          <div className="max-w-3xl mx-auto bg-[#1a1a1a] border border-white/10 rounded-2xl p-2 flex items-center shadow-2xl">
+            <input value={input} onChange={(e) => setInput(e.target.value)} placeholder="Ask Nexus anything..." className="flex-1 bg-transparent border-none text-white px-4 py-3 focus:outline-none" onKeyDown={(e) => e.key === 'Enter' && handleSend()}/>
+            <button onClick={handleSend} disabled={!input.trim() || loading} className={`p-3 rounded-xl transition-all ${input.trim() ? 'bg-white text-black' : 'bg-white/5 text-gray-600'}`}><Send className="w-5 h-5"/></button>
           </div>
         </div>
       </div>
     </div>
   );
-}
+  }
+    
