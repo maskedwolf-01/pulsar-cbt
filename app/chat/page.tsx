@@ -3,66 +3,113 @@ import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import Link from 'next/link';
 import {
-  Send, Bot, Plus, MessageSquare, Menu, Loader2, Sparkles, Trash2, Edit2, ArrowLeft, User
+  Send, Bot, Plus, MessageSquare, Menu, Loader2, Sparkles, Trash2, Edit2, ArrowLeft, User, Share2
 } from 'lucide-react';
 
-// --- 1. MARKDOWN PARSER (Fixes #, **, and Tables) ---
+// --- 1. ADVANCED MARKDOWN ENGINE (Tables + Lists + Bold) ---
 const MarkdownRenderer = ({ text }: { text: string }) => {
-  // Split by newlines to handle blocks
+  // Split text into blocks to detect tables
   const lines = text.split('\n');
-  
-  return (
-    <div className="space-y-1 text-sm leading-relaxed">
-      {lines.map((line, i) => {
-        // Headers (###)
-        if (line.startsWith('### ')) return <h3 key={i} className="text-purple-300 font-bold text-lg mt-3 mb-1">{line.replace('### ', '')}</h3>;
-        if (line.startsWith('## ')) return <h2 key={i} className="text-purple-400 font-bold text-xl mt-4 mb-2">{line.replace('## ', '')}</h2>;
-        
-        // Bullet Points (*)
-        if (line.trim().startsWith('* ')) {
-          const content = line.trim().replace('* ', '');
-          return (
-            <div key={i} className="flex gap-2 ml-2">
-              <span className="text-purple-500 mt-1">•</span>
-              <span dangerouslySetInnerHTML={{ __html: formatBold(content) }}></span>
-            </div>
-          );
-        }
+  const renderedContent = [];
+  let tableBuffer: string[] = [];
+  let inTable = false;
 
-        // Tables (|) - Render as Monospace Block
-        if (line.includes('|')) {
-          return <div key={i} className="font-mono text-xs bg-black/30 p-1 rounded overflow-x-auto whitespace-pre">{line}</div>;
-        }
+  const flushTable = (key: number) => {
+    if (tableBuffer.length === 0) return null;
+    
+    // Process Table
+    const headers = tableBuffer[0].split('|').filter(c => c.trim()).map(c => c.trim());
+    const rows = tableBuffer.slice(2).map(row => 
+      row.split('|').filter(c => c.trim()).map(c => c.trim())
+    );
 
-        // Standard Text (with **Bold** support)
-        if (line.trim() === '') return <div key={i} className="h-2"></div>;
-        return <div key={i} dangerouslySetInnerHTML={{ __html: formatBold(line) }}></div>;
-      })}
-    </div>
-  );
+    return (
+      <div key={`table-${key}`} className="my-4 w-full overflow-x-auto rounded-lg border border-zinc-700 bg-black/20">
+        <table className="w-full text-left text-xs md:text-sm border-collapse">
+          <thead>
+            <tr className="bg-zinc-800/50">
+              {headers.map((h, i) => (
+                <th key={i} className="p-3 border-b border-zinc-700 font-bold text-purple-300 min-w-[120px]">{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, i) => (
+              <tr key={i} className="border-b border-zinc-700/50 last:border-0 hover:bg-zinc-800/30">
+                {row.map((cell, j) => (
+                  <td key={j} className="p-3 align-top min-w-[120px]" dangerouslySetInnerHTML={{__html: formatBold(cell)}}></td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  };
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    
+    // Detect Table Lines (starts and ends with |)
+    if (line.startsWith('|') && line.endsWith('|')) {
+      inTable = true;
+      tableBuffer.push(line);
+    } else {
+      if (inTable) {
+        renderedContent.push(flushTable(i));
+        tableBuffer = [];
+        inTable = false;
+      }
+
+      // Render Headers
+      if (line.startsWith('### ')) {
+        renderedContent.push(<h3 key={i} className="text-purple-300 font-bold text-lg mt-4 mb-2">{line.replace('### ', '')}</h3>);
+      } 
+      else if (line.startsWith('## ')) {
+        renderedContent.push(<h2 key={i} className="text-purple-400 font-bold text-xl mt-6 mb-3 border-b border-zinc-700 pb-2">{line.replace('## ', '')}</h2>);
+      }
+      // Render Lists
+      else if (line.startsWith('* ')) {
+        renderedContent.push(
+          <div key={i} className="flex gap-2 ml-1 my-1">
+            <span className="text-purple-500 font-bold">•</span>
+            <span dangerouslySetInnerHTML={{ __html: formatBold(line.replace('* ', '')) }}></span>
+          </div>
+        );
+      }
+      // Render Standard Text
+      else if (line === '') {
+        renderedContent.push(<div key={i} className="h-2"></div>);
+      }
+      else {
+        renderedContent.push(<p key={i} className="leading-relaxed" dangerouslySetInnerHTML={{ __html: formatBold(line) }}></p>);
+      }
+    }
+  }
+  // Flush remaining table if exists
+  if (inTable) renderedContent.push(flushTable(lines.length));
+
+  return <div className="space-y-1">{renderedContent}</div>;
 };
 
-// Helper to turn **text** into <b>text</b>
+// Helper: Bold Text Formatter (**text** -> <b>text</b>)
 const formatBold = (text: string) => {
+  if (!text) return "";
   return text.replace(/\*\*(.*?)\*\*/g, '<strong class="text-purple-300 font-semibold">$1</strong>');
 };
 
-// --- 2. DYNAMIC LOADER ("Thinking..." -> "Refining...") ---
+// --- 2. DYNAMIC STATUS INDICATOR ---
 const DynamicLoader = () => {
-  const states = ["Analyzing Request...", "Searching Database...", "Connecting Concepts...", "Refining Answer..."];
+  const states = ["Analyzing...", "Searching Knowledge Base...", "Structuring Response...", "Refining Output..."];
   const [index, setIndex] = useState(0);
-
   useEffect(() => {
-    const interval = setInterval(() => {
-      setIndex((prev) => (prev + 1) % states.length);
-    }, 1500); // Change text every 1.5s
-    return () => clearInterval(interval);
+    const t = setInterval(() => setIndex(prev => (prev + 1) % states.length), 2000);
+    return () => clearInterval(t);
   }, []);
-
   return (
-    <div className="flex items-center gap-2 text-xs text-purple-400 font-medium animate-pulse">
+    <div className="flex items-center gap-3 text-xs text-purple-400 bg-purple-500/5 px-4 py-2 rounded-full border border-purple-500/20 w-fit animate-pulse">
       <Loader2 className="w-3 h-3 animate-spin"/>
-      <span>{states[index]}</span>
+      <span className="uppercase tracking-widest font-bold">{states[index]}</span>
     </div>
   );
 };
@@ -219,11 +266,11 @@ export default function ChatPage() {
               <div key={i} className={`flex gap-4 mb-6 max-w-3xl mx-auto ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 {msg.role === 'ai' && <div className="w-8 h-8 rounded-full bg-purple-600/20 flex items-center justify-center mt-1 flex-shrink-0"><Bot className="w-4 h-4 text-purple-400"/></div>}
                 
-                {/* --- CHAT BUBBLES (UPDATED COLORS) --- */}
-                <div className={`p-4 rounded-2xl text-sm leading-relaxed shadow-sm max-w-[85%] ${
+                {/* --- CHAT BUBBLES (Eye-Pain Removed) --- */}
+                <div className={`p-4 rounded-2xl text-sm leading-relaxed shadow-sm max-w-[95%] md:max-w-[85%] ${
                   msg.role === 'ai' 
-                  ? 'bg-transparent text-zinc-300' // AI: Transparent, clean text
-                  : 'bg-zinc-800 text-white rounded-tr-none' // USER: Dark Gray (No more purple eye pain)
+                  ? 'bg-transparent text-zinc-300' 
+                  : 'bg-zinc-800 text-white rounded-tr-none' // Dark Gray Bubble
                 }`}>
                   {msg.role === 'ai' ? <MarkdownRenderer text={msg.text} /> : msg.text}
                 </div>
@@ -233,7 +280,7 @@ export default function ChatPage() {
             ))
           )}
           
-          {/* --- DYNAMIC LOADING INDICATOR --- */}
+          {/* --- STATUS LOOP --- */}
           {loading && <div className="flex gap-4 mb-6 max-w-3xl mx-auto"><div className="w-8 h-8 rounded-full bg-purple-600/10 flex items-center justify-center"><Bot className="w-4 h-4 text-purple-500"/></div><DynamicLoader /></div>}
           
           <div ref={scrollRef}></div>
@@ -250,5 +297,5 @@ export default function ChatPage() {
       </div>
     </div>
   );
-  }
-    
+                                              }
+          
