@@ -3,28 +3,11 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import Header from '../components/Header'; // Ensure app/components/Header.tsx exists
+import Header from '../components/Header'; 
+import BottomNav from '../components/BottomNav'; // <--- IMPORTING THE REAL NAV
 import { 
-  Activity, Clock, FileText, TrendingUp, Search, User, Loader2 
+  Activity, Clock, FileText, Search, Loader2 
 } from 'lucide-react';
-
-// Mobile Bottom Navigation
-const BottomNav = ({ active }: { active: string }) => (
-  <div className="fixed bottom-0 w-full bg-[#0a0a0f]/90 backdrop-blur-lg border-t border-white/5 h-16 flex items-center justify-around px-6 z-50">
-    <Link href="/dashboard" className={`flex flex-col items-center gap-1 ${active === 'home' ? 'text-primary' : 'text-subtext hover:text-white'}`}>
-      <TrendingUp className="w-5 h-5" />
-      <span className="text-[10px] font-bold">Results</span>
-    </Link>
-    <Link href="/courses" className={`flex flex-col items-center gap-1 ${active === 'courses' ? 'text-primary' : 'text-subtext hover:text-white'}`}>
-      <Search className="w-5 h-5" />
-      <span className="text-[10px] font-bold">Browse</span>
-    </Link>
-    <Link href="/profile" className={`flex flex-col items-center gap-1 ${active === 'profile' ? 'text-primary' : 'text-subtext hover:text-white'}`}>
-      <User className="w-5 h-5" />
-      <span className="text-[10px] font-bold">Profile</span>
-    </Link>
-  </div>
-);
 
 export default function Dashboard() {
   const [loading, setLoading] = useState(true);
@@ -34,38 +17,24 @@ export default function Dashboard() {
 
   useEffect(() => {
     const getData = async () => {
-      // 1. Check Login Status
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         router.push('/login');
         return;
       }
 
-      // 2. Fetch Profile Data
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
-      
-      // Fallback to Auth Metadata if profile row doesn't exist yet
+      const { data: profileData } = await supabase.from('profiles').select('*').eq('id', user.id).single();
       setProfile(profileData || { full_name: user.user_metadata.full_name || "Scholar" });
 
-      // 3. Fetch Exam History
-      const { data: resultsData } = await supabase
-        .from('results')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-      
+      const { data: resultsData } = await supabase.from('results').select('*').eq('user_id', user.id).order('created_at', { ascending: false });
       setResults(resultsData || []);
+      
       setLoading(false);
     };
 
     getData();
   }, [router]);
 
-  // Logic: Calculate CGPA from average scores (Mock conversion: 100% = 5.0)
   const calculateCGPA = () => {
     if (!results || results.length === 0) return "0.00";
     const total = results.reduce((acc, curr) => acc + curr.score, 0);
@@ -78,10 +47,10 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-background text-text font-sans pb-24">
       
-      {/* 1. SMART HEADER (Notifications + Profile) */}
+      {/* 1. SMART HEADER */}
       <Header title="Terminal" />
 
-      {/* 2. WELCOME SECTION */}
+      {/* 2. WELCOME & STATS */}
       <header className="px-6 pt-8 pb-4">
         <h1 className="text-2xl font-bold text-white mb-6">
           Welcome, <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary">{profile?.full_name?.split(' ')[0]}</span>
@@ -104,14 +73,13 @@ export default function Dashboard() {
         </div>
       </header>
 
-      {/* 3. RECENT ACTIVITY LIST */}
+      {/* 3. RECENT ACTIVITY */}
       <section className="px-6 py-4">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-bold text-white">Recent Activity</h2>
         </div>
 
         {results.length === 0 ? (
-          // Empty State
           <div className="py-12 px-6 border border-dashed border-white/10 rounded-3xl text-center bg-white/5">
             <div className="w-16 h-16 bg-black/30 rounded-full flex items-center justify-center mx-auto mb-4">
               <FileText className="w-8 h-8 text-subtext" />
@@ -123,10 +91,9 @@ export default function Dashboard() {
             </Link>
           </div>
         ) : (
-          // Result List
           <div className="space-y-3">
             {results.map((r, i) => (
-              <div key={i} className="p-4 bg-surface border border-white/10 rounded-2xl flex justify-between items-center group hover:border-primary/50 transition-colors">
+              <div key={i} className="p-4 bg-surface border border-white/10 rounded-2xl flex justify-between items-center">
                 <div className="flex items-center gap-4">
                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm ${r.score >= 70 ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
                     {r.grade || 'F'}
@@ -145,8 +112,9 @@ export default function Dashboard() {
         )}
       </section>
 
+      {/* 4. NEW BOTTOM NAV (5 ITEMS) */}
       <BottomNav active="home" />
     </div>
   );
-        }
+             }
              
