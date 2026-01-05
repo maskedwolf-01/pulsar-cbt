@@ -4,43 +4,37 @@ const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
 
 export async function POST(req: Request) {
+  // 1. DEBUG: Check if Key exists
+  if (!GEMINI_API_KEY) {
+    console.error("❌ ERROR: GEMINI_API_KEY is missing on server.");
+    return NextResponse.json({ reply: "SYSTEM ERROR: API Key is missing in Vercel Settings." });
+  }
+
   try {
-    const { type, prompt, context } = await req.json();
+    const { prompt } = await req.json();
 
-    let systemInstruction = "";
-
-    // MODE 1: NEXUS CHAT
-    if (type === 'chat') {
-      systemInstruction = "You are Nexus 1.0, an advanced academic AI assistant for PULSAR CBT. Your tone is futuristic, encouraging, and precise. Keep answers concise (under 100 words) unless asked for details.";
-    } 
-    // MODE 2: EXAM EXPLANATION (Automatic)
-    else if (type === 'explain') {
-      systemInstruction = `You are an expert tutor. The student failed a question. 
-      Question: "${context.question}"
-      Student chose: "${context.userAnswer}" (Incorrect)
-      Correct Answer: "${context.correctAnswer}"
-      
-      Task: Explain briefly (max 2 sentences) why the student's answer is wrong and why the correct answer is right. Do not be condescending.`;
-    }
-
-    // Call Google Gemini API
+    // 2. Call Google
     const response = await fetch(`${API_URL}?key=${GEMINI_API_KEY}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        contents: [{
-          parts: [{ text: `${systemInstruction}\n\nUser Query: ${prompt}` }]
-        }]
+        contents: [{ parts: [{ text: "You are Nexus AI. Be concise. User: " + prompt }] }]
       })
     });
 
     const data = await response.json();
-    const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || "Nexus systems are recalibrating. Try again.";
 
-    return NextResponse.json({ reply });
+    // 3. DEBUG: Check Google Error
+    if (data.error) {
+      console.error("❌ GOOGLE ERROR:", data.error);
+      return NextResponse.json({ reply: `GOOGLE ERROR: ${data.error.message}` });
+    }
 
-  } catch (error) {
-    return NextResponse.json({ reply: "Connection to Neural Net failed." }, { status: 500 });
+    // 4. Success
+    return NextResponse.json({ reply: data.candidates[0].content.parts[0].text });
+
+  } catch (error: any) {
+    return NextResponse.json({ reply: `CRITICAL FAIL: ${error.message}` });
   }
-}
+                    }
   
