@@ -3,12 +3,11 @@ import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import Link from 'next/link';
 import {
-  Send, Bot, Plus, MessageSquare, Menu, Loader2, Sparkles, Trash2, Edit2, ArrowLeft, User, Share2
+  Send, Bot, Plus, MessageSquare, Menu, Loader2, Sparkles, Trash2, Edit2, ArrowLeft, User
 } from 'lucide-react';
 
-// --- 1. ADVANCED MARKDOWN ENGINE (Tables + Lists + Bold) ---
+// --- MARKDOWN & TABLE RENDERER ---
 const MarkdownRenderer = ({ text }: { text: string }) => {
-  // Split text into blocks to detect tables
   const lines = text.split('\n');
   const renderedContent = [];
   let tableBuffer: string[] = [];
@@ -16,29 +15,21 @@ const MarkdownRenderer = ({ text }: { text: string }) => {
 
   const flushTable = (key: number) => {
     if (tableBuffer.length === 0) return null;
-    
-    // Process Table
     const headers = tableBuffer[0].split('|').filter(c => c.trim()).map(c => c.trim());
-    const rows = tableBuffer.slice(2).map(row => 
-      row.split('|').filter(c => c.trim()).map(c => c.trim())
-    );
+    const rows = tableBuffer.slice(2).map(row => row.split('|').filter(c => c.trim()).map(c => c.trim()));
 
     return (
-      <div key={`table-${key}`} className="my-4 w-full overflow-x-auto rounded-lg border border-zinc-700 bg-black/20">
-        <table className="w-full text-left text-xs md:text-sm border-collapse">
+      <div key={`table-${key}`} className="my-4 w-full overflow-x-auto rounded-xl border border-zinc-700 bg-black/40 shadow-inner">
+        <table className="w-full text-left text-sm border-collapse min-w-[400px]">
           <thead>
-            <tr className="bg-zinc-800/50">
-              {headers.map((h, i) => (
-                <th key={i} className="p-3 border-b border-zinc-700 font-bold text-purple-300 min-w-[120px]">{h}</th>
-              ))}
+            <tr className="bg-zinc-800/50 text-purple-300">
+              {headers.map((h, i) => <th key={i} className="p-3 border-b border-zinc-700 font-bold whitespace-nowrap">{h}</th>)}
             </tr>
           </thead>
           <tbody>
             {rows.map((row, i) => (
-              <tr key={i} className="border-b border-zinc-700/50 last:border-0 hover:bg-zinc-800/30">
-                {row.map((cell, j) => (
-                  <td key={j} className="p-3 align-top min-w-[120px]" dangerouslySetInnerHTML={{__html: formatBold(cell)}}></td>
-                ))}
+              <tr key={i} className="border-b border-zinc-700/30 last:border-0 hover:bg-zinc-800/20">
+                {row.map((cell, j) => <td key={j} className="p-3 align-top text-zinc-300" dangerouslySetInnerHTML={{__html: formatBold(cell)}}></td>)}
               </tr>
             ))}
           </tbody>
@@ -49,67 +40,35 @@ const MarkdownRenderer = ({ text }: { text: string }) => {
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim();
-    
-    // Detect Table Lines (starts and ends with |)
     if (line.startsWith('|') && line.endsWith('|')) {
-      inTable = true;
-      tableBuffer.push(line);
+      inTable = true; tableBuffer.push(line);
     } else {
-      if (inTable) {
-        renderedContent.push(flushTable(i));
-        tableBuffer = [];
-        inTable = false;
-      }
-
-      // Render Headers
-      if (line.startsWith('### ')) {
-        renderedContent.push(<h3 key={i} className="text-purple-300 font-bold text-lg mt-4 mb-2">{line.replace('### ', '')}</h3>);
-      } 
-      else if (line.startsWith('## ')) {
-        renderedContent.push(<h2 key={i} className="text-purple-400 font-bold text-xl mt-6 mb-3 border-b border-zinc-700 pb-2">{line.replace('## ', '')}</h2>);
-      }
-      // Render Lists
-      else if (line.startsWith('* ')) {
-        renderedContent.push(
-          <div key={i} className="flex gap-2 ml-1 my-1">
-            <span className="text-purple-500 font-bold">•</span>
-            <span dangerouslySetInnerHTML={{ __html: formatBold(line.replace('* ', '')) }}></span>
-          </div>
-        );
-      }
-      // Render Standard Text
-      else if (line === '') {
-        renderedContent.push(<div key={i} className="h-2"></div>);
-      }
-      else {
-        renderedContent.push(<p key={i} className="leading-relaxed" dangerouslySetInnerHTML={{ __html: formatBold(line) }}></p>);
-      }
+      if (inTable) { renderedContent.push(flushTable(i)); tableBuffer = []; inTable = false; }
+      if (line.startsWith('### ')) renderedContent.push(<h3 key={i} className="text-purple-300 font-bold text-lg mt-4 mb-2">{line.replace('### ', '')}</h3>);
+      else if (line.startsWith('## ')) renderedContent.push(<h2 key={i} className="text-purple-400 font-bold text-xl mt-5 mb-3 border-b border-zinc-700 pb-2">{line.replace('## ', '')}</h2>);
+      else if (line.startsWith('* ')) renderedContent.push(<div key={i} className="flex gap-2 ml-1 my-1"><span className="text-purple-500 font-bold">•</span><span dangerouslySetInnerHTML={{ __html: formatBold(line.replace('* ', '')) }}></span></div>);
+      else if (line === '') renderedContent.push(<div key={i} className="h-2"></div>);
+      else renderedContent.push(<p key={i} className="leading-relaxed" dangerouslySetInnerHTML={{ __html: formatBold(line) }}></p>);
     }
   }
-  // Flush remaining table if exists
   if (inTable) renderedContent.push(flushTable(lines.length));
-
   return <div className="space-y-1">{renderedContent}</div>;
 };
 
-// Helper: Bold Text Formatter (**text** -> <b>text</b>)
-const formatBold = (text: string) => {
-  if (!text) return "";
-  return text.replace(/\*\*(.*?)\*\*/g, '<strong class="text-purple-300 font-semibold">$1</strong>');
-};
+const formatBold = (text: string) => text ? text.replace(/\*\*(.*?)\*\*/g, '<strong class="text-purple-300 font-semibold">$1</strong>') : "";
 
-// --- 2. DYNAMIC STATUS INDICATOR ---
-const DynamicLoader = () => {
-  const states = ["Analyzing...", "Searching Knowledge Base...", "Structuring Response...", "Refining Output..."];
+// --- DYNAMIC STATUS ---
+const DynamicLoader = ({ retryAttempt }: { retryAttempt: number }) => {
+  const states = ["Analyzing Request...", "Searching Database...", "Refining Answer...", "Optimizing Output..."];
   const [index, setIndex] = useState(0);
-  useEffect(() => {
-    const t = setInterval(() => setIndex(prev => (prev + 1) % states.length), 2000);
-    return () => clearInterval(t);
-  }, []);
+  useEffect(() => { const t = setInterval(() => setIndex(prev => (prev + 1) % states.length), 1500); return () => clearInterval(t); }, []);
+  
   return (
     <div className="flex items-center gap-3 text-xs text-purple-400 bg-purple-500/5 px-4 py-2 rounded-full border border-purple-500/20 w-fit animate-pulse">
       <Loader2 className="w-3 h-3 animate-spin"/>
-      <span className="uppercase tracking-widest font-bold">{states[index]}</span>
+      <span className="uppercase tracking-widest font-bold">
+        {retryAttempt > 0 ? `High Traffic... Retrying (${retryAttempt}/3)` : states[index]}
+      </span>
     </div>
   );
 };
@@ -117,17 +76,15 @@ const DynamicLoader = () => {
 export default function ChatPage() {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [retryCount, setRetryCount] = useState(0); // Track retries
   const [messages, setMessages] = useState<any[]>([]);
   const [sessions, setSessions] = useState<any[]>([]);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  
-  // Edit & Delete State
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editTitle, setEditTitle] = useState('');
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [chatToDelete, setChatToDelete] = useState<string | null>(null);
-
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => { fetchSessions(); }, []);
@@ -135,20 +92,17 @@ export default function ChatPage() {
 
   const fetchSessions = async () => {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    const { data } = await supabase.from('chat_sessions').select('*').eq('user_id', user.id).order('created_at', { ascending: false });
-    setSessions(data || []);
+    if (user) {
+        const { data } = await supabase.from('chat_sessions').select('*').eq('user_id', user.id).order('created_at', { ascending: false });
+        setSessions(data || []);
+    }
   };
 
   const createSession = async () => {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    const { data } = await supabase.from('chat_sessions').insert({ user_id: user.id, title: 'New Chat' }).select().single();
-    if (data) {
-      setSessions([data, ...sessions]);
-      setSessionId(data.id);
-      setMessages([]);
-      setSidebarOpen(false);
+    if (user) {
+        const { data } = await supabase.from('chat_sessions').insert({ user_id: user.id, title: 'New Chat' }).select().single();
+        if(data) { setSessions([data, ...sessions]); setSessionId(data.id); setMessages([]); setSidebarOpen(false); }
     }
   };
 
@@ -166,11 +120,41 @@ export default function ChatPage() {
 
   const confirmDelete = (id: string, e: any) => { e.stopPropagation(); setChatToDelete(id); setShowDeleteModal(true); };
   const executeDelete = async () => {
-    if (!chatToDelete) return;
-    await supabase.from('chat_sessions').delete().eq('id', chatToDelete);
-    setSessions(sessions.filter(s => s.id !== chatToDelete));
-    if (sessionId === chatToDelete) { setSessionId(null); setMessages([]); }
-    setShowDeleteModal(false);
+    if (chatToDelete) {
+        await supabase.from('chat_sessions').delete().eq('id', chatToDelete);
+        setSessions(sessions.filter(s => s.id !== chatToDelete));
+        if (sessionId === chatToDelete) { setSessionId(null); setMessages([]); }
+        setShowDeleteModal(false);
+    }
+  };
+
+  // --- THE INVISIBLE AUTO-RETRY LOGIC ---
+  const sendRequestWithRetry = async (text: string, currentId: string, attempt = 0): Promise<string | null> => {
+    setRetryCount(attempt);
+    try {
+        const res = await fetch('/api/ai', { 
+            method: 'POST', 
+            body: JSON.stringify({ prompt: text, type: 'chat' }) 
+        });
+        
+        // Check for Quota Error (429)
+        if (res.status === 429) {
+            throw new Error("QUOTA_HIT");
+        }
+
+        const data = await res.json();
+        if (data.error) throw new Error(data.error); // Catch other errors
+        
+        return data.reply;
+
+    } catch (error: any) {
+        if (error.message === "QUOTA_HIT" && attempt < 3) {
+            // WAIT 4 SECONDS AND RETRY AUTOMATICALLY
+            await new Promise(resolve => setTimeout(resolve, 4000));
+            return sendRequestWithRetry(text, currentId, attempt + 1);
+        }
+        return null; // Failed after retries
+    }
   };
 
   const handleSend = async () => {
@@ -178,34 +162,32 @@ export default function ChatPage() {
     let currentId = sessionId;
     const { data: { user } } = await supabase.auth.getUser();
     
-    if (!currentId) {
-      const { data } = await supabase.from('chat_sessions').insert({ user_id: user!.id, title: input.slice(0, 20) }).select().single();
+    if (!currentId && user) {
+      const { data } = await supabase.from('chat_sessions').insert({ user_id: user.id, title: input.slice(0, 20) }).select().single();
       if(data) { setSessions([data, ...sessions]); setSessionId(data.id); currentId = data.id; }
     }
 
-    const text = input; 
-    setInput(''); 
-    setLoading(true);
+    const text = input; setInput(''); setLoading(true); setRetryCount(0);
     setMessages(prev => [...prev, { role: 'user', text }]);
-    await supabase.from('chat_history').insert({ user_id: user!.id, session_id: currentId, role: 'user', message: text });
+    if(user && currentId) await supabase.from('chat_history').insert({ user_id: user.id, session_id: currentId, role: 'user', message: text });
 
-    try {
-      const res = await fetch('/api/ai', { method: 'POST', body: JSON.stringify({ prompt: text, type: 'chat' }) });
-      const data = await res.json();
-      setMessages(prev => [...prev, { role: 'ai', text: data.reply }]);
-      await supabase.from('chat_history').insert({ user_id: user!.id, session_id: currentId, role: 'model', message: data.reply });
-    } catch {
-      setMessages(prev => [...prev, { role: 'ai', text: "Connection Error." }]);
-    } finally {
-      setLoading(false);
-      scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
+    // Call the Retry Logic
+    const reply = await sendRequestWithRetry(text, currentId || '');
+
+    if (reply) {
+        setMessages(prev => [...prev, { role: 'ai', text: reply }]);
+        if(user && currentId) await supabase.from('chat_history').insert({ user_id: user.id, session_id: currentId, role: 'model', message: reply });
+    } else {
+        setMessages(prev => [...prev, { role: 'ai', text: "⚠️ Server is exceptionally busy. Please wait 30 seconds and try again." }]);
     }
+    setLoading(false); setRetryCount(0);
+    scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
   return (
     <div className="flex h-[100dvh] bg-[#09090b] text-zinc-200 font-sans overflow-hidden relative">
       
-      {/* DELETE MODAL */}
+      {/* PULSAR DELETE MODAL */}
       {showDeleteModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
           <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-3xl w-full max-w-sm shadow-2xl">
@@ -266,11 +248,9 @@ export default function ChatPage() {
               <div key={i} className={`flex gap-4 mb-6 max-w-3xl mx-auto ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 {msg.role === 'ai' && <div className="w-8 h-8 rounded-full bg-purple-600/20 flex items-center justify-center mt-1 flex-shrink-0"><Bot className="w-4 h-4 text-purple-400"/></div>}
                 
-                {/* --- CHAT BUBBLES (Eye-Pain Removed) --- */}
+                {/* MESSAGE BUBBLE */}
                 <div className={`p-4 rounded-2xl text-sm leading-relaxed shadow-sm max-w-[95%] md:max-w-[85%] ${
-                  msg.role === 'ai' 
-                  ? 'bg-transparent text-zinc-300' 
-                  : 'bg-zinc-800 text-white rounded-tr-none' // Dark Gray Bubble
+                  msg.role === 'ai' ? 'bg-transparent text-zinc-300' : 'bg-zinc-800 text-white rounded-tr-none'
                 }`}>
                   {msg.role === 'ai' ? <MarkdownRenderer text={msg.text} /> : msg.text}
                 </div>
@@ -280,8 +260,8 @@ export default function ChatPage() {
             ))
           )}
           
-          {/* --- STATUS LOOP --- */}
-          {loading && <div className="flex gap-4 mb-6 max-w-3xl mx-auto"><div className="w-8 h-8 rounded-full bg-purple-600/10 flex items-center justify-center"><Bot className="w-4 h-4 text-purple-500"/></div><DynamicLoader /></div>}
+          {/* LOADER SHOWS RETRY STATUS */}
+          {loading && <div className="flex gap-4 mb-6 max-w-3xl mx-auto"><div className="w-8 h-8 rounded-full bg-purple-600/10 flex items-center justify-center"><Bot className="w-4 h-4 text-purple-500"/></div><DynamicLoader retryAttempt={retryAttempt} /></div>}
           
           <div ref={scrollRef}></div>
           <div className="h-24"></div>
@@ -297,5 +277,5 @@ export default function ChatPage() {
       </div>
     </div>
   );
-                                              }
-          
+            }
+                                        
