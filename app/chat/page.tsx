@@ -24,7 +24,6 @@ export default function ChatPage() {
   const fetchSessions = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-    // NO PLACEHOLDERS. Only DB data.
     const { data } = await supabase.from('chat_sessions').select('*').eq('user_id', user.id).order('created_at', { ascending: false });
     setSessions(data || []);
   };
@@ -75,16 +74,25 @@ export default function ChatPage() {
     await supabase.from('chat_history').insert({ user_id: user!.id, session_id: currentId, role: 'user', message: text });
 
     try {
+      // Start typing cursor effect
+      setMessages(prev => [...prev, { role: 'ai', text: '|' }]);
+      
       const res = await fetch('/api/ai', { method: 'POST', body: JSON.stringify({ prompt: text }) });
       const data = await res.json();
-      setMessages(prev => [...prev, { role: 'ai', text: data.reply }]);
+
+      // Replace last AI message (cursor) with actual response
+      setMessages(prev => [...prev.slice(0, -1), { role: 'ai', text: data.reply }]);
       await supabase.from('chat_history').insert({ user_id: user!.id, session_id: currentId, role: 'model', message: data.reply });
-    } catch (e) { setMessages(prev => [...prev, { role: 'ai', text: "Connection Error." }]); } 
-    finally { setLoading(false); scrollRef.current?.scrollIntoView({ behavior: 'smooth' }); }
+    } catch (e) { 
+      setMessages(prev => [...prev.slice(0, -1), { role: 'ai', text: "Connection Error." }]); 
+    } 
+    finally { 
+      setLoading(false); 
+      scrollRef.current?.scrollIntoView({ behavior: 'smooth' }); 
+    }
   };
 
   return (
-    // FIXED HEIGHT: Use 100dvh to fit mobile screens perfectly
     <div className="flex h-[100dvh] bg-[#050508] text-white font-sans overflow-hidden">
       
       {/* SIDEBAR */}
@@ -137,15 +145,20 @@ export default function ChatPage() {
                     <div key={i} className={`flex gap-4 mb-6 max-w-3xl mx-auto ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                         {msg.role === 'ai' && <div className="w-8 h-8 rounded-full bg-purple-500/20 flex items-center justify-center mt-1"><Bot className="w-4 h-4 text-purple-400"/></div>}
                         <div className={`p-4 rounded-2xl text-sm leading-relaxed max-w-[85%] ${msg.role === 'ai' ? 'bg-[#1a1a1a] text-gray-200 rounded-tl-none border border-white/5' : 'bg-purple-600 text-white rounded-tr-none'}`}>
-                            {msg.text}
+                          {msg.role === 'ai' && loading && msg.text === '|' ? (
+                            <span className="blinking-cursor"></span>
+                          ) : msg.text}
                         </div>
                     </div>
                 ))
             )}
-            {loading && <div className="flex gap-4 mb-6 max-w-3xl mx-auto"><div className="w-8 h-8 rounded-full bg-purple-500/20 flex items-center justify-center"><Bot className="w-4 h-4 text-purple-400"/></div><Loader2 className="w-4 h-4 animate-spin text-subtext"/></div>}
+            {loading && messages[messages.length - 1]?.role !== 'ai' && (
+              <div className="flex gap-4 mb-6 max-w-3xl mx-auto">
+                <div className="w-8 h-8 rounded-full bg-purple-500/20 flex items-center justify-center"><Bot className="w-4 h-4 text-purple-400"/></div>
+                <Loader2 className="w-4 h-4 animate-spin text-subtext"/>
+              </div>
+            )}
             <div ref={scrollRef}></div>
-            
-            {/* INVISIBLE SPACER TO PREVENT CONTENT HIDING BEHIND INPUT */}
             <div className="h-24"></div>
         </div>
 
@@ -157,7 +170,19 @@ export default function ChatPage() {
             </div>
         </div>
       </div>
+
+      {/* Blinking Cursor Style */}
+      <style jsx>{`
+        .blinking-cursor::after {
+          content: '|';
+          animation: blink 1s infinite;
+          margin-left: 2px;
+        }
+        @keyframes blink {
+          0%, 50%, 100% { opacity: 1; }
+          25%, 75% { opacity: 0; }
+        }
+      `}</style>
     </div>
   );
-  }
-                                                                 
+    }
