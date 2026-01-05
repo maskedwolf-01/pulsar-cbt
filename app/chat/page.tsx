@@ -6,39 +6,66 @@ import {
   Send, Bot, Plus, MessageSquare, Menu, Loader2, Sparkles, Trash2, Edit2, ArrowLeft, User
 } from 'lucide-react';
 
-// --- FIXED TYPEWRITER (No dropped letters) ---
-const Typewriter = ({ text }: { text: string }) => {
-  const [display, setDisplay] = useState('');
+// --- 1. MARKDOWN PARSER (Fixes #, **, and Tables) ---
+const MarkdownRenderer = ({ text }: { text: string }) => {
+  // Split by newlines to handle blocks
+  const lines = text.split('\n');
   
-  useEffect(() => {
-    let i = 0;
-    // Faster, smoother typing (10ms)
-    const interval = setInterval(() => {
-      setDisplay(text.slice(0, i)); // Slice is safe, never drops letters
-      i++;
-      if (i > text.length) clearInterval(interval);
-    }, 10);
-    return () => clearInterval(interval);
-  }, [text]);
-
-  // RENDER MARKDOWN (Bold & Newlines)
   return (
-    <div className="whitespace-pre-wrap">
-      {display.split('**').map((part, index) => 
-        index % 2 === 1 ? <strong key={index} className="text-purple-300">{part}</strong> : part
-      )}
+    <div className="space-y-1 text-sm leading-relaxed">
+      {lines.map((line, i) => {
+        // Headers (###)
+        if (line.startsWith('### ')) return <h3 key={i} className="text-purple-300 font-bold text-lg mt-3 mb-1">{line.replace('### ', '')}</h3>;
+        if (line.startsWith('## ')) return <h2 key={i} className="text-purple-400 font-bold text-xl mt-4 mb-2">{line.replace('## ', '')}</h2>;
+        
+        // Bullet Points (*)
+        if (line.trim().startsWith('* ')) {
+          const content = line.trim().replace('* ', '');
+          return (
+            <div key={i} className="flex gap-2 ml-2">
+              <span className="text-purple-500 mt-1">•</span>
+              <span dangerouslySetInnerHTML={{ __html: formatBold(content) }}></span>
+            </div>
+          );
+        }
+
+        // Tables (|) - Render as Monospace Block
+        if (line.includes('|')) {
+          return <div key={i} className="font-mono text-xs bg-black/30 p-1 rounded overflow-x-auto whitespace-pre">{line}</div>;
+        }
+
+        // Standard Text (with **Bold** support)
+        if (line.trim() === '') return <div key={i} className="h-2"></div>;
+        return <div key={i} dangerouslySetInnerHTML={{ __html: formatBold(line) }}></div>;
+      })}
     </div>
   );
 };
 
-// --- STATIC MESSAGE RENDERER (For History) ---
-const StaticMessage = ({ text }: { text: string }) => (
-  <div className="whitespace-pre-wrap">
-    {text.split('**').map((part, index) => 
-      index % 2 === 1 ? <strong key={index} className="text-purple-300">{part}</strong> : part
-    )}
-  </div>
-);
+// Helper to turn **text** into <b>text</b>
+const formatBold = (text: string) => {
+  return text.replace(/\*\*(.*?)\*\*/g, '<strong class="text-purple-300 font-semibold">$1</strong>');
+};
+
+// --- 2. DYNAMIC LOADER ("Thinking..." -> "Refining...") ---
+const DynamicLoader = () => {
+  const states = ["Analyzing Request...", "Searching Database...", "Connecting Concepts...", "Refining Answer..."];
+  const [index, setIndex] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setIndex((prev) => (prev + 1) % states.length);
+    }, 1500); // Change text every 1.5s
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div className="flex items-center gap-2 text-xs text-purple-400 font-medium animate-pulse">
+      <Loader2 className="w-3 h-3 animate-spin"/>
+      <span>{states[index]}</span>
+    </div>
+  );
+};
 
 export default function ChatPage() {
   const [input, setInput] = useState('');
@@ -48,6 +75,7 @@ export default function ChatPage() {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   
+  // Edit & Delete State
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState('');
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -79,7 +107,7 @@ export default function ChatPage() {
 
   const fetchMessages = async (id: string) => {
     const { data } = await supabase.from('chat_history').select('*').eq('session_id', id).order('created_at', { ascending: true });
-    setMessages(data ? data.map(d => ({ role: d.role === 'model' ? 'ai' : 'user', text: d.message, isHistory: true })) : []);
+    setMessages(data ? data.map(d => ({ role: d.role === 'model' ? 'ai' : 'user', text: d.message })) : []);
   };
 
   const renameSession = async (id: string) => {
@@ -90,7 +118,6 @@ export default function ChatPage() {
   };
 
   const confirmDelete = (id: string, e: any) => { e.stopPropagation(); setChatToDelete(id); setShowDeleteModal(true); };
-  
   const executeDelete = async () => {
     if (!chatToDelete) return;
     await supabase.from('chat_sessions').delete().eq('id', chatToDelete);
@@ -109,17 +136,19 @@ export default function ChatPage() {
       if(data) { setSessions([data, ...sessions]); setSessionId(data.id); currentId = data.id; }
     }
 
-    const text = input; setInput(''); setLoading(true);
-    setMessages(prev => [...prev, { role: 'user', text, isHistory: true }]);
+    const text = input; 
+    setInput(''); 
+    setLoading(true);
+    setMessages(prev => [...prev, { role: 'user', text }]);
     await supabase.from('chat_history').insert({ user_id: user!.id, session_id: currentId, role: 'user', message: text });
 
     try {
       const res = await fetch('/api/ai', { method: 'POST', body: JSON.stringify({ prompt: text, type: 'chat' }) });
       const data = await res.json();
-      setMessages(prev => [...prev, { role: 'ai', text: data.reply, isHistory: false }]);
+      setMessages(prev => [...prev, { role: 'ai', text: data.reply }]);
       await supabase.from('chat_history').insert({ user_id: user!.id, session_id: currentId, role: 'model', message: data.reply });
     } catch {
-      setMessages(prev => [...prev, { role: 'ai', text: "Connection Error.", isHistory: true }]);
+      setMessages(prev => [...prev, { role: 'ai', text: "Connection Error." }]);
     } finally {
       setLoading(false);
       scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -127,41 +156,41 @@ export default function ChatPage() {
   };
 
   return (
-    <div className="flex h-[100dvh] bg-[#050508] text-white font-sans overflow-hidden relative">
+    <div className="flex h-[100dvh] bg-[#09090b] text-zinc-200 font-sans overflow-hidden relative">
       
       {/* DELETE MODAL */}
       {showDeleteModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-          <div className="bg-[#1a1a1a] border border-white/10 p-6 rounded-3xl w-full max-w-sm shadow-2xl">
+          <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-3xl w-full max-w-sm shadow-2xl">
             <div className="flex flex-col items-center text-center mb-6">
               <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mb-4 border border-red-500/20"><Trash2 className="w-8 h-8 text-red-500"/></div>
-              <h3 className="text-xl font-bold">Delete Chat?</h3>
-              <p className="text-sm text-subtext mt-2">This cannot be undone.</p>
+              <h3 className="text-xl font-bold text-white">Delete Chat?</h3>
+              <p className="text-sm text-zinc-400 mt-2">This cannot be undone.</p>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <button onClick={() => setShowDeleteModal(false)} className="py-3 rounded-xl bg-white/5 font-bold text-sm">Cancel</button>
-              <button onClick={executeDelete} className="py-3 rounded-xl bg-red-600 font-bold text-sm">Delete</button>
+              <button onClick={() => setShowDeleteModal(false)} className="py-3 rounded-xl bg-zinc-800 font-bold text-sm text-white">Cancel</button>
+              <button onClick={executeDelete} className="py-3 rounded-xl bg-red-600 font-bold text-sm text-white">Delete</button>
             </div>
           </div>
         </div>
       )}
 
       {/* SIDEBAR */}
-      <div className={`fixed inset-y-0 left-0 z-50 w-72 bg-[#0a0a0f] border-r border-white/5 transform transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:relative md:translate-x-0`}>
+      <div className={`fixed inset-y-0 left-0 z-50 w-72 bg-zinc-900 border-r border-zinc-800 transform transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:relative md:translate-x-0`}>
         <div className="p-4 flex flex-col h-full">
           <div className="flex items-center gap-2 mb-6">
-            <Link href="/dashboard" className="p-2 hover:bg-white/5 rounded-full"><ArrowLeft className="w-5 h-5"/></Link>
-            <button onClick={createSession} className="flex-1 flex items-center gap-2 bg-purple-600 hover:bg-purple-500 p-2 rounded-xl text-sm font-bold justify-center"><Plus className="w-4 h-4" /> New Chat</button>
+            <Link href="/dashboard" className="p-2 hover:bg-zinc-800 rounded-full"><ArrowLeft className="w-5 h-5"/></Link>
+            <button onClick={createSession} className="flex-1 flex items-center gap-2 bg-purple-600/20 text-purple-400 hover:bg-purple-600/30 p-3 rounded-xl text-sm font-bold justify-center transition-colors"><Plus className="w-4 h-4" /> New Chat</button>
           </div>
-          <div className="flex-1 overflow-y-auto custom-scrollbar space-y-2">
-            <div className="text-[10px] text-subtext uppercase font-bold tracking-widest pl-2 mb-2">History</div>
+          <div className="flex-1 overflow-y-auto custom-scrollbar space-y-1">
+            <div className="text-[10px] text-zinc-500 uppercase font-bold tracking-widest pl-2 mb-2">History</div>
             {sessions.map(s => (
-              <div key={s.id} onClick={() => { setSessionId(s.id); setSidebarOpen(false); }} className={`group w-full text-left p-3 rounded-xl flex justify-between items-center cursor-pointer transition-all ${sessionId === s.id ? 'bg-white/10 text-white' : 'text-gray-400 hover:bg-white/5'}`}>
+              <div key={s.id} onClick={() => { setSessionId(s.id); setSidebarOpen(false); }} className={`group w-full text-left p-3 rounded-xl flex justify-between items-center cursor-pointer transition-all ${sessionId === s.id ? 'bg-zinc-800 text-white' : 'text-zinc-400 hover:bg-zinc-800/50'}`}>
                 {editingId === s.id ? (
-                  <input autoFocus className="bg-black border border-white/20 rounded px-2 py-1 w-full text-xs text-white" value={editTitle} onChange={e => setEditTitle(e.target.value)} onBlur={() => renameSession(s.id)} onKeyDown={e => e.key === 'Enter' && renameSession(s.id)} />
-                ) : ( <div className="flex items-center gap-3 truncate w-full"><MessageSquare className={`w-4 h-4 flex-shrink-0 ${sessionId === s.id?'text-purple-400':'text-gray-600'}`}/><span className="text-sm truncate max-w-[130px]">{s.title}</span></div> )}
-                <div className="flex gap-1 md:opacity-0 md:group-hover:opacity-100 transition-opacity bg-[#0a0a0f] pl-2">
-                  <button onClick={(e) => { e.stopPropagation(); setEditingId(s.id); setEditTitle(s.title); }} className="p-2 hover:bg-white/10 rounded-lg"><Edit2 className="w-3.5 h-3.5"/></button>
+                  <input autoFocus className="bg-black border border-zinc-700 rounded px-2 py-1 w-full text-xs text-white" value={editTitle} onChange={e => setEditTitle(e.target.value)} onBlur={() => renameSession(s.id)} onKeyDown={e => e.key === 'Enter' && renameSession(s.id)} />
+                ) : ( <div className="flex items-center gap-3 truncate w-full"><MessageSquare className={`w-4 h-4 flex-shrink-0 ${sessionId === s.id?'text-purple-400':'text-zinc-600'}`}/><span className="text-sm truncate max-w-[130px]">{s.title}</span></div> )}
+                <div className="flex gap-1 md:opacity-0 md:group-hover:opacity-100 transition-opacity bg-zinc-900 pl-2">
+                  <button onClick={(e) => { e.stopPropagation(); setEditingId(s.id); setEditTitle(s.title); }} className="p-2 hover:bg-zinc-700 rounded-lg"><Edit2 className="w-3.5 h-3.5"/></button>
                   <button onClick={(e) => confirmDelete(s.id, e)} className="p-2 hover:bg-red-500/10 rounded-lg text-red-500"><Trash2 className="w-3.5 h-3.5"/></button>
                 </div>
               </div>
@@ -174,43 +203,52 @@ export default function ChatPage() {
 
       {/* MAIN CHAT */}
       <div className="flex-1 flex flex-col relative h-full">
-        <header className="md:hidden flex items-center justify-between p-4 bg-[#0a0a0f] border-b border-white/5 z-30 flex-none">
+        <header className="md:hidden flex items-center justify-between p-4 bg-zinc-900 border-b border-zinc-800 z-30 flex-none">
           <div className="flex items-center gap-4"><button onClick={() => setSidebarOpen(true)}><Menu className="w-6 h-6"/></button><span className="font-bold text-purple-400">Nexus 1.0</span></div>
         </header>
 
         <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
           {messages.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center opacity-50">
-              <div className="w-16 h-16 bg-white/5 rounded-2xl flex items-center justify-center mb-4"><Sparkles className="w-8 h-8 text-purple-500"/></div>
+              <div className="w-16 h-16 bg-zinc-800 rounded-2xl flex items-center justify-center mb-4"><Sparkles className="w-8 h-8 text-purple-500"/></div>
               <h1 className="text-2xl font-bold text-white">Hello, Scholar</h1>
-              <p className="text-subtext mt-2">Ready to assist.</p>
+              <p className="text-zinc-500 mt-2">Ready to assist.</p>
             </div>
           ) : (
             messages.map((msg, i) => (
               <div key={i} className={`flex gap-4 mb-6 max-w-3xl mx-auto ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                {msg.role === 'ai' && <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-600 to-pink-600 p-[1px] mt-1"><div className="w-full h-full bg-black rounded-full flex items-center justify-center"><Bot className="w-4 h-4 text-white"/></div></div>}
-                <div className={`p-4 rounded-2xl text-sm leading-relaxed shadow-lg ${msg.role === 'ai' ? 'bg-[#1a1a1a] text-gray-200 rounded-tl-none border border-white/5 max-w-[85%]' : 'bg-purple-600 text-white rounded-tr-none max-w-[80%]'}`}>
-                  {/* USE STATIC MESSAGE FOR HISTORY TO PREVENT RE-TYPING ON RELOAD */}
-                  {msg.role === 'ai' && !msg.isHistory ? <Typewriter text={msg.text} /> : <StaticMessage text={msg.text} />}
+                {msg.role === 'ai' && <div className="w-8 h-8 rounded-full bg-purple-600/20 flex items-center justify-center mt-1 flex-shrink-0"><Bot className="w-4 h-4 text-purple-400"/></div>}
+                
+                {/* --- CHAT BUBBLES (UPDATED COLORS) --- */}
+                <div className={`p-4 rounded-2xl text-sm leading-relaxed shadow-sm max-w-[85%] ${
+                  msg.role === 'ai' 
+                  ? 'bg-transparent text-zinc-300' // AI: Transparent, clean text
+                  : 'bg-zinc-800 text-white rounded-tr-none' // USER: Dark Gray (No more purple eye pain)
+                }`}>
+                  {msg.role === 'ai' ? <MarkdownRenderer text={msg.text} /> : msg.text}
                 </div>
-                {msg.role === 'user' && <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center mt-1"><User className="w-4 h-4 text-white"/></div>}
+
+                {msg.role === 'user' && <div className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center mt-1 flex-shrink-0"><User className="w-4 h-4 text-zinc-400"/></div>}
               </div>
             ))
           )}
-          {loading && <div className="flex gap-4 mb-6 max-w-3xl mx-auto"><div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center"><Bot className="w-4 h-4 text-purple-500"/></div><Loader2 className="w-4 h-4 animate-spin text-subtext"/></div>}
+          
+          {/* --- DYNAMIC LOADING INDICATOR --- */}
+          {loading && <div className="flex gap-4 mb-6 max-w-3xl mx-auto"><div className="w-8 h-8 rounded-full bg-purple-600/10 flex items-center justify-center"><Bot className="w-4 h-4 text-purple-500"/></div><DynamicLoader /></div>}
+          
           <div ref={scrollRef}></div>
           <div className="h-24"></div>
         </div>
 
         {/* INPUT */}
-        <div className="p-4 bg-gradient-to-t from-black via-black/90 to-transparent z-20 flex-none pb-8 md:pb-4">
-          <div className="max-w-3xl mx-auto bg-[#1a1a1a] border border-white/10 rounded-2xl p-2 flex items-center shadow-2xl">
-            <input value={input} onChange={(e) => setInput(e.target.value)} placeholder="Ask Nexus anything..." className="flex-1 bg-transparent border-none text-white px-4 py-3 focus:outline-none" onKeyDown={(e) => e.key === 'Enter' && handleSend()}/>
-            <button onClick={handleSend} disabled={!input.trim() || loading} className={`p-3 rounded-xl transition-all ${input.trim() ? 'bg-white text-black' : 'bg-white/5 text-gray-600'}`}><Send className="w-5 h-5"/></button>
+        <div className="p-4 bg-gradient-to-t from-black via-zinc-950 to-transparent z-20 flex-none pb-8 md:pb-4">
+          <div className="max-w-3xl mx-auto bg-zinc-900 border border-zinc-800 rounded-2xl p-2 flex items-center shadow-2xl">
+            <input value={input} onChange={(e) => setInput(e.target.value)} placeholder="Ask Nexus anything..." className="flex-1 bg-transparent border-none text-white px-4 py-3 focus:outline-none placeholder:text-zinc-600" onKeyDown={(e) => e.key === 'Enter' && handleSend()}/>
+            <button onClick={handleSend} disabled={!input.trim() || loading} className={`p-3 rounded-xl transition-all ${input.trim() ? 'bg-white text-black' : 'bg-zinc-800 text-zinc-600'}`}><Send className="w-5 h-5"/></button>
           </div>
         </div>
       </div>
     </div>
   );
-    }
-                               
+  }
+    
