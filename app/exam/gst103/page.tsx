@@ -13,7 +13,7 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-// --- COMPONENTS ---
+// --- 1. PULSAR MODAL ---
 const PulsarModal = ({ title, message, onConfirm, onCancel, confirmText="Confirm", cancelText="Cancel", isDestructive=false, singleButton=false }: any) => (
   <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
      <div className="bg-[#111113] border border-zinc-800 p-6 rounded-2xl w-full max-w-sm text-center shadow-2xl scale-100">
@@ -32,22 +32,21 @@ const PulsarModal = ({ title, message, onConfirm, onCancel, confirmText="Confirm
   </div>
 );
 
+// --- 2. CALCULATOR ---
 const ExamCalculator = ({ onClose }: { onClose: () => void }) => {
   const [display, setDisplay] = useState('0');
-  const [evalString, setEvalString] = useState('');
   
   const handlePress = (val: string) => {
-    if (val === 'C') { setDisplay('0'); setEvalString(''); return; }
+    if (val === 'C') { setDisplay('0'); return; }
     if (val === '=') {
-      try { 
-        // eslint-disable-next-line no-eval
-        const res = eval(evalString).toString(); 
-        setDisplay(res.substring(0, 10)); 
-        setEvalString(res); 
+      try {
+        // Safe evaluation
+        // eslint-disable-next-line
+        setDisplay(Function('"use strict";return (' + display + ')')().toString().substring(0,10));
       } catch { setDisplay('Err'); }
       return;
     }
-    const newStr = evalString + val; setEvalString(newStr); setDisplay(newStr);
+    setDisplay(prev => (prev === '0' ? val : prev + val));
   };
 
   return (
@@ -65,11 +64,10 @@ const ExamCalculator = ({ onClose }: { onClose: () => void }) => {
     </div>
   );
 };
-
-// --- MAIN PAGE ---
+  // --- MAIN EXAM PAGE ---
 export default function ExamPage() {
   const router = useRouter();
-  const resultCardRef = useRef<HTMLDivElement>(null);
+  const resultCardRef = useRef<any>(null);
 
   const [loading, setLoading] = useState(true);
   const [examStarted, setExamStarted] = useState(false);
@@ -150,13 +148,12 @@ export default function ExamPage() {
     
     const { data: { user } } = await supabase.auth.getUser();
     if(user) {
-        const { error } = await supabase.from('results').insert({
+        await supabase.from('results').insert({
             user_id: user.id, 
             course_code: 'GST 103', 
             score: Math.round((calcScore/questions.length)*100), 
             total_questions: questions.length
         });
-        if (error) console.error("Save Error:", error);
     }
   };
 
@@ -174,18 +171,18 @@ export default function ExamPage() {
                     text: `I scored ${score}/${questions.length} in GST 103 on Pulsar CBT! 🚀`,
                     files: [file]
                 });
-            } catch (shareError) { console.log('Share canceled', shareError); }
+            } catch (err) { console.log(err); }
         } else {
             const link = document.createElement('a');
-            link.download = 'Pulsar_GST103_Result.png';
+            link.download = 'Pulsar_Result.png';
             link.href = canvas.toDataURL();
             link.click();
-            setModalConfig({ title: "Image Saved", message: "Result saved to your device.", singleButton: true, onConfirm: () => setModalConfig(null) });
+            setModalConfig({ title: "Saved", message: "Result image saved to gallery.", singleButton: true, onConfirm: () => setModalConfig(null) });
         }
       }, 'image/png');
     } catch (err) {
       console.error(err);
-      setModalConfig({ title: "Error", message: "Could not generate image.", singleButton: true, onConfirm: () => setModalConfig(null) });
+      setModalConfig({ title: "Error", message: "Share failed.", singleButton: true, onConfirm: () => setModalConfig(null) });
     }
   };
 
@@ -203,7 +200,7 @@ export default function ExamPage() {
             <ul className="text-sm text-zinc-300 space-y-3">
                 <li className="flex gap-2"><CheckCircle className="w-4 h-4 text-green-500"/> Answer all 100 questions.</li>
                 <li className="flex gap-2"><Clock className="w-4 h-4 text-orange-500"/> Time limit: 45 Minutes.</li>
-                <li className="flex gap-2"><RefreshCw className="w-4 h-4 text-blue-500"/> Questions are shuffled every attempt.</li>
+                <li className="flex gap-2"><RefreshCw className="w-4 h-4 text-blue-500"/> Questions are shuffled.</li>
             </ul>
         </div>
         <button onClick={() => setExamStarted(true)} className="w-full py-4 bg-white text-black font-bold rounded-xl hover:bg-zinc-200 flex items-center justify-center gap-2">Start Exam <ChevronRight className="w-4 h-4"/></button>
@@ -256,7 +253,7 @@ export default function ExamPage() {
     );
   }
 
-  // --- EXAM & REVIEW ---
+  // --- EXAM INTERFACE ---
   const currentQ = questions[currentIndex];
   const gridStart = gridPage * 20;
   const gridEnd = Math.min(gridStart + 20, questions.length);
@@ -270,7 +267,7 @@ export default function ExamPage() {
              {isReviewing ? <Home className="w-5 h-5"/> : <X className="w-5 h-5"/>}
         </button>
         {isReviewing ? (
-            <div className="px-4 py-1 bg-purple-900/30 border border-purple-500/30 rounded-full text-purple-300 text-xs font-bold uppercase tracking-widest shadow-[0_0_15px_rgba(168,85,247,0.2)]">Review Mode</div>
+            <div className="px-4 py-1 bg-purple-900/30 border border-purple-500/30 rounded-full text-purple-300 text-xs font-bold uppercase tracking-widest">Review Mode</div>
         ) : (
             <div className={`font-mono font-bold text-lg ${timeLeft < 300 ? 'text-red-500 animate-pulse' : 'text-purple-400'}`}>{Math.floor(timeLeft/60)}:{String(timeLeft%60).padStart(2,'0')}</div>
         )}
@@ -336,4 +333,17 @@ export default function ExamPage() {
               else if (isReviewing) {
                  const isCorrect = answers[q.id] === q.new_correct_option;
                  colorClass = isCorrect ? "bg-green-500/20 text-green-500 border-green-500/50" : "bg-red-500/20 text-red-500 border-red-500/50";
-                 if (!answers[q.id]) colorClass = "bg-zinc-800 tex
+                 if (!answers[q.id]) colorClass = "bg-zinc-800 text-zinc-500 border-zinc-700";
+              }
+              else if (answered) colorClass = "bg-purple-600/20 text-purple-400 border-purple-500/50";
+              return (
+                <button key={q.id} onClick={() => setCurrentIndex(actualIndex)} className={`h-9 rounded-lg text-xs font-bold border transition-all ${colorClass}`}>{actualIndex + 1}</button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+          }
+    
