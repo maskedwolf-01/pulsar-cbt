@@ -2,9 +2,9 @@
 import { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import Link from 'next/link';
-import { Search, BookOpen, Clock, ArrowRight, Loader2 } from 'lucide-react';
-import BottomNav from '../../components/BottomNav'; // Adjust path if needed
+import { Search, BookOpen, Clock, ArrowRight, Loader2, Home } from 'lucide-react';
 
+// DIRECT CONNECTION
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -17,8 +17,9 @@ export default function CoursesPage() {
 
   useEffect(() => {
     const fetchExams = async () => {
-      const { data } = await supabase.from('exams').select('*').eq('is_published', true);
+      const { data, error } = await supabase.from('exams').select('*').eq('is_published', true);
       if (data) setExams(data);
+      if (error) console.error(error);
       setLoading(false);
     };
     fetchExams();
@@ -33,7 +34,12 @@ export default function CoursesPage() {
     <div className="min-h-screen bg-[#09090b] text-zinc-200 font-sans pb-24">
       {/* HEADER */}
       <div className="p-6 pt-12">
-        <h1 className="text-2xl font-bold text-white mb-1">Course Catalog</h1>
+        <div className="flex justify-between items-center mb-4">
+            <h1 className="text-2xl font-bold text-white">Course Catalog</h1>
+            <Link href="/dashboard" className="p-2 bg-zinc-800 rounded-full hover:bg-zinc-700">
+                <Home className="w-5 h-5 text-zinc-400"/>
+            </Link>
+        </div>
         <p className="text-zinc-500 text-sm">Select an exam to begin practicing.</p>
         
         {/* SEARCH BAR */}
@@ -57,10 +63,11 @@ export default function CoursesPage() {
           <div className="text-center py-10 text-zinc-500">
             <BookOpen className="w-12 h-12 mx-auto mb-3 opacity-20"/>
             <p>No exams found.</p>
+            <p className="text-xs mt-2 text-zinc-600">Administrator has not published any exams yet.</p>
           </div>
         ) : (
           filteredExams.map((exam) => (
-            <div key={exam.id} className="bg-zinc-900 border border-zinc-800 p-5 rounded-2xl flex flex-col gap-4">
+            <div key={exam.id} className="bg-zinc-900 border border-zinc-800 p-5 rounded-2xl flex flex-col gap-4 shadow-lg">
               <div>
                 <div className="flex justify-between items-start mb-2">
                   <span className="bg-purple-500/10 text-purple-400 px-3 py-1 rounded-lg text-xs font-bold border border-purple-500/20">
@@ -83,9 +90,7 @@ export default function CoursesPage() {
           ))
         )}
       </div>
-
-      <BottomNav active="browse" />
     </div>
   );
-            }
-            
+}
+
