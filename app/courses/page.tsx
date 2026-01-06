@@ -1,96 +1,108 @@
 "use client";
-import { useState, useEffect } from 'react';
-import { createClient } from '@supabase/supabase-js';
+import { useState } from 'react';
 import Link from 'next/link';
-import { Search, BookOpen, Clock, ArrowRight, Loader2, Home } from 'lucide-react';
+import { Search, Clock, BookOpen, ChevronRight, Cpu } from 'lucide-react';
+import BottomNav from '../components/BottomNav';
 
-// DIRECT CONNECTION
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+export default function Courses() {
+  const [searchTerm, setSearchTerm] = useState('');
 
-export default function CoursesPage() {
-  const [exams, setExams] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
+  // DEFINING THE COURSES HERE
+  const courses = [
+    {
+      id: 'gst103',
+      code: 'GST 103',
+      title: 'Use of Library & ICT',
+      desc: 'Fundamental library skills and ICT concepts. Take this exam often—questions are shuffled every time!',
+      icon: <BookOpen className="w-6 h-6 text-purple-400"/>,
+      link: '/exam/gst103',
+      theme: 'purple'
+    },
+    {
+      id: 'csc101',
+      code: 'CSC 101',
+      title: 'Intro to Computer Science',
+      desc: 'History of computing, hardware, software, logic, and binary systems. Master the basics of CS.',
+      icon: <Cpu className="w-6 h-6 text-blue-400"/>,
+      link: '/exam/csc101', // This links to the page you just created
+      theme: 'blue'
+    }
+  ];
 
-  useEffect(() => {
-    const fetchExams = async () => {
-      const { data, error } = await supabase.from('exams').select('*').eq('is_published', true);
-      if (data) setExams(data);
-      if (error) console.error(error);
-      setLoading(false);
-    };
-    fetchExams();
-  }, []);
-
-  const filteredExams = exams.filter(e => 
-    e.course_code.toLowerCase().includes(search.toLowerCase()) || 
-    e.title.toLowerCase().includes(search.toLowerCase())
+  // SEARCH LOGIC
+  const filteredCourses = courses.filter(c => 
+    c.code.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    c.title.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
-    <div className="min-h-screen bg-[#09090b] text-zinc-200 font-sans pb-24">
+    <div className="min-h-screen bg-[#09090b] text-white font-sans pb-24 selection:bg-purple-500/30">
+      
       {/* HEADER */}
-      <div className="p-6 pt-12">
-        <div className="flex justify-between items-center mb-4">
-            <h1 className="text-2xl font-bold text-white">Course Catalog</h1>
-            <Link href="/dashboard" className="p-2 bg-zinc-800 rounded-full hover:bg-zinc-700">
-                <Home className="w-5 h-5 text-zinc-400"/>
-            </Link>
+      <div className="p-6 pt-12 flex justify-between items-center">
+        <div>
+          <h1 className="text-2xl font-bold text-white">Course Catalog</h1>
+          <p className="text-zinc-500 text-xs mt-1">Select an exam to begin practicing.</p>
         </div>
-        <p className="text-zinc-500 text-sm">Select an exam to begin practicing.</p>
-        
-        {/* SEARCH BAR */}
-        <div className="mt-6 relative">
-          <Search className="absolute left-4 top-3.5 w-5 h-5 text-zinc-500"/>
-          <input 
-            type="text" 
-            placeholder="Search (e.g. GST 103)" 
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-3 pl-12 pr-4 text-white focus:outline-none focus:border-purple-500 transition-colors"
-          />
+        <div className="p-3 bg-zinc-900 rounded-full border border-zinc-800">
+            <BookOpen className="w-5 h-5 text-zinc-400"/>
         </div>
       </div>
 
-      {/* EXAM LIST */}
-      <div className="px-6 space-y-4">
-        {loading ? (
-          <div className="flex justify-center py-10"><Loader2 className="animate-spin text-purple-500"/></div>
-        ) : filteredExams.length === 0 ? (
-          <div className="text-center py-10 text-zinc-500">
-            <BookOpen className="w-12 h-12 mx-auto mb-3 opacity-20"/>
-            <p>No exams found.</p>
-            <p className="text-xs mt-2 text-zinc-600">Administrator has not published any exams yet.</p>
-          </div>
-        ) : (
-          filteredExams.map((exam) => (
-            <div key={exam.id} className="bg-zinc-900 border border-zinc-800 p-5 rounded-2xl flex flex-col gap-4 shadow-lg">
-              <div>
-                <div className="flex justify-between items-start mb-2">
-                  <span className="bg-purple-500/10 text-purple-400 px-3 py-1 rounded-lg text-xs font-bold border border-purple-500/20">
-                    {exam.course_code}
-                  </span>
-                  <span className="flex items-center gap-1 text-xs text-zinc-500">
-                    <Clock className="w-3 h-3"/> {exam.duration_minutes}m
-                  </span>
-                </div>
-                <h3 className="text-lg font-bold text-white leading-tight">{exam.title}</h3>
-                <p className="text-sm text-zinc-500 mt-2 line-clamp-2">{exam.description}</p>
-              </div>
+      {/* SEARCH BAR */}
+      <div className="px-6 mb-6">
+        <div className="relative">
+            <Search className="absolute left-4 top-3.5 w-5 h-5 text-zinc-500"/>
+            <input 
+              type="text" 
+              placeholder="Search (e.g. CSC 101)" 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full bg-[#111113] border border-zinc-800 text-white pl-12 pr-4 py-3.5 rounded-2xl focus:outline-none focus:border-purple-500/50 transition-all placeholder:text-zinc-600 text-sm"
+            />
+        </div>
+      </div>
 
-              <Link href={`/exam/${exam.course_code.toLowerCase().replace(/\s+/g, '')}`} className="w-full">
-                <button className="w-full py-3 bg-white text-black font-bold rounded-xl hover:bg-zinc-200 transition-colors flex items-center justify-center gap-2">
-                  Start Exam <ArrowRight className="w-4 h-4"/>
-                </button>
-              </Link>
+      {/* COURSE LIST */}
+      <div className="px-6 space-y-4">
+        {filteredCourses.length > 0 ? (
+            filteredCourses.map((course) => (
+                <div key={course.id} className="bg-[#111113] border border-zinc-800 p-5 rounded-3xl relative overflow-hidden group hover:border-zinc-700 transition-all">
+                    
+                    {/* Badge */}
+                    <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider mb-3 ${
+                        course.theme === 'blue' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' : 'bg-purple-500/10 text-purple-400 border border-purple-500/20'
+                    }`}>
+                        {course.code}
+                    </div>
+
+                    <h2 className="text-lg font-bold text-white mb-2">{course.title}</h2>
+                    <p className="text-zinc-500 text-xs leading-relaxed mb-6 max-w-[90%]">
+                        {course.desc}
+                    </p>
+
+                    <Link href={course.link}>
+                        <button className={`w-full py-3 text-black font-bold text-sm rounded-xl flex items-center justify-center gap-2 transition-transform active:scale-95 ${
+                            course.theme === 'blue' ? 'bg-white hover:bg-blue-50' : 'bg-white hover:bg-purple-50'
+                        }`}>
+                            Start Exam <ChevronRight className="w-4 h-4"/>
+                        </button>
+                    </Link>
+
+                    {/* Floating Duration Label */}
+                    <div className="absolute top-5 right-5 flex items-center gap-1 text-zinc-500 text-[10px] font-bold">
+                        <Clock className="w-3 h-3"/> 45m
+                    </div>
+                </div>
+            ))
+        ) : (
+            <div className="text-center py-12">
+                <p className="text-zinc-500 text-sm">No courses found matching "{searchTerm}"</p>
             </div>
-          ))
         )}
       </div>
+
+      <BottomNav active="browse" />
     </div>
   );
-}
-
+                      }
