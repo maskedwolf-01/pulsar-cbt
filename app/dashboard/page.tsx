@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { 
   Loader2, BookOpen, TrendingUp, 
-  Activity, Calendar, ChevronRight, User, Search
+  Activity, ChevronRight, User, Search, Bell
 } from 'lucide-react';
 import BottomNav from '../components/BottomNav';
 
@@ -52,47 +52,58 @@ export default function Dashboard() {
   const userAvatar = user?.user_metadata?.avatar_url;
 
   return (
-    <div className="min-h-screen bg-[#050505] text-zinc-200 font-sans pb-24">
+    <div className="min-h-screen bg-[#050505] text-white font-sans pb-24 selection:bg-purple-500/30">
       
-      {/* HEADER: Matches your 'Terminal' Screenshot */}
+      {/* HEADER: Restored "Terminal" Look */}
       <div className="p-6 pt-12 flex justify-between items-center">
         <div>
-          <div className="text-zinc-400 text-xs font-bold uppercase tracking-widest mb-1">Terminal</div>
+          <div className="text-zinc-500 text-[10px] font-bold uppercase tracking-[0.2em] mb-2">TERMINAL</div>
           <h1 className="text-3xl font-bold text-white">
-            Welcome, <span className="text-purple-500">{userName}</span>
+            Welcome, <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-500">{userName}</span>
           </h1>
         </div>
         
-        {/* PROFILE PICTURE - Links to /profile */}
-        <Link href="/profile" className="relative">
-            <div className="w-12 h-12 rounded-full overflow-hidden border border-zinc-800 bg-zinc-900 flex items-center justify-center hover:border-purple-500 transition-all">
+        <div className="flex items-center gap-4">
+            {/* Notification Bell (Restored) */}
+            <button className="relative p-2 text-zinc-400 hover:text-white transition-colors">
+                <Bell className="w-5 h-5" />
+                <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border border-[#050505]"></span>
+            </button>
+
+            {/* Profile Avatar (Restored Round Styling) */}
+            <Link href="/profile" className="w-10 h-10 rounded-full bg-zinc-900 border border-zinc-800 overflow-hidden flex items-center justify-center hover:border-purple-500 transition-all">
                 {userAvatar ? (
                     <img src={userAvatar} alt="Profile" className="w-full h-full object-cover" />
                 ) : (
-                    // This placeholder matches the 'glitch' vibe better than a plain icon
-                    <div className="w-full h-full bg-gradient-to-tr from-purple-900 to-black flex items-center justify-center">
-                        <User className="w-5 h-5 text-purple-400"/>
+                    // Gradient Placeholder if no image
+                    <div className="w-full h-full bg-gradient-to-br from-purple-900 to-black flex items-center justify-center">
+                        <User className="w-4 h-4 text-purple-300"/>
                     </div>
                 )}
-            </div>
-            {/* Notification Dot */}
-            <div className="absolute top-0 right-0 w-3 h-3 bg-red-500 border-2 border-[#050505] rounded-full"></div>
-        </Link>
+            </Link>
+        </div>
       </div>
 
-      {/* STATS CARDS: Darker 'Pulsar' Theme */}
+      {/* STATS CARDS: Deep Black Theme */}
       <div className="grid grid-cols-2 gap-4 px-6 mb-8">
-        <div className="bg-[#111113] border border-zinc-800/60 p-5 rounded-2xl">
-          <div className="flex items-center gap-2 text-zinc-500 text-[10px] font-bold uppercase tracking-wider mb-4">
+        <div className="bg-[#0A0A0B] border border-zinc-800/50 p-5 rounded-2xl relative overflow-hidden group">
+          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+             <TrendingUp className="w-12 h-12 text-green-500"/>
+          </div>
+          <div className="text-zinc-500 text-[10px] font-bold uppercase tracking-wider mb-4 flex items-center gap-2">
             <TrendingUp className="w-3 h-3 text-green-500"/> Avg. Score
           </div>
-          <div className="text-4xl font-bold text-white tracking-tight">{stats.averageScore}<span className="text-lg text-zinc-600">%</span></div>
+          <div className="text-4xl font-bold text-white">{stats.averageScore}<span className="text-lg text-zinc-600">%</span></div>
         </div>
-        <div className="bg-[#111113] border border-zinc-800/60 p-5 rounded-2xl">
-          <div className="flex items-center gap-2 text-zinc-500 text-[10px] font-bold uppercase tracking-wider mb-4">
+
+        <div className="bg-[#0A0A0B] border border-zinc-800/50 p-5 rounded-2xl relative overflow-hidden group">
+          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+             <BookOpen className="w-12 h-12 text-purple-500"/>
+          </div>
+          <div className="text-zinc-500 text-[10px] font-bold uppercase tracking-wider mb-4 flex items-center gap-2">
             <BookOpen className="w-3 h-3 text-purple-500"/> Exams Taken
           </div>
-          <div className="text-4xl font-bold text-white tracking-tight">{stats.examsTaken}</div>
+          <div className="text-4xl font-bold text-white">{stats.examsTaken}</div>
         </div>
       </div>
 
@@ -102,30 +113,29 @@ export default function Dashboard() {
 
         <div className="space-y-3">
           {recentResults.length === 0 ? (
-            // EMPTY STATE: Matches your original large dark card
-            <div className="bg-[#111113] border border-zinc-800/60 rounded-3xl p-10 flex flex-col items-center justify-center text-center min-h-[200px]">
-              <div className="w-12 h-12 bg-zinc-900 rounded-xl flex items-center justify-center mb-4 border border-zinc-800">
+            // EMPTY STATE: Matches Original Large Dark Card
+            <div className="bg-[#0A0A0B] border border-zinc-800/50 rounded-3xl p-8 py-12 flex flex-col items-center justify-center text-center">
+              <div className="w-14 h-14 bg-zinc-900/50 rounded-2xl flex items-center justify-center mb-4 border border-zinc-800">
                   <Activity className="w-6 h-6 text-zinc-600"/>
               </div>
               <h3 className="text-white font-bold text-lg mb-1">No Records Found</h3>
-              <p className="text-zinc-500 text-xs max-w-[200px] mb-6">You haven't taken any CBT exams yet. Check the course catalog.</p>
+              <p className="text-zinc-500 text-xs max-w-[200px] mb-6 leading-relaxed">You haven't taken any CBT exams yet. Check the course catalog.</p>
               
-              {/* PURPLE BUTTON RESTORED */}
-              <Link href="/courses">
-                <button className="px-8 py-3 bg-purple-600 text-white text-sm font-bold rounded-xl hover:bg-purple-500 transition-all flex items-center gap-2 shadow-lg shadow-purple-900/20">
+              <Link href="/courses" className="w-full max-w-[200px]">
+                <button className="w-full py-3 bg-purple-600 text-white text-sm font-bold rounded-xl hover:bg-purple-500 transition-all flex items-center justify-center gap-2 shadow-lg shadow-purple-900/20">
                   <Search className="w-4 h-4"/> Browse Courses
                 </button>
               </Link>
             </div>
           ) : (
-            // RESULT LIST ITEM
+            // LIST ITEMS: Darker & Cleaner
             recentResults.map((result) => (
-              <div key={result.id} className="bg-[#111113] border border-zinc-800/60 p-4 rounded-2xl flex items-center justify-between group hover:border-zinc-700 transition-all">
+              <div key={result.id} className="bg-[#0A0A0B] border border-zinc-800/50 p-4 rounded-2xl flex items-center justify-between group hover:border-zinc-700 transition-all">
                 <div className="flex items-center gap-4">
                   <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-bold text-sm border border-white/5 ${
-                    result.score >= 70 ? 'bg-green-900/20 text-green-400' : 
-                    result.score >= 50 ? 'bg-yellow-900/20 text-yellow-400' : 
-                    'bg-red-900/20 text-red-400'
+                    result.score >= 70 ? 'bg-green-500/10 text-green-400' : 
+                    result.score >= 50 ? 'bg-yellow-500/10 text-yellow-400' : 
+                    'bg-red-500/10 text-red-400'
                   }`}>
                     {result.score}%
                   </div>
@@ -150,5 +160,5 @@ export default function Dashboard() {
       <BottomNav active="home" />
     </div>
   );
-      }
-      
+          }
+              
