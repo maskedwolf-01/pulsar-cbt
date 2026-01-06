@@ -17,7 +17,6 @@ export default function CoursesPage() {
 
   useEffect(() => {
     const fetchExams = async () => {
-      // Fetch exams and ensure we don't crash if table is empty
       const { data, error } = await supabase.from('exams').select('*').eq('is_published', true);
       if (data) setExams(data);
       if (error) console.error(error);
@@ -82,7 +81,6 @@ export default function CoursesPage() {
                 <p className="text-sm text-zinc-500 mt-2 line-clamp-2">{exam.description}</p>
               </div>
 
-              {/* DYNAMIC LINK GENERATOR */}
               <Link href={`/exam/${exam.course_code.toLowerCase().replace(/\s+/g, '')}`} className="w-full">
                 <button className="w-full py-3 bg-white text-black font-bold rounded-xl hover:bg-zinc-200 transition-colors flex items-center justify-center gap-2">
                   Start Exam <ArrowRight className="w-4 h-4"/>
