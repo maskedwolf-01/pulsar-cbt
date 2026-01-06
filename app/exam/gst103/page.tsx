@@ -13,7 +13,7 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-// --- 1. PULSAR MODAL ---
+// --- MODAL COMPONENT ---
 const PulsarModal = ({ title, message, onConfirm, onCancel, confirmText="Confirm", cancelText="Cancel", isDestructive=false, singleButton=false }: any) => (
   <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
      <div className="bg-[#111113] border border-zinc-800 p-6 rounded-2xl w-full max-w-sm text-center shadow-2xl scale-100">
@@ -32,7 +32,7 @@ const PulsarModal = ({ title, message, onConfirm, onCancel, confirmText="Confirm
   </div>
 );
 
-// --- 2. CALCULATOR ---
+// --- CALCULATOR COMPONENT ---
 const ExamCalculator = ({ onClose }: { onClose: () => void }) => {
   const [display, setDisplay] = useState('0');
   
@@ -40,7 +40,6 @@ const ExamCalculator = ({ onClose }: { onClose: () => void }) => {
     if (val === 'C') { setDisplay('0'); return; }
     if (val === '=') {
       try {
-        // Safe evaluation
         // eslint-disable-next-line
         setDisplay(Function('"use strict";return (' + display + ')')().toString().substring(0,10));
       } catch { setDisplay('Err'); }
@@ -64,7 +63,6 @@ const ExamCalculator = ({ onClose }: { onClose: () => void }) => {
     </div>
   );
 };
-  // --- MAIN EXAM PAGE ---
 export default function ExamPage() {
   const router = useRouter();
   const resultCardRef = useRef<any>(null);
@@ -168,7 +166,7 @@ export default function ExamPage() {
             try {
                 await navigator.share({
                     title: 'Pulsar CBT Result',
-                    text: `I scored ${score}/${questions.length} in GST 103 on Pulsar CBT! 🚀`,
+                    text: `I scored ${score}/${questions.length} in GST 103!`,
                     files: [file]
                 });
             } catch (err) { console.log(err); }
@@ -185,8 +183,7 @@ export default function ExamPage() {
       setModalConfig({ title: "Error", message: "Share failed.", singleButton: true, onConfirm: () => setModalConfig(null) });
     }
   };
-
-  if (loading) return <div className="h-screen bg-[#09090b] flex items-center justify-center text-white"><Loader2 className="animate-spin mr-2"/> Loading...</div>;
+        if (loading) return <div className="h-screen bg-[#09090b] flex items-center justify-center text-white"><Loader2 className="animate-spin mr-2"/> Loading...</div>;
 
   // --- START SCREEN ---
   if (!examStarted) return (
@@ -345,5 +342,5 @@ export default function ExamPage() {
       </div>
     </div>
   );
-          }
-    
+                  }
+        
