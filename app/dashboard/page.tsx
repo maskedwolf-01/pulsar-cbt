@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { 
   Loader2, BookOpen, Activity, 
-  Search, Bell, X, CheckCheck, FileText, Info
+  Search, Bell, X, CheckCheck, FileText
 } from 'lucide-react';
 import BottomNav from '../components/BottomNav';
 
@@ -33,7 +33,7 @@ export default function Dashboard() {
       if (error || !session?.user) { router.push('/login'); return; }
       setUser(session.user);
 
-      // 1. GET PROFILE (Avatar Fix)
+      // 1. GET PROFILE
       const { data: profileData } = await supabase
         .from('profiles')
         .select('*')
@@ -59,27 +59,24 @@ export default function Dashboard() {
         });
       }
 
-      // 3. GET NOTIFICATIONS (Synced with Admin)
-      // Logic: Fetch Personal (user_id = me) OR Broadcast (user_id is null)
-      // Filter: Created in last 72 hours
-      const threeDaysAgo = new Date();
-      threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
-
+      // 3. GET NOTIFICATIONS (SYNCED LOGIC)
+      // We fetch the last 20 messages that are either Global (null) or Personal (user_id)
+      // We removed the strict time filter to ensure new users see "Welcome" messages or recent broadcasts.
       const { data: notifs } = await supabase
         .from('notifications')
         .select('*')
         .or(`user_id.eq.${session.user.id},user_id.is.null`)
-        .gt('created_at', threeDaysAgo.toISOString())
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(20);
 
       if (notifs) {
         setNotifications(notifs);
         
-        // CHECK READ STATUS (Local Logic for Broadcasts)
+        // CHECK READ STATUS (Local Storage Logic)
+        // If the latest message is newer than what we have saved in 'pulsar_last_read', show Red Dot.
         const lastReadTime = localStorage.getItem('pulsar_last_read_time');
         const hasNew = notifs.some(n => {
             const notifTime = new Date(n.created_at).getTime();
-            // If notification is newer than the last time we clicked "Mark Read"
             return !lastReadTime || notifTime > parseInt(lastReadTime);
         });
         setHasUnread(hasNew);
@@ -91,11 +88,9 @@ export default function Dashboard() {
   }, []);
 
   const markAllRead = () => {
-    // 1. Clear Red Dot
     setHasUnread(false);
-    // 2. Save current time to LocalStorage (so these specific messages don't trigger dot again)
+    // Save the current timestamp. Any message older than this is "Read".
     localStorage.setItem('pulsar_last_read_time', Date.now().toString());
-    // 3. (Optional) You could delete specific personal messages here if you wanted
   };
 
   if (loading) return <div className="h-screen bg-[#09090b] flex items-center justify-center text-purple-500"><Loader2 className="animate-spin"/></div>;
@@ -106,7 +101,7 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-[#09090b] text-white font-sans pb-24 relative overflow-x-hidden">
       
-      {/* --- NOTIFICATION SLIDE-OVER (TRANSMISSION LOG STYLE) --- */}
+      {/* --- TRANSMISSION LOG (NOTIFICATION PANEL) --- */}
       <div className={`fixed inset-y-0 right-0 w-full md:w-96 bg-[#09090b] border-l border-zinc-800 transform transition-transform duration-300 z-50 flex flex-col ${showNotifPanel ? 'translate-x-0' : 'translate-x-full'}`}>
         
         {/* HEADER */}
@@ -118,7 +113,7 @@ export default function Dashboard() {
         </div>
 
         {/* CONTENT */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        <div className="flex-1 overflow-y-auto p-4 space-y-3">
             {notifications.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-64 text-zinc-500">
                     <Bell className="w-12 h-12 mb-3 opacity-20"/>
@@ -127,21 +122,17 @@ export default function Dashboard() {
             ) : (
                 notifications.map(n => (
                     <div key={n.id} className="bg-[#111113] border border-zinc-800/60 p-4 rounded-xl relative overflow-hidden group">
-                        {/* Purple Accent Bar */}
-                        <div className="absolute top-0 left-0 w-1 h-full bg-purple-600"></div>
-                        
-                        <div className="flex justify-between items-start mb-2 pl-3">
-                            <span className="text-[10px] font-bold text-purple-400 uppercase tracking-wider flex items-center gap-1">
-                                <span className="w-2 h-2 bg-purple-500 rounded-full animate-pulse"></span>
-                                {n.user_id ? 'Personal' : 'Broadcast'}
+                        {/* Purple Dot Indicator */}
+                        <div className="flex justify-between items-start mb-2">
+                            <span className="text-[10px] font-bold text-purple-400 uppercase tracking-wider flex items-center gap-2">
+                                <span className="w-2 h-2 bg-purple-500 rounded-full shadow-[0_0_8px_rgba(168,85,247,0.6)]"></span>
+                                {n.title}
                             </span>
                             <span className="text-[10px] text-zinc-600">
                                 {new Date(n.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                             </span>
                         </div>
-                        
-                        <h4 className="text-sm font-bold text-white pl-3 mb-1">{n.title}</h4>
-                        <p className="text-xs text-zinc-400 pl-3 leading-relaxed">{n.message}</p>
+                        <p className="text-sm text-zinc-300 leading-relaxed">{n.message}</p>
                     </div>
                 ))
             )}
@@ -180,7 +171,7 @@ export default function Dashboard() {
                 )}
             </button>
 
-            {/* Profile Picture (Fixed Logic) */}
+            {/* Profile Picture */}
             <Link href="/profile" className="w-10 h-10 rounded-full overflow-hidden border border-zinc-800 relative bg-zinc-900 group">
                 {displayImage ? (
                     <img src={displayImage} alt="Profile" className="w-full h-full object-cover"/>
@@ -255,5 +246,5 @@ export default function Dashboard() {
       <BottomNav active="home" />
     </div>
   );
-    }
-    
+      }
+                                          
