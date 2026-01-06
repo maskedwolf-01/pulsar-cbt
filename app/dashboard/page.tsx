@@ -263,5 +263,5 @@ export default function Dashboard() {
       <BottomNav active="home" />
     </div>
   );
-    }
-        
+            }
+                                                                
