@@ -1,104 +1,91 @@
 "use client";
 import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
+import { createClient } from '@supabase/supabase-js';
 import Link from 'next/link';
-import Header from '../components/Header';
-import BottomNav from '../components/BottomNav'; // <--- IMPORTING THE REAL NAV
-import { 
-  Search, Filter, Play, BookOpen, Loader2 
-} from 'lucide-react';
+import { Search, BookOpen, Clock, ArrowRight, Loader2 } from 'lucide-react';
+import BottomNav from '../../components/BottomNav'; // Adjust path if needed
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 export default function CoursesPage() {
   const [exams, setExams] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState('All');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [search, setSearch] = useState('');
 
   useEffect(() => {
     const fetchExams = async () => {
-      const { data, error } = await supabase.from('exams').select('*').eq('is_published', true);
-      if (!error) setExams(data || []);
+      const { data } = await supabase.from('exams').select('*').eq('is_published', true);
+      if (data) setExams(data);
       setLoading(false);
     };
     fetchExams();
   }, []);
 
-  const filteredExams = exams.filter(e => {
-    const matchesLevel = filter === 'All' || e.level === filter;
-    const matchesSearch = e.course_code.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          e.title.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesLevel && matchesSearch;
-  });
+  const filteredExams = exams.filter(e => 
+    e.course_code.toLowerCase().includes(search.toLowerCase()) || 
+    e.title.toLowerCase().includes(search.toLowerCase())
+  );
 
   return (
-    <div className="min-h-screen bg-background text-text font-sans pb-24">
-      <Header title="Course Catalog" />
-
-      <div className="px-6 py-4 sticky top-16 bg-background/95 backdrop-blur-xl z-40 border-b border-white/5">
-        <div className="flex gap-2 mb-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-3 w-4 h-4 text-subtext" />
-            <input 
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search (e.g. CSC 101)" 
-              className="w-full bg-surface border border-white/10 rounded-xl py-2.5 pl-10 text-sm text-white focus:outline-none focus:border-primary transition-all placeholder:text-subtext/50" 
-            />
-          </div>
-          <button className="p-2.5 bg-surface border border-white/10 rounded-xl text-white hover:bg-white/10 transition-colors">
-            <Filter className="w-5 h-5" />
-          </button>
-        </div>
-        <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
-          {['All', '100L', '200L', '300L', '400L'].map(level => (
-            <button 
-              key={level}
-              onClick={() => setFilter(level)}
-              className={`px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all ${filter === level ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'bg-surface border border-white/10 text-subtext hover:text-white'}`}
-            >
-              {level}
-            </button>
-          ))}
+    <div className="min-h-screen bg-[#09090b] text-zinc-200 font-sans pb-24">
+      {/* HEADER */}
+      <div className="p-6 pt-12">
+        <h1 className="text-2xl font-bold text-white mb-1">Course Catalog</h1>
+        <p className="text-zinc-500 text-sm">Select an exam to begin practicing.</p>
+        
+        {/* SEARCH BAR */}
+        <div className="mt-6 relative">
+          <Search className="absolute left-4 top-3.5 w-5 h-5 text-zinc-500"/>
+          <input 
+            type="text" 
+            placeholder="Search (e.g. GST 103)" 
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-3 pl-12 pr-4 text-white focus:outline-none focus:border-purple-500 transition-colors"
+          />
         </div>
       </div>
 
-      <div className="px-6 py-4 space-y-4">
+      {/* EXAM LIST */}
+      <div className="px-6 space-y-4">
         {loading ? (
-          <div className="flex justify-center pt-20"><Loader2 className="w-8 h-8 text-primary animate-spin" /></div>
+          <div className="flex justify-center py-10"><Loader2 className="animate-spin text-purple-500"/></div>
         ) : filteredExams.length === 0 ? (
-          <div className="text-center py-20 opacity-50">
-            <div className="w-20 h-20 bg-surface rounded-full flex items-center justify-center mx-auto mb-4 border border-white/5">
-              <BookOpen className="w-8 h-8 text-subtext" />
-            </div>
-            <p className="text-white font-bold">No Exams Found</p>
-            <p className="text-subtext text-xs mt-1">
-              {searchQuery ? `No results for "${searchQuery}"` : `No ${filter} exams published yet.`}
-            </p>
+          <div className="text-center py-10 text-zinc-500">
+            <BookOpen className="w-12 h-12 mx-auto mb-3 opacity-20"/>
+            <p>No exams found.</p>
           </div>
         ) : (
           filteredExams.map((exam) => (
-            <div key={exam.id} className="p-5 bg-surface border border-white/10 rounded-2xl group hover:border-primary/50 transition-all relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-white/5 to-transparent rounded-bl-full -z-10 group-hover:from-primary/10 transition-colors"></div>
-              <div className="flex justify-between items-start mb-3">
-                <span className="px-2.5 py-1 bg-white/5 rounded-md text-[10px] font-bold text-white border border-white/10 tracking-wide">{exam.course_code}</span>
-                <span className="text-[10px] text-primary font-bold bg-primary/10 px-2 py-1 rounded-full">{exam.level}</span>
+            <div key={exam.id} className="bg-zinc-900 border border-zinc-800 p-5 rounded-2xl flex flex-col gap-4">
+              <div>
+                <div className="flex justify-between items-start mb-2">
+                  <span className="bg-purple-500/10 text-purple-400 px-3 py-1 rounded-lg text-xs font-bold border border-purple-500/20">
+                    {exam.course_code}
+                  </span>
+                  <span className="flex items-center gap-1 text-xs text-zinc-500">
+                    <Clock className="w-3 h-3"/> {exam.duration_minutes}m
+                  </span>
+                </div>
+                <h3 className="text-lg font-bold text-white leading-tight">{exam.title}</h3>
+                <p className="text-sm text-zinc-500 mt-2 line-clamp-2">{exam.description}</p>
               </div>
-              <h3 className="text-lg font-bold text-white mb-1">{exam.title}</h3>
-              <div className="flex items-center gap-3 text-xs text-subtext mb-5">
-                 <span className="flex items-center gap-1"><BookOpen className="w-3 h-3"/> {exam.questions_count} Qs</span>
-                 <span className="w-1 h-1 rounded-full bg-white/20"></span>
-                 <span>45 Mins</span>
-              </div>
-              <Link href={`/exam/${exam.id}`} className="w-full py-3 bg-white text-black font-bold rounded-xl flex items-center justify-center gap-2 hover:scale-[1.02] transition-transform active:scale-95">
-                <Play className="w-4 h-4 fill-black" /> Start Practice
+
+              <Link href={`/exam/${exam.course_code.toLowerCase().replace(/\s+/g, '')}`} className="w-full">
+                <button className="w-full py-3 bg-white text-black font-bold rounded-xl hover:bg-zinc-200 transition-colors flex items-center justify-center gap-2">
+                  Start Exam <ArrowRight className="w-4 h-4"/>
+                </button>
               </Link>
             </div>
           ))
         )}
       </div>
 
-      <BottomNav active="courses" />
+      <BottomNav active="browse" />
     </div>
   );
-              }
-                                                       
+            }
+            
