@@ -4,310 +4,301 @@ import { createClient } from '@supabase/supabase-js';
 import { useRouter } from 'next/navigation';
 import { 
   Loader2, CheckCircle, Clock, ChevronRight, ChevronLeft, 
-  RefreshCw, Award, Timer, AlertCircle 
+  RefreshCw, Award, Timer, AlertCircle, X, Calculator, 
+  Share2, Search, Grid, LogOut 
 } from 'lucide-react';
 
-// DIRECT CONNECTION
+// --- SUPABASE CLIENT ---
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
+// --- CALCULATOR COMPONENT ---
+const ExamCalculator = ({ onClose }: { onClose: () => void }) => {
+  const [display, setDisplay] = useState('0');
+  const [evalString, setEvalString] = useState('');
+  
+  const handlePress = (val: string) => {
+    if (val === 'C') { setDisplay('0'); setEvalString(''); return; }
+    if (val === '=') {
+      try {
+        // eslint-disable-next-line no-eval
+        const res = eval(evalString).toString();
+        setDisplay(res.substring(0, 10)); setEvalString(res);
+      } catch { setDisplay('Err'); }
+      return;
+    }
+    const newStr = evalString + val;
+    setEvalString(newStr);
+    setDisplay(newStr);
+  };
+
+  return (
+    <div className="fixed bottom-20 right-4 z-50 bg-zinc-900 border border-zinc-700 p-4 rounded-2xl shadow-2xl w-64 animate-fade-in-up">
+      <div className="flex justify-between mb-4">
+        <span className="text-xs font-bold text-zinc-500 uppercase">Calculator</span>
+        <button onClick={onClose}><X className="w-4 h-4 text-zinc-400"/></button>
+      </div>
+      <div className="bg-black p-3 rounded-lg text-right text-xl font-mono text-white mb-3 truncate">{display}</div>
+      <div className="grid grid-cols-4 gap-2">
+        {['7','8','9','/','4','5','6','*','1','2','3','-','C','0','=','+'].map(btn => (
+          <button key={btn} onClick={() => handlePress(btn)} 
+            className={`p-2 rounded-lg font-bold text-sm ${btn === '=' ? 'bg-purple-600 text-white col-span-2' : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'}`}>
+            {btn}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 export default function ExamPage() {
   const router = useRouter();
+  // STATES
   const [loading, setLoading] = useState(true);
-  const [examStarted, setExamStarted] = useState(false); // Start Screen State
+  const [examStarted, setExamStarted] = useState(false);
   const [questions, setQuestions] = useState<any[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<{[key: number]: string}>({});
   const [submitted, setSubmitted] = useState(false);
+  const [isReviewing, setIsReviewing] = useState(false); // NEW: Review Mode
   const [score, setScore] = useState(0);
-  const [timeTaken, setTimeTaken] = useState(0); 
-  const [timeLeft, setTimeLeft] = useState(60 * 45); // 45 Minutes
+  const [timeTaken, setTimeTaken] = useState(0);
+  const [timeLeft, setTimeLeft] = useState(60 * 45); 
+  
+  // UX STATES
+  const [showCalculator, setShowCalculator] = useState(false);
+  const [showExitModal, setShowExitModal] = useState(false);
+  const [gridPage, setGridPage] = useState(0); // For Pagination (1-20, 21-40)
 
-  useEffect(() => {
-    fetchAndShuffleQuestions();
-  }, []);
+  useEffect(() => { fetchAndShuffleQuestions(); }, []);
 
-  // Timer Logic
+  // TIMER
   useEffect(() => {
     if (!examStarted || submitted) return;
     const timer = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          handleSubmit(); 
-          return 0;
-        }
-        return prev - 1;
+      setTimeLeft(p => {
+        if (p <= 1) { clearInterval(timer); handleSubmit(); return 0; }
+        return p - 1;
       });
-      setTimeTaken(prev => prev + 1);
+      setTimeTaken(p => p + 1);
     }, 1000);
     return () => clearInterval(timer);
   }, [examStarted, submitted]);
 
+  // FETCH & SHUFFLE
   const fetchAndShuffleQuestions = async () => {
-    // 1. Fetch questions
-    const { data, error } = await supabase
-      .from('questions')
-      .select('*')
-      .eq('course_code', 'GST 103');
+    const { data, error } = await supabase.from('questions').select('*').eq('course_code', 'GST 103');
+    if (error || !data || data.length === 0) { setLoading(false); return; }
 
-    if (error || !data || data.length === 0) {
-      console.error("No questions found");
-      setLoading(false);
-      return;
-    }
-
-    // 2. Shuffle & Randomize Options
-    const shuffledPool = data
-      .sort(() => Math.random() - 0.5) 
-      .slice(0, 100)                   
-      .map((q, index) => {
-        const correctText = q[`option_${q.correct_option.toLowerCase()}`]; 
-        let options = [
-          { id: 'A', text: q.option_a },
-          { id: 'B', text: q.option_b },
-          { id: 'C', text: q.option_c },
-          { id: 'D', text: q.option_d }
-        ];
-        options = options.sort(() => Math.random() - 0.5);
-        const newCorrectOption = ['A', 'B', 'C', 'D'][options.findIndex(o => o.text === correctText)];
-
-        return {
-          ...q,
-          exam_number: index + 1, 
-          display_options: options, 
-          new_correct_option: newCorrectOption 
-        };
-      });
-
-    setQuestions(shuffledPool);
-    setLoading(false);
+    const shuffled = data.sort(() => Math.random() - 0.5).slice(0, 100).map((q, i) => {
+      const correctText = q[`option_${q.correct_option.toLowerCase()}`];
+      let options = [ { id: 'A', text: q.option_a }, { id: 'B', text: q.option_b }, { id: 'C', text: q.option_c }, { id: 'D', text: q.option_d } ];
+      options = options.sort(() => Math.random() - 0.5);
+      const newCorrect = ['A', 'B', 'C', 'D'][options.findIndex(o => o.text === correctText)];
+      return { ...q, exam_number: i + 1, display_options: options, new_correct_option: newCorrect };
+    });
+    setQuestions(shuffled); setLoading(false);
   };
 
-  const handleSelect = (optionLabel: string) => {
-    if (submitted) return;
-    setAnswers({ ...answers, [questions[currentIndex].id]: optionLabel });
+  const handleSelect = (label: string) => {
+    if (submitted && !isReviewing) return; // Locked when submitted
+    if (isReviewing) return; // Locked in review mode
+    setAnswers({ ...answers, [questions[currentIndex].id]: label });
   };
 
   const handleSubmit = async () => {
     setSubmitted(true);
-    let calculatedScore = 0;
-    questions.forEach(q => {
-      if (answers[q.id] === q.new_correct_option) calculatedScore++;
-    });
-    setScore(calculatedScore);
+    let calcScore = 0;
+    questions.forEach(q => { if (answers[q.id] === q.new_correct_option) calcScore++; });
+    setScore(calcScore);
     
-    // Save Result
     const { data: { user } } = await supabase.auth.getUser();
     if(user) {
         await supabase.from('results').insert({
-            user_id: user.id,
-            course_code: 'GST 103',
-            score: Math.round((calculatedScore / questions.length) * 100),
-            total_questions: questions.length
+            user_id: user.id, course_code: 'GST 103', score: Math.round((calcScore/questions.length)*100), total_questions: questions.length
         });
     }
   };
 
-  const formatTime = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+  const handleShare = () => {
+    const text = `I just scored ${score}/${questions.length} in GST 103 on Pulsar CBT! 🚀 Can you beat me? \nTry it here: https://pulsar-cbt.vercel.app/exam/gst103`;
+    navigator.clipboard.writeText(text);
+    alert('Result copied to clipboard!'); 
+  };
 
-  // --- LOADER ---
-  if (loading) return <div className="h-screen bg-[#09090b] flex items-center justify-center text-white"><Loader2 className="animate-spin mr-2"/> Preparing Exam Shell...</div>;
+  const confirmExit = () => {
+    // Actually redirect
+    router.push('/dashboard');
+  };
 
-  // --- ERROR STATE (If SQL wasn't run) ---
-  if (questions.length === 0) return (
-    <div className="h-screen bg-[#09090b] flex flex-col items-center justify-center text-zinc-400 text-center p-6">
-      <AlertCircle className="w-12 h-12 text-red-500 mb-4"/>
-      <h2 className="text-xl font-bold text-white">No Questions Found</h2>
-      <p className="max-w-md mt-2">The database is empty. Please run the SQL script to insert the questions.</p>
-    </div>
-  );
+  if (loading) return <div className="h-screen bg-[#09090b] flex items-center justify-center text-white"><Loader2 className="animate-spin mr-2"/> Loading Engine...</div>;
+  if (questions.length === 0) return <div className="h-screen bg-[#09090b] text-white flex items-center justify-center">No Questions Loaded.</div>;
 
-  // --- START SCREEN (Instructions) ---
+  // --- START SCREEN ---
   if (!examStarted) return (
     <div className="min-h-screen bg-[#09090b] flex items-center justify-center p-6">
-      <div className="max-w-md w-full bg-zinc-900 border border-zinc-800 p-8 rounded-3xl shadow-2xl text-center">
-        <div className="w-20 h-20 bg-purple-600/20 rounded-full flex items-center justify-center mx-auto mb-6">
-          <Award className="w-10 h-10 text-purple-500"/>
-        </div>
-        <h1 className="text-2xl font-bold text-white mb-2">GST 103: Use of Library & ICT</h1>
-        <p className="text-zinc-500 text-sm mb-8">100 Level | 100 Questions | 45 Mins</p>
-        
-        <div className="bg-black/40 text-left p-4 rounded-xl border border-zinc-800 mb-8">
-          <h3 className="text-purple-400 font-bold text-xs uppercase tracking-widest mb-3">Important Instructions</h3>
-          <ul className="space-y-3 text-sm text-zinc-300">
-            <li className="flex gap-2"><CheckCircle className="w-4 h-4 text-green-500 shrink-0"/> <span>Answer all questions within the time limit.</span></li>
-            <li className="flex gap-2"><RefreshCw className="w-4 h-4 text-blue-500 shrink-0"/> <span><strong>Take this exam often!</strong> The system shuffles 200+ questions every time to keep you sharp.</span></li>
-            <li className="flex gap-2"><Clock className="w-4 h-4 text-orange-500 shrink-0"/> <span>Timer stops automatically when time is up.</span></li>
-          </ul>
-        </div>
-
-        <button onClick={() => setExamStarted(true)} className="w-full py-4 bg-white text-black font-bold rounded-xl hover:bg-zinc-200 transition-all flex items-center justify-center gap-2">
-          Start Exam <ChevronRight className="w-4 h-4"/>
-        </button>
+      <div className="max-w-md w-full bg-zinc-900 border border-zinc-800 p-8 rounded-3xl text-center">
+        <div className="w-20 h-20 bg-purple-600/20 rounded-full flex items-center justify-center mx-auto mb-6"><Award className="w-10 h-10 text-purple-500"/></div>
+        <h1 className="text-2xl font-bold text-white mb-2">GST 103</h1>
+        <p className="text-zinc-500 text-sm mb-8">Use of Library & ICT</p>
+        <button onClick={() => setExamStarted(true)} className="w-full py-4 bg-white text-black font-bold rounded-xl hover:bg-zinc-200 flex items-center justify-center gap-2">Start Exam <ChevronRight className="w-4 h-4"/></button>
       </div>
     </div>
   );
 
-  // --- RESULT PAGE (Premium Design) ---
-  if (submitted) {
+  // --- RESULT SCREEN ---
+  if (submitted && !isReviewing) {
     const percentage = Math.round((score / questions.length) * 100);
-    const strokeDash = 440 - (440 * percentage) / 100; // For Circle Animation
-
     return (
       <div className="min-h-screen bg-[#09090b] text-white p-6 flex items-center justify-center">
-        <div className="w-full max-w-lg bg-zinc-900 border border-zinc-800 p-8 rounded-3xl shadow-2xl relative overflow-hidden">
-          {/* Background Glow */}
-          <div className={`absolute top-0 left-0 w-full h-2 bg-gradient-to-r ${percentage >= 50 ? 'from-green-500 to-emerald-500' : 'from-red-500 to-orange-500'}`}></div>
-
+        <div className="w-full max-w-lg bg-zinc-900 border border-zinc-800 p-8 rounded-3xl relative overflow-hidden">
           <div className="text-center mb-8">
-            <h2 className="text-2xl font-bold">{percentage >= 50 ? 'Excellent Work! 🎉' : 'Keep Practicing! 💪'}</h2>
-            <p className="text-zinc-500 text-sm mt-1">You have completed the session.</p>
+             <h2 className="text-3xl font-bold">{percentage}%</h2>
+             <p className="text-zinc-500">Accuracy Score</p>
           </div>
-
-          {/* CIRCULAR SCORE */}
-          <div className="relative w-48 h-48 mx-auto mb-10">
-            <svg className="w-full h-full transform -rotate-90">
-              <circle cx="96" cy="96" r="70" stroke="currentColor" strokeWidth="12" fill="transparent" className="text-zinc-800" />
-              <circle cx="96" cy="96" r="70" stroke="currentColor" strokeWidth="12" fill="transparent" 
-                strokeDasharray="440" strokeDashoffset={strokeDash}
-                className={`transition-all duration-1000 ease-out ${percentage >= 70 ? 'text-green-500' : percentage >= 50 ? 'text-yellow-500' : 'text-red-500'}`} 
-              />
-            </svg>
-            <div className="absolute top-0 left-0 w-full h-full flex flex-col items-center justify-center">
-              <span className="text-5xl font-bold">{percentage}%</span>
-              <span className="text-xs text-zinc-500 uppercase font-bold mt-1">Accuracy</span>
-            </div>
+          <div className="grid grid-cols-2 gap-3 mb-6">
+             <button onClick={() => setIsReviewing(true)} className="py-4 bg-zinc-800 rounded-xl font-bold text-sm hover:bg-zinc-700">Review Answers</button>
+             <button onClick={handleShare} className="py-4 bg-purple-600 rounded-xl font-bold text-sm hover:bg-purple-500 flex items-center justify-center gap-2"><Share2 className="w-4 h-4"/> Share Result</button>
           </div>
-
-          {/* STATS GRID */}
-          <div className="grid grid-cols-2 gap-3 mb-8">
-            <div className="bg-black/30 p-4 rounded-2xl border border-zinc-800">
-              <div className="flex items-center gap-2 text-zinc-400 mb-1"><CheckCircle className="w-4 h-4 text-green-500"/> Correct</div>
-              <div className="text-xl font-bold text-white">{score} <span className="text-zinc-600 text-sm">/ {questions.length}</span></div>
-            </div>
-            <div className="bg-black/30 p-4 rounded-2xl border border-zinc-800">
-              <div className="flex items-center gap-2 text-zinc-400 mb-1"><Timer className="w-4 h-4 text-blue-500"/> Time</div>
-              <div className="text-xl font-bold text-white">{Math.floor(timeTaken / 60)}m {timeTaken % 60}s</div>
-            </div>
-          </div>
-
-          <div className="space-y-3">
-             <button onClick={() => window.location.reload()} className="w-full py-4 bg-purple-600 text-white font-bold rounded-xl hover:bg-purple-500 transition-all flex items-center justify-center gap-2">
-              <RefreshCw className="w-4 h-4"/> Retake Exam
-            </button>
-            <button onClick={() => router.push('/dashboard')} className="w-full py-4 bg-zinc-800 text-zinc-300 font-bold rounded-xl hover:bg-zinc-700 transition-all">
-              Back to Dashboard
-            </button>
-          </div>
+          <button onClick={() => window.location.reload()} className="w-full py-4 bg-white text-black font-bold rounded-xl mb-3">Retake Exam</button>
+          <button onClick={() => router.push('/dashboard')} className="w-full py-4 text-zinc-500 font-bold text-sm">Back to Dashboard</button>
         </div>
       </div>
     );
   }
 
-  // --- MAIN EXAM UI ---
+  // --- EXAM INTERFACE ---
   const currentQ = questions[currentIndex];
+  
+  // Pagination Logic (20 per page for the grid)
+  const gridStart = gridPage * 20;
+  const gridEnd = Math.min(gridStart + 20, questions.length);
 
   return (
-    <div className="min-h-screen bg-[#09090b] text-zinc-200 font-sans p-4 md:p-8">
-      {/* Header */}
-      <div className="max-w-4xl mx-auto flex justify-between items-center mb-8 border-b border-zinc-800 pb-4">
-        <div>
-          <h1 className="text-lg font-bold text-white md:text-xl">GST 103</h1>
-          <p className="text-xs text-zinc-500 md:text-sm">Time Remaining</p>
+    <div className="min-h-screen bg-[#09090b] text-zinc-200 font-sans p-4 md:p-6 pb-24 relative">
+      
+      {/* EXIT MODAL */}
+      {showExitModal && (
+        <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm">
+           <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-2xl w-full max-w-sm text-center">
+              <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4"/>
+              <h3 className="text-lg font-bold text-white mb-2">Quit Exam?</h3>
+              <p className="text-sm text-zinc-500 mb-6">Your progress will be lost.</p>
+              <div className="flex gap-3">
+                 <button onClick={() => setShowExitModal(false)} className="flex-1 py-3 bg-zinc-800 rounded-xl font-bold text-sm">Cancel</button>
+                 <button onClick={confirmExit} className="flex-1 py-3 bg-red-600 text-white rounded-xl font-bold text-sm">Quit</button>
+              </div>
+           </div>
         </div>
-        <div className={`flex items-center gap-2 font-mono text-xl font-bold ${timeLeft < 300 ? 'text-red-500 animate-pulse' : 'text-purple-400'}`}>
-          <Clock className="w-5 h-5"/> {formatTime(timeLeft)}
+      )}
+
+      {/* HEADER */}
+      <div className="flex justify-between items-center mb-6">
+        <button onClick={() => setShowExitModal(true)} className="p-2 bg-zinc-800/50 rounded-full hover:bg-zinc-800"><X className="w-5 h-5 text-zinc-400"/></button>
+        <div className={`font-mono font-bold text-lg ${timeLeft < 300 ? 'text-red-500 animate-pulse' : 'text-purple-400'}`}>
+           {Math.floor(timeLeft/60)}:{String(timeLeft%60).padStart(2,'0')}
         </div>
+        <button onClick={() => setShowCalculator(!showCalculator)} className={`p-2 rounded-full ${showCalculator ? 'bg-purple-600 text-white' : 'bg-zinc-800/50 text-zinc-400'}`}><Calculator className="w-5 h-5"/></button>
       </div>
 
-      <div className="max-w-4xl mx-auto grid md:grid-cols-[1fr_300px] gap-8">
-        {/* Question Card */}
-        <div className="bg-zinc-900 border border-zinc-800 p-6 md:p-10 rounded-3xl shadow-lg relative">
-          <div className="absolute top-6 right-6 text-zinc-500 text-xs font-bold tracking-widest">
-            QUESTION {currentIndex + 1} OF {questions.length}
+      {showCalculator && <ExamCalculator onClose={() => setShowCalculator(false)} />}
+
+      <div className="max-w-5xl mx-auto grid md:grid-cols-[1fr_320px] gap-8">
+        
+        {/* QUESTION CARD */}
+        <div className="bg-zinc-900 border border-zinc-800 p-6 md:p-10 rounded-3xl shadow-lg relative min-h-[500px] flex flex-col">
+          <div className="flex justify-between items-start mb-6">
+             <span className="text-xs font-bold text-zinc-500 tracking-widest">QUESTION {currentIndex + 1}</span>
+             {isReviewing && (
+                <a href={`https://www.google.com/search?q=${encodeURIComponent(currentQ.question_text)}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-xs text-blue-400 hover:underline">
+                  <Search className="w-3 h-3"/> Explain with Google
+                </a>
+             )}
           </div>
           
-          <h2 className="text-lg md:text-xl font-medium text-white leading-relaxed mt-6 mb-8">
+          <h2 className="text-lg md:text-xl font-medium text-white leading-relaxed mb-8 flex-1">
             {currentQ.question_text}
           </h2>
 
-          <div className="space-y-3">
+          <div className="space-y-3 mb-8">
             {currentQ.display_options.map((opt: any, idx: number) => {
               const label = ['A', 'B', 'C', 'D'][idx];
               const isSelected = answers[currentQ.id] === label;
+              
+              // REVIEW MODE STYLING
+              let btnClass = "bg-black/20 border-zinc-800 text-zinc-300";
+              if (isReviewing) {
+                 if (label === currentQ.new_correct_option) btnClass = "bg-green-500/10 border-green-500 text-green-500"; // Correct Answer
+                 else if (isSelected && label !== currentQ.new_correct_option) btnClass = "bg-red-500/10 border-red-500 text-red-500"; // Wrong Choice
+                 else btnClass = "opacity-50 border-zinc-800"; // Irrelevant
+              } else {
+                 if (isSelected) btnClass = "bg-purple-600 border-purple-600 text-white";
+              }
+
               return (
-                <button 
-                  key={idx} 
-                  onClick={() => handleSelect(label)}
-                  className={`w-full text-left p-4 rounded-xl border transition-all flex items-center gap-4 group ${
-                    isSelected 
-                    ? 'bg-purple-600 border-purple-600 text-white' 
-                    : 'bg-black/20 border-zinc-800 hover:border-zinc-600 hover:bg-zinc-800'
-                  }`}
-                >
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold border ${
-                    isSelected ? 'bg-white text-purple-600 border-white' : 'bg-black border-zinc-700 text-zinc-500 group-hover:border-zinc-500'
-                  }`}>
-                    {label}
-                  </div>
-                  <span className={isSelected ? 'text-white' : 'text-zinc-300'}>{opt.text}</span>
+                <button key={idx} onClick={() => handleSelect(label)} disabled={isReviewing}
+                  className={`w-full text-left p-4 rounded-xl border transition-all flex items-center gap-4 ${btnClass}`}>
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold border border-current opacity-80`}>{label}</div>
+                  <span>{opt.text}</span>
                 </button>
               );
             })}
           </div>
 
-          {/* Navigation */}
-          <div className="flex justify-between mt-10 pt-6 border-t border-zinc-800">
-            <button 
-              onClick={() => setCurrentIndex(prev => Math.max(0, prev - 1))}
-              disabled={currentIndex === 0}
-              className="flex items-center gap-2 px-6 py-3 rounded-xl bg-zinc-800 hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-bold"
-            >
-              <ChevronLeft className="w-4 h-4"/> Prev
-            </button>
-
-            {currentIndex === questions.length - 1 ? (
-              <button 
-                onClick={() => { if(confirm('Submit Exam?')) handleSubmit(); }}
-                className="flex items-center gap-2 px-8 py-3 rounded-xl bg-green-600 hover:bg-green-500 text-white shadow-[0_0_20px_rgba(34,197,94,0.3)] transition-all text-sm font-bold"
-              >
-                Submit <CheckCircle className="w-4 h-4"/>
-              </button>
+          {/* NAV BUTTONS */}
+          <div className="flex justify-between pt-6 border-t border-zinc-800">
+            <button onClick={() => setCurrentIndex(p => Math.max(0, p-1))} disabled={currentIndex===0} className="px-6 py-3 rounded-xl bg-zinc-800 disabled:opacity-50 text-sm font-bold flex items-center gap-2"><ChevronLeft className="w-4 h-4"/> Prev</button>
+            {currentIndex === questions.length - 1 && !isReviewing ? (
+               <button onClick={() => setShowExitModal(true) /* Use custom modal for submit too? Or standard confirm */ } className="px-8 py-3 rounded-xl bg-green-600 text-white font-bold text-sm flex items-center gap-2" 
+                  onMouseDown={() => { if(confirm("Submit Exam?")) handleSubmit(); }}>Submit <CheckCircle className="w-4 h-4"/></button>
             ) : (
-              <button 
-                onClick={() => setCurrentIndex(prev => Math.min(questions.length - 1, prev + 1))}
-                className="flex items-center gap-2 px-6 py-3 rounded-xl bg-white text-black hover:bg-zinc-200 transition-colors text-sm font-bold"
-              >
-                Next <ChevronRight className="w-4 h-4"/>
-              </button>
+               <button onClick={() => setCurrentIndex(p => Math.min(questions.length-1, p+1))} className="px-6 py-3 rounded-xl bg-white text-black font-bold text-sm flex items-center gap-2">Next <ChevronRight className="w-4 h-4"/></button>
             )}
           </div>
         </div>
 
-        {/* Question Grid */}
-        <div className="hidden md:block bg-zinc-900 border border-zinc-800 p-6 rounded-3xl h-fit">
-          <h3 className="text-sm font-bold text-zinc-400 uppercase tracking-widest mb-4">Progress</h3>
-          <div className="grid grid-cols-5 gap-2 max-h-[400px] overflow-y-auto custom-scrollbar pr-2">
-            {questions.map((q, i) => (
-              <button 
-                key={q.id} 
-                onClick={() => setCurrentIndex(i)}
-                className={`h-10 rounded-lg text-xs font-bold transition-all ${
-                  i === currentIndex ? 'bg-white text-black ring-2 ring-purple-500' :
-                  answers[q.id] ? 'bg-purple-600/20 text-purple-400 border border-purple-500/30' : 
-                  'bg-black/40 text-zinc-600 border border-zinc-800 hover:border-zinc-600'
-                }`}
-              >
-                {i + 1}
-              </button>
-            ))}
+        {/* NAVIGATION GRID (PAGINATED) */}
+        <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-3xl h-fit">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Map</h3>
+            <div className="flex gap-1">
+               <button onClick={() => setGridPage(p => Math.max(0, p-1))} disabled={gridPage===0} className="p-1 bg-zinc-800 rounded hover:bg-zinc-700 disabled:opacity-30"><ChevronLeft className="w-3 h-3"/></button>
+               <span className="text-xs text-zinc-400 font-mono self-center">{gridStart+1}-{gridEnd}</span>
+               <button onClick={() => setGridPage(p => (gridEnd < questions.length ? p+1 : p))} disabled={gridEnd >= questions.length} className="p-1 bg-zinc-800 rounded hover:bg-zinc-700 disabled:opacity-30"><ChevronRight className="w-3 h-3"/></button>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-5 gap-2">
+            {questions.slice(gridStart, gridEnd).map((q, i) => {
+              const actualIndex = gridStart + i;
+              const answered = answers[q.id];
+              let colorClass = "bg-black/40 border-zinc-800 text-zinc-600"; // Default
+              
+              if (actualIndex === currentIndex) colorClass = "bg-white text-black border-white ring-2 ring-purple-500";
+              else if (isReviewing) {
+                 const isCorrect = answers[q.id] === q.new_correct_option;
+                 colorClass = isCorrect ? "bg-green-500/20 text-green-500 border-green-500/50" : "bg-red-500/20 text-red-500 border-red-500/50";
+              }
+              else if (answered) colorClass = "bg-purple-600/20 text-purple-400 border-purple-500/50";
+
+              return (
+                <button key={q.id} onClick={() => setCurrentIndex(actualIndex)}
+                  className={`h-9 rounded-lg text-xs font-bold border transition-all ${colorClass}`}>
+                  {actualIndex + 1}
+                </button>
+              );
+            })}
+          </div>
+          
+          <div className="mt-6 pt-6 border-t border-zinc-800">
+             <div className="flex gap-2 text-xs text-zinc-500 mb-2"><div className="w-3 h-3 bg-purple-600/20 border border-purple-500/50 rounded"></div> Answered</div>
+             <div className="flex gap-2 text-xs text-zinc-500"><div className="w-3 h-3 bg-white border border-zinc-200 rounded"></div> Current</div>
           </div>
         </div>
+
       </div>
     </div>
   );
-         }
-    
+}
