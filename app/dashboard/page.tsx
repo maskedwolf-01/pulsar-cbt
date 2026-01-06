@@ -5,11 +5,10 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { 
   Loader2, BookOpen, TrendingUp, 
-  Activity, Calendar, ChevronRight, User, Settings
+  Activity, Calendar, ChevronRight, User, Search
 } from 'lucide-react';
 import BottomNav from '../components/BottomNav';
 
-// DIRECT CONNECTION
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -19,134 +18,129 @@ export default function Dashboard() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
-  // Default stats to 0
   const [stats, setStats] = useState({ examsTaken: 0, averageScore: 0 });
   const [recentResults, setRecentResults] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchData = async () => {
-      // 1. Get User Session & Metadata
-      const { data: { session }, error: authError } = await supabase.auth.getSession();
-      
-      if (authError || !session?.user) { 
-        router.push('/login'); 
-        return; 
-      }
+      const { data: { session }, error } = await supabase.auth.getSession();
+      if (error || !session?.user) { router.push('/login'); return; }
       setUser(session.user);
 
-      // 2. Get Results for this user
-      const { data: results, error: resultsError } = await supabase
+      const { data: results } = await supabase
         .from('results')
         .select('*')
         .eq('user_id', session.user.id)
         .order('created_at', { ascending: false });
 
-      if (!resultsError && results && results.length > 0) {
+      if (results && results.length > 0) {
         setRecentResults(results);
-        
-        // Calculate Stats
         const totalScore = results.reduce((acc, curr) => acc + (curr.score || 0), 0);
         setStats({
           examsTaken: results.length,
           averageScore: Math.round(totalScore / results.length)
         });
       }
-      // If no results, stats remain at default 0
-
       setLoading(false);
     };
-
     fetchData();
   }, []);
 
-  if (loading) return <div className="h-screen bg-[#09090b] flex items-center justify-center text-purple-500"><Loader2 className="animate-spin"/></div>;
+  if (loading) return <div className="h-screen bg-[#050505] flex items-center justify-center text-purple-500"><Loader2 className="animate-spin"/></div>;
 
-  // Get user details safely
   const userName = user?.user_metadata?.full_name?.split(' ')[0] || 'Scholar';
-  const userAvatarUrl = user?.user_metadata?.avatar_url;
+  const userAvatar = user?.user_metadata?.avatar_url;
 
   return (
-    <div className="min-h-screen bg-[#09090b] text-zinc-200 font-sans pb-24">
+    <div className="min-h-screen bg-[#050505] text-zinc-200 font-sans pb-24">
       
-      {/* HEADER - Restored Profile Link & Image */}
-      <div className="p-6 pt-12 flex justify-between items-start">
+      {/* HEADER: Matches your 'Terminal' Screenshot */}
+      <div className="p-6 pt-12 flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-white">Hi, {userName}</h1>
-          <p className="text-zinc-500 text-sm mt-1">Ready to continue learning?</p>
+          <div className="text-zinc-400 text-xs font-bold uppercase tracking-widest mb-1">Terminal</div>
+          <h1 className="text-3xl font-bold text-white">
+            Welcome, <span className="text-purple-500">{userName}</span>
+          </h1>
         </div>
         
-        {/* Make this clickable to go to settings/profile */}
-        <Link href="/settings" className="relative group">
-            <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-zinc-800 group-hover:border-purple-500 transition-all bg-zinc-900 flex items-center justify-center">
-                {userAvatarUrl ? (
-                    <img src={userAvatarUrl} alt="Profile" className="w-full h-full object-cover" />
+        {/* PROFILE PICTURE - Links to /profile */}
+        <Link href="/profile" className="relative">
+            <div className="w-12 h-12 rounded-full overflow-hidden border border-zinc-800 bg-zinc-900 flex items-center justify-center hover:border-purple-500 transition-all">
+                {userAvatar ? (
+                    <img src={userAvatar} alt="Profile" className="w-full h-full object-cover" />
                 ) : (
-                    <User className="w-6 h-6 text-zinc-500"/>
+                    // This placeholder matches the 'glitch' vibe better than a plain icon
+                    <div className="w-full h-full bg-gradient-to-tr from-purple-900 to-black flex items-center justify-center">
+                        <User className="w-5 h-5 text-purple-400"/>
+                    </div>
                 )}
             </div>
-            {/* Optional small settings icon indicator */}
-            <div className="absolute -bottom-1 -right-1 bg-zinc-900 rounded-full p-1 border border-zinc-800">
-                <Settings className="w-3 h-3 text-zinc-400"/>
-            </div>
+            {/* Notification Dot */}
+            <div className="absolute top-0 right-0 w-3 h-3 bg-red-500 border-2 border-[#050505] rounded-full"></div>
         </Link>
       </div>
 
-      {/* STATS CARDS (Kept as requested) */}
-      <div className="grid grid-cols-2 gap-4 px-6 mb-8 animate-fade-in-up">
-        <div className="bg-zinc-900/50 border border-zinc-800/80 p-5 rounded-2xl backdrop-blur-sm">
-          <div className="flex items-center gap-2 text-zinc-500 text-xs font-bold uppercase mb-3">
-            <BookOpen className="w-4 h-4 text-blue-400"/> Exams Taken
+      {/* STATS CARDS: Darker 'Pulsar' Theme */}
+      <div className="grid grid-cols-2 gap-4 px-6 mb-8">
+        <div className="bg-[#111113] border border-zinc-800/60 p-5 rounded-2xl">
+          <div className="flex items-center gap-2 text-zinc-500 text-[10px] font-bold uppercase tracking-wider mb-4">
+            <TrendingUp className="w-3 h-3 text-green-500"/> Avg. Score
           </div>
-          <div className="text-3xl font-bold text-white">{stats.examsTaken}</div>
+          <div className="text-4xl font-bold text-white tracking-tight">{stats.averageScore}<span className="text-lg text-zinc-600">%</span></div>
         </div>
-        <div className="bg-zinc-900/50 border border-zinc-800/80 p-5 rounded-2xl backdrop-blur-sm">
-          <div className="flex items-center gap-2 text-zinc-500 text-xs font-bold uppercase mb-3">
-            <TrendingUp className="w-4 h-4 text-green-400"/> Avg. Score
+        <div className="bg-[#111113] border border-zinc-800/60 p-5 rounded-2xl">
+          <div className="flex items-center gap-2 text-zinc-500 text-[10px] font-bold uppercase tracking-wider mb-4">
+            <BookOpen className="w-3 h-3 text-purple-500"/> Exams Taken
           </div>
-          <div className="text-3xl font-bold text-white">{stats.averageScore}%</div>
+          <div className="text-4xl font-bold text-white tracking-tight">{stats.examsTaken}</div>
         </div>
       </div>
 
-      {/* RECENT ACTIVITY LIST */}
-      <div className="px-6 animate-fade-in-up delay-100">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg font-bold text-white">Recent Activity</h2>
-          <Link href="/courses" className="text-xs text-purple-400 font-bold hover:underline">View Catalog</Link>
-        </div>
+      {/* RECENT ACTIVITY */}
+      <div className="px-6">
+        <h2 className="text-lg font-bold text-white mb-4">Recent Activity</h2>
 
         <div className="space-y-3">
           {recentResults.length === 0 ? (
-            <div className="bg-zinc-900/30 border border-zinc-800/50 border-dashed rounded-2xl p-8 text-center">
-              <Activity className="w-10 h-10 text-zinc-700 mx-auto mb-3 opacity-50"/>
-              <p className="text-zinc-500 text-sm">No exams taken yet.</p>
+            // EMPTY STATE: Matches your original large dark card
+            <div className="bg-[#111113] border border-zinc-800/60 rounded-3xl p-10 flex flex-col items-center justify-center text-center min-h-[200px]">
+              <div className="w-12 h-12 bg-zinc-900 rounded-xl flex items-center justify-center mb-4 border border-zinc-800">
+                  <Activity className="w-6 h-6 text-zinc-600"/>
+              </div>
+              <h3 className="text-white font-bold text-lg mb-1">No Records Found</h3>
+              <p className="text-zinc-500 text-xs max-w-[200px] mb-6">You haven't taken any CBT exams yet. Check the course catalog.</p>
+              
+              {/* PURPLE BUTTON RESTORED */}
               <Link href="/courses">
-                <button className="mt-4 px-6 py-3 bg-white text-black text-sm font-bold rounded-xl hover:bg-zinc-200 transition-colors">
-                  Start Practicing
+                <button className="px-8 py-3 bg-purple-600 text-white text-sm font-bold rounded-xl hover:bg-purple-500 transition-all flex items-center gap-2 shadow-lg shadow-purple-900/20">
+                  <Search className="w-4 h-4"/> Browse Courses
                 </button>
               </Link>
             </div>
           ) : (
+            // RESULT LIST ITEM
             recentResults.map((result) => (
-              <div key={result.id} className="bg-zinc-900/80 border border-zinc-800 p-4 rounded-2xl flex items-center justify-between group hover:border-zinc-700 transition-all shadow-sm">
+              <div key={result.id} className="bg-[#111113] border border-zinc-800/60 p-4 rounded-2xl flex items-center justify-between group hover:border-zinc-700 transition-all">
                 <div className="flex items-center gap-4">
-                  {/* Score Badge */}
-                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-bold text-base ${
-                    result.score >= 70 ? 'bg-green-500/10 text-green-400 ring-1 ring-green-500/30' : 
-                    result.score >= 50 ? 'bg-yellow-500/10 text-yellow-400 ring-1 ring-yellow-500/30' : 
-                    'bg-red-500/10 text-red-400 ring-1 ring-red-500/30'
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-bold text-sm border border-white/5 ${
+                    result.score >= 70 ? 'bg-green-900/20 text-green-400' : 
+                    result.score >= 50 ? 'bg-yellow-900/20 text-yellow-400' : 
+                    'bg-red-900/20 text-red-400'
                   }`}>
                     {result.score}%
                   </div>
                   <div>
-                    <h3 className="font-bold text-white">{result.course_code}</h3>
-                    <p className="text-xs text-zinc-500 flex items-center gap-2 mt-1">
-                      <Calendar className="w-3 h-3"/> {new Date(result.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                      <span className="text-zinc-700">•</span>
+                    <h3 className="font-bold text-white text-base">{result.course_code}</h3>
+                    <p className="text-[10px] text-zinc-500 uppercase tracking-wider mt-1 flex items-center gap-2">
+                      <span>{new Date(result.created_at).toLocaleDateString()}</span>
+                      <span className="w-1 h-1 bg-zinc-700 rounded-full"></span>
                       <span>{result.total_questions} Qs</span>
                     </p>
                   </div>
                 </div>
-                <ChevronRight className="w-5 h-5 text-zinc-700 group-hover:text-white transition-colors"/>
+                <div className="w-8 h-8 rounded-full bg-zinc-900 flex items-center justify-center text-zinc-500 group-hover:text-white group-hover:bg-zinc-800 transition-all">
+                    <ChevronRight className="w-4 h-4"/>
+                </div>
               </div>
             ))
           )}
@@ -156,4 +150,5 @@ export default function Dashboard() {
       <BottomNav active="home" />
     </div>
   );
-}
+      }
+      
