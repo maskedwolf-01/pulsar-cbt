@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import html2canvas from 'html2canvas';
 import { 
   Loader2, CheckCircle, XCircle, Clock, ChevronRight, ChevronLeft, 
-  Award, AlertCircle, X, Calculator, Share2, Search, Info, Home, RefreshCw 
+  Award, AlertCircle, X, Calculator, Share2, Search, Info, Home, RefreshCw, User
 } from 'lucide-react';
 
 const supabase = createClient(
@@ -13,7 +13,7 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-// --- 1. PULSAR MODAL ---
+// --- PULSAR MODAL ---
 const PulsarModal = ({ title, message, onConfirm, onCancel, confirmText="Confirm", cancelText="Cancel", isDestructive=false, singleButton=false }: any) => (
   <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
      <div className="bg-[#111113] border border-zinc-800 p-6 rounded-2xl w-full max-w-sm text-center shadow-2xl scale-100">
@@ -32,10 +32,9 @@ const PulsarModal = ({ title, message, onConfirm, onCancel, confirmText="Confirm
   </div>
 );
 
-// --- 2. CALCULATOR ---
+// --- CALCULATOR ---
 const ExamCalculator = ({ onClose }: { onClose: () => void }) => {
   const [display, setDisplay] = useState('0');
-  
   const handlePress = (val: string) => {
     if (val === 'C') { setDisplay('0'); return; }
     if (val === '=') {
@@ -47,7 +46,6 @@ const ExamCalculator = ({ onClose }: { onClose: () => void }) => {
     }
     setDisplay(prev => (prev === '0' ? val : prev + val));
   };
-
   return (
     <div className="fixed bottom-20 right-4 z-[60] bg-zinc-900 border border-zinc-700 p-4 rounded-2xl shadow-2xl w-64 animate-fade-in-up">
       <div className="flex justify-between mb-4">
@@ -63,10 +61,12 @@ const ExamCalculator = ({ onClose }: { onClose: () => void }) => {
     </div>
   );
 };
-  export default function ExamPage() {
+          export default function ExamPage() {
   const router = useRouter();
   const resultCardRef = useRef<any>(null);
+
   const [loading, setLoading] = useState(true);
+  const [userName, setUserName] = useState(''); // NEW: Store User Name
   const [examStarted, setExamStarted] = useState(false);
   const [questions, setQuestions] = useState<any[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -80,7 +80,11 @@ const ExamCalculator = ({ onClose }: { onClose: () => void }) => {
   const [gridPage, setGridPage] = useState(0); 
   const [modalConfig, setModalConfig] = useState<any>(null);
 
-  useEffect(() => { fetchAndShuffleQuestions(); }, []);
+  useEffect(() => { 
+    fetchAndShuffleQuestions(); 
+    fetchUser(); // NEW: Fetch Name on load
+  }, []);
+
   useEffect(() => {
     if (!examStarted || submitted) return;
     const timer = setInterval(() => {
@@ -90,9 +94,19 @@ const ExamCalculator = ({ onClose }: { onClose: () => void }) => {
     return () => clearInterval(timer);
   }, [examStarted, submitted]);
 
+  const fetchUser = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+        // Try profile table first, then metadata
+        const { data: profile } = await supabase.from('profiles').select('full_name').eq('id', user.id).single();
+        setUserName(profile?.full_name || user.user_metadata?.full_name || 'Scholar');
+    }
+  };
+
   const fetchAndShuffleQuestions = async () => {
     const { data, error } = await supabase.from('questions').select('*').eq('course_code', 'GST 103');
     if (error || !data || data.length === 0) { setLoading(false); return; }
+
     const shuffled = data.sort(() => Math.random() - 0.5).slice(0, 100).map((q, i) => {
       const correctText = q[`option_${q.correct_option.toLowerCase()}`];
       let options = [ { id: 'A', text: q.option_a }, { id: 'B', text: q.option_b }, { id: 'C', text: q.option_c }, { id: 'D', text: q.option_d } ];
@@ -107,21 +121,34 @@ const ExamCalculator = ({ onClose }: { onClose: () => void }) => {
     if (submitted) return; 
     setAnswers({ ...answers, [questions[currentIndex].id]: label });
   };
+
   const triggerSubmit = () => {
     setModalConfig({ title: "Submit Exam?", message: "Cannot change answers after submitting.", onConfirm: () => { setModalConfig(null); handleSubmit(); }, onCancel: () => setModalConfig(null) });
   };
+
   const triggerExit = () => {
     if (isReviewing || submitted) { router.push('/dashboard'); } 
     else { setModalConfig({ title: "Quit Exam?", message: "Progress will be lost.", isDestructive: true, confirmText: "Quit", onConfirm: () => { router.push('/dashboard'); }, onCancel: () => setModalConfig(null) }); }
   };
+
   const handleSubmit = async () => {
     setSubmitted(true);
     let calcScore = 0;
     questions.forEach(q => { if (answers[q.id] === q.new_correct_option) calcScore++; });
     setScore(calcScore);
+    
+    // SAVE TO DB
     const { data: { user } } = await supabase.auth.getUser();
-    if(user) { await supabase.from('results').insert({ user_id: user.id, course_code: 'GST 103', score: Math.round((calcScore/questions.length)*100), total_questions: questions.length }); }
+    if(user) {
+        await supabase.from('results').insert({
+            user_id: user.id, 
+            course_code: 'GST 103', 
+            score: Math.round((calcScore/questions.length)*100), 
+            total_questions: questions.length
+        });
+    }
   };
+
   const handleShare = async () => {
     if (!resultCardRef.current) return;
     try {
@@ -140,7 +167,9 @@ const ExamCalculator = ({ onClose }: { onClose: () => void }) => {
   };
 
   if (loading) return <div className="h-screen bg-[#09090b] flex items-center justify-center text-white"><Loader2 className="animate-spin mr-2"/> Loading...</div>;
-           if (!examStarted) return (
+
+  // --- START SCREEN ---
+  if (!examStarted) return (
     <div className="min-h-screen bg-[#09090b] flex items-center justify-center p-6">
       <div className="max-w-md w-full bg-[#111113] border border-zinc-800 p-8 rounded-3xl text-center shadow-2xl">
         <div className="w-20 h-20 bg-purple-600/20 rounded-full flex items-center justify-center mx-auto mb-6"><Award className="w-10 h-10 text-purple-500"/></div>
@@ -159,6 +188,7 @@ const ExamCalculator = ({ onClose }: { onClose: () => void }) => {
     </div>
   );
 
+  // --- RESULT SCREEN (WITH NAME ADDED) ---
   if (submitted && !isReviewing) {
     const percentage = Math.round((score / questions.length) * 100);
     const timeDisplay = `${Math.floor(timeTaken / 60)}m ${timeTaken % 60}s`;
@@ -166,31 +196,38 @@ const ExamCalculator = ({ onClose }: { onClose: () => void }) => {
       <div className="min-h-screen bg-[#09090b] text-white p-6 flex items-center justify-center">
         <div className="w-full max-w-md">
             <div ref={resultCardRef} className="bg-[#111113] border border-zinc-800 p-8 rounded-3xl text-center shadow-2xl mb-6 relative overflow-hidden">
+                {/* Header Gradient */}
                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 to-pink-500"></div>
-                <div className="w-20 h-20 mx-auto mb-4 bg-gradient-to-tr from-purple-600 to-pink-600 rounded-full flex items-center justify-center shadow-lg shadow-purple-900/40">
-                    <Award className="w-10 h-10 text-white"/>
+                
+                {/* NEW: USER NAME & BADGE */}
+                <div className="flex flex-col items-center mb-6">
+                    <div className="w-16 h-16 bg-zinc-900 rounded-full border border-zinc-700 flex items-center justify-center mb-3">
+                        <User className="w-8 h-8 text-purple-500"/>
+                    </div>
+                    <h2 className="text-xl font-bold text-white">{userName}</h2>
+                    <span className="text-[10px] uppercase tracking-widest text-zinc-500 mt-1">Computer Science Student</span>
                 </div>
-                <h2 className="text-3xl font-bold text-white mb-1">Exam Completed!</h2>
-                <p className="text-zinc-500 text-sm mb-8">GST 103: Use of Library & ICT</p>
-                <div className="text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-600 mb-2">{percentage}%</div>
-                <p className="text-xs font-bold uppercase tracking-[0.2em] text-zinc-600 mb-8">Final Score</p>
+
+                <div className="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-600 mb-2">{percentage}%</div>
+                <p className="text-xs font-bold uppercase tracking-[0.2em] text-zinc-600 mb-8">GST 103 Score</p>
+                
                 <div className="grid grid-cols-2 gap-4">
                     <div className="bg-green-500/10 border border-green-500/20 p-4 rounded-2xl">
-                        <CheckCircle className="w-6 h-6 text-green-500 mx-auto mb-2"/>
-                        <div className="text-xl font-bold text-white">{score}</div>
+                        <CheckCircle className="w-5 h-5 text-green-500 mx-auto mb-2"/>
+                        <div className="text-lg font-bold text-white">{score}</div>
                         <div className="text-[10px] text-green-400 uppercase font-bold">Correct</div>
                     </div>
                     <div className="bg-red-500/10 border border-red-500/20 p-4 rounded-2xl">
-                        <XCircle className="w-6 h-6 text-red-500 mx-auto mb-2"/>
-                        <div className="text-xl font-bold text-white">{questions.length - score}</div>
+                        <XCircle className="w-5 h-5 text-red-500 mx-auto mb-2"/>
+                        <div className="text-lg font-bold text-white">{questions.length - score}</div>
                         <div className="text-[10px] text-red-400 uppercase font-bold">Wrong</div>
                     </div>
-                    <div className="bg-blue-500/10 border border-blue-500/20 p-4 rounded-2xl col-span-2 flex items-center justify-between px-6">
-                        <div className="text-left"><div className="text-[10px] text-blue-400 uppercase font-bold mb-1">Time Taken</div><div className="text-xl font-bold text-white">{timeDisplay}</div></div>
-                        <Clock className="w-8 h-8 text-blue-500 opacity-50"/>
+                    <div className="bg-blue-500/10 border border-blue-500/20 p-3 rounded-2xl col-span-2 flex items-center justify-between px-6">
+                        <div className="text-left"><div className="text-[10px] text-blue-400 uppercase font-bold mb-1">Time Taken</div><div className="text-lg font-bold text-white">{timeDisplay}</div></div>
+                        <Clock className="w-6 h-6 text-blue-500 opacity-50"/>
                     </div>
                 </div>
-                <div className="mt-6 pt-4 border-t border-zinc-800 text-[10px] text-zinc-600 uppercase tracking-widest">Pulsar CBT • Computer Science</div>
+                <div className="mt-6 pt-4 border-t border-zinc-800 text-[10px] text-zinc-600 uppercase tracking-widest">Powered by Pulsar CBT</div>
             </div>
             <div className="grid grid-cols-2 gap-3">
                 <button onClick={() => setIsReviewing(true)} className="py-4 bg-zinc-800 text-white font-bold rounded-xl hover:bg-zinc-700 transition-colors">Review Answers</button>
@@ -202,6 +239,7 @@ const ExamCalculator = ({ onClose }: { onClose: () => void }) => {
     );
   }
 
+  // --- EXAM INTERFACE ---
   const currentQ = questions[currentIndex];
   const gridStart = gridPage * 20;
   const gridEnd = Math.min(gridStart + 20, questions.length);
@@ -280,5 +318,5 @@ const ExamCalculator = ({ onClose }: { onClose: () => void }) => {
       </div>
     </div>
   );
-                                                                                                                 }
+  }
         
