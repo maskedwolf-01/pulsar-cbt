@@ -60,8 +60,7 @@ export default function Dashboard() {
       }
 
       // 3. GET NOTIFICATIONS (SYNCED LOGIC)
-      // We fetch the last 20 messages that are either Global (null) or Personal (user_id)
-      // We removed the strict time filter to ensure new users see "Welcome" messages or recent broadcasts.
+      // Fetches Broadcasts (user_id is null) OR Personal Messages
       const { data: notifs } = await supabase
         .from('notifications')
         .select('*')
@@ -69,17 +68,22 @@ export default function Dashboard() {
         .order('created_at', { ascending: false })
         .limit(20);
 
-      if (notifs) {
+      if (notifs && notifs.length > 0) {
         setNotifications(notifs);
         
-        // CHECK READ STATUS (Local Storage Logic)
-        // If the latest message is newer than what we have saved in 'pulsar_last_read', show Red Dot.
-        const lastReadTime = localStorage.getItem('pulsar_last_read_time');
-        const hasNew = notifs.some(n => {
-            const notifTime = new Date(n.created_at).getTime();
-            return !lastReadTime || notifTime > parseInt(lastReadTime);
-        });
-        setHasUnread(hasNew);
+        // --- RED DOT PERSISTENCE LOGIC ---
+        // We get the timestamp of the *newest* message
+        const newestMessageTime = new Date(notifs[0].created_at).getTime();
+        
+        // We get the timestamp of when you last clicked "Mark as Read"
+        const lastReadTime = localStorage.getItem('pulsar_last_read_timestamp');
+        
+        // If you've never read messages, OR the newest message is newer than your last read time -> SHOW RED DOT
+        if (!lastReadTime || newestMessageTime > parseInt(lastReadTime)) {
+            setHasUnread(true);
+        } else {
+            setHasUnread(false);
+        }
       }
 
       setLoading(false);
@@ -88,9 +92,18 @@ export default function Dashboard() {
   }, []);
 
   const markAllRead = () => {
+    // 1. Hide Dot immediately
     setHasUnread(false);
-    // Save the current timestamp. Any message older than this is "Read".
-    localStorage.setItem('pulsar_last_read_time', Date.now().toString());
+    
+    // 2. SAVE to Phone Storage (This fixes the refresh issue)
+    // We save the current time. Next time the page loads, it compares message time vs this time.
+    if (notifications.length > 0) {
+        // Save the timestamp of the newest message + 1 second to be safe
+        const newestTime = new Date(notifications[0].created_at).getTime();
+        localStorage.setItem('pulsar_last_read_timestamp', (newestTime + 1000).toString());
+    } else {
+        localStorage.setItem('pulsar_last_read_timestamp', Date.now().toString());
+    }
   };
 
   if (loading) return <div className="h-screen bg-[#09090b] flex items-center justify-center text-purple-500"><Loader2 className="animate-spin"/></div>;
@@ -101,7 +114,7 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-[#09090b] text-white font-sans pb-24 relative overflow-x-hidden">
       
-      {/* --- TRANSMISSION LOG (NOTIFICATION PANEL) --- */}
+      {/* --- TRANSMISSION LOG (EXACT COPY OF PDF PAGE UI) --- */}
       <div className={`fixed inset-y-0 right-0 w-full md:w-96 bg-[#09090b] border-l border-zinc-800 transform transition-transform duration-300 z-50 flex flex-col ${showNotifPanel ? 'translate-x-0' : 'translate-x-full'}`}>
         
         {/* HEADER */}
@@ -122,17 +135,21 @@ export default function Dashboard() {
             ) : (
                 notifications.map(n => (
                     <div key={n.id} className="bg-[#111113] border border-zinc-800/60 p-4 rounded-xl relative overflow-hidden group">
-                        {/* Purple Dot Indicator */}
-                        <div className="flex justify-between items-start mb-2">
-                            <span className="text-[10px] font-bold text-purple-400 uppercase tracking-wider flex items-center gap-2">
-                                <span className="w-2 h-2 bg-purple-500 rounded-full shadow-[0_0_8px_rgba(168,85,247,0.6)]"></span>
-                                {n.title}
+                        {/* Purple Accent Bar */}
+                        <div className="absolute top-0 left-0 w-1 h-full bg-purple-600"></div>
+                        
+                        <div className="flex justify-between items-start mb-2 pl-3">
+                            <span className="text-[10px] font-bold text-purple-400 uppercase tracking-wider flex items-center gap-1">
+                                <span className="w-2 h-2 bg-purple-500 rounded-full animate-pulse"></span>
+                                {n.user_id ? 'Personal' : 'Broadcast'}
                             </span>
                             <span className="text-[10px] text-zinc-600">
                                 {new Date(n.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                             </span>
                         </div>
-                        <p className="text-sm text-zinc-300 leading-relaxed">{n.message}</p>
+                        
+                        <h4 className="text-sm font-bold text-white pl-3 mb-1">{n.title}</h4>
+                        <p className="text-xs text-zinc-400 pl-3 leading-relaxed">{n.message}</p>
                     </div>
                 ))
             )}
@@ -246,5 +263,5 @@ export default function Dashboard() {
       <BottomNav active="home" />
     </div>
   );
-      }
-                                          
+    }
+        
