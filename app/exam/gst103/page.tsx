@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { 
   Loader2, CheckCircle, Clock, ChevronRight, ChevronLeft, 
   RefreshCw, Award, Timer, AlertCircle, X, Calculator, 
-  Share2, Search, Grid, LogOut 
+  Share2, Search, Grid, LogOut, Info 
 } from 'lucide-react';
 
 // --- SUPABASE CLIENT ---
@@ -62,15 +62,14 @@ export default function ExamPage() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<{[key: number]: string}>({});
   const [submitted, setSubmitted] = useState(false);
-  const [isReviewing, setIsReviewing] = useState(false); // NEW: Review Mode
+  const [isReviewing, setIsReviewing] = useState(false); // Review Mode
   const [score, setScore] = useState(0);
-  const [timeTaken, setTimeTaken] = useState(0);
   const [timeLeft, setTimeLeft] = useState(60 * 45); 
   
   // UX STATES
   const [showCalculator, setShowCalculator] = useState(false);
   const [showExitModal, setShowExitModal] = useState(false);
-  const [gridPage, setGridPage] = useState(0); // For Pagination (1-20, 21-40)
+  const [gridPage, setGridPage] = useState(0); // Pagination
 
   useEffect(() => { fetchAndShuffleQuestions(); }, []);
 
@@ -82,7 +81,6 @@ export default function ExamPage() {
         if (p <= 1) { clearInterval(timer); handleSubmit(); return 0; }
         return p - 1;
       });
-      setTimeTaken(p => p + 1);
     }, 1000);
     return () => clearInterval(timer);
   }, [examStarted, submitted]);
@@ -103,8 +101,8 @@ export default function ExamPage() {
   };
 
   const handleSelect = (label: string) => {
-    if (submitted && !isReviewing) return; // Locked when submitted
-    if (isReviewing) return; // Locked in review mode
+    if (submitted && !isReviewing) return; 
+    if (isReviewing) return; 
     setAnswers({ ...answers, [questions[currentIndex].id]: label });
   };
 
@@ -128,22 +126,45 @@ export default function ExamPage() {
     alert('Result copied to clipboard!'); 
   };
 
-  const confirmExit = () => {
-    // Actually redirect
-    router.push('/dashboard');
-  };
+  const confirmExit = () => router.push('/dashboard');
 
   if (loading) return <div className="h-screen bg-[#09090b] flex items-center justify-center text-white"><Loader2 className="animate-spin mr-2"/> Loading Engine...</div>;
   if (questions.length === 0) return <div className="h-screen bg-[#09090b] text-white flex items-center justify-center">No Questions Loaded.</div>;
 
-  // --- START SCREEN ---
+  // --- START SCREEN (RESTORED INSTRUCTIONS) ---
   if (!examStarted) return (
     <div className="min-h-screen bg-[#09090b] flex items-center justify-center p-6">
-      <div className="max-w-md w-full bg-zinc-900 border border-zinc-800 p-8 rounded-3xl text-center">
-        <div className="w-20 h-20 bg-purple-600/20 rounded-full flex items-center justify-center mx-auto mb-6"><Award className="w-10 h-10 text-purple-500"/></div>
+      <div className="max-w-md w-full bg-zinc-900 border border-zinc-800 p-8 rounded-3xl text-center shadow-2xl">
+        <div className="w-20 h-20 bg-purple-600/20 rounded-full flex items-center justify-center mx-auto mb-6">
+          <Award className="w-10 h-10 text-purple-500"/>
+        </div>
         <h1 className="text-2xl font-bold text-white mb-2">GST 103</h1>
-        <p className="text-zinc-500 text-sm mb-8">Use of Library & ICT</p>
-        <button onClick={() => setExamStarted(true)} className="w-full py-4 bg-white text-black font-bold rounded-xl hover:bg-zinc-200 flex items-center justify-center gap-2">Start Exam <ChevronRight className="w-4 h-4"/></button>
+        <p className="text-zinc-500 text-sm mb-8">Use of Library & ICT | 100 Questions</p>
+        
+        {/* INSTRUCTIONS BOX */}
+        <div className="bg-black/40 text-left p-5 rounded-2xl border border-zinc-800 mb-8">
+          <h3 className="text-purple-400 font-bold text-xs uppercase tracking-widest mb-4 flex items-center gap-2">
+            <Info className="w-4 h-4"/> Exam Instructions
+          </h3>
+          <ul className="space-y-4 text-sm text-zinc-300">
+            <li className="flex gap-3">
+              <CheckCircle className="w-5 h-5 text-green-500 shrink-0"/> 
+              <span>Answer all questions within the <strong>45-minute</strong> time limit.</span>
+            </li>
+            <li className="flex gap-3">
+              <RefreshCw className="w-5 h-5 text-blue-500 shrink-0"/> 
+              <span><strong>Retake Often!</strong> The system shuffles questions and options every time to ensure you master the material.</span>
+            </li>
+            <li className="flex gap-3">
+              <Clock className="w-5 h-5 text-orange-500 shrink-0"/> 
+              <span>The timer stops automatically. Good luck!</span>
+            </li>
+          </ul>
+        </div>
+
+        <button onClick={() => setExamStarted(true)} className="w-full py-4 bg-white text-black font-bold rounded-xl hover:bg-zinc-200 flex items-center justify-center gap-2 transition-transform active:scale-95">
+          Start Exam <ChevronRight className="w-4 h-4"/>
+        </button>
       </div>
     </div>
   );
@@ -153,17 +174,17 @@ export default function ExamPage() {
     const percentage = Math.round((score / questions.length) * 100);
     return (
       <div className="min-h-screen bg-[#09090b] text-white p-6 flex items-center justify-center">
-        <div className="w-full max-w-lg bg-zinc-900 border border-zinc-800 p-8 rounded-3xl relative overflow-hidden">
+        <div className="w-full max-w-lg bg-zinc-900 border border-zinc-800 p-8 rounded-3xl relative overflow-hidden shadow-2xl">
           <div className="text-center mb-8">
-             <h2 className="text-3xl font-bold">{percentage}%</h2>
-             <p className="text-zinc-500">Accuracy Score</p>
+             <h2 className="text-5xl font-bold mb-2 text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600">{percentage}%</h2>
+             <p className="text-zinc-500 text-sm uppercase tracking-widest">Accuracy Score</p>
           </div>
           <div className="grid grid-cols-2 gap-3 mb-6">
-             <button onClick={() => setIsReviewing(true)} className="py-4 bg-zinc-800 rounded-xl font-bold text-sm hover:bg-zinc-700">Review Answers</button>
-             <button onClick={handleShare} className="py-4 bg-purple-600 rounded-xl font-bold text-sm hover:bg-purple-500 flex items-center justify-center gap-2"><Share2 className="w-4 h-4"/> Share Result</button>
+             <button onClick={() => setIsReviewing(true)} className="py-4 bg-zinc-800 rounded-xl font-bold text-sm hover:bg-zinc-700 transition-colors">Review Answers</button>
+             <button onClick={handleShare} className="py-4 bg-purple-600 rounded-xl font-bold text-sm hover:bg-purple-500 transition-colors flex items-center justify-center gap-2"><Share2 className="w-4 h-4"/> Share Result</button>
           </div>
-          <button onClick={() => window.location.reload()} className="w-full py-4 bg-white text-black font-bold rounded-xl mb-3">Retake Exam</button>
-          <button onClick={() => router.push('/dashboard')} className="w-full py-4 text-zinc-500 font-bold text-sm">Back to Dashboard</button>
+          <button onClick={() => window.location.reload()} className="w-full py-4 bg-white text-black font-bold rounded-xl mb-3 hover:bg-zinc-200 transition-colors">Retake Exam</button>
+          <button onClick={() => router.push('/dashboard')} className="w-full py-4 text-zinc-500 font-bold text-sm hover:text-white transition-colors">Back to Dashboard</button>
         </div>
       </div>
     );
@@ -181,14 +202,14 @@ export default function ExamPage() {
       
       {/* EXIT MODAL */}
       {showExitModal && (
-        <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm">
-           <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-2xl w-full max-w-sm text-center">
+        <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
+           <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-2xl w-full max-w-sm text-center shadow-2xl">
               <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4"/>
               <h3 className="text-lg font-bold text-white mb-2">Quit Exam?</h3>
               <p className="text-sm text-zinc-500 mb-6">Your progress will be lost.</p>
               <div className="flex gap-3">
-                 <button onClick={() => setShowExitModal(false)} className="flex-1 py-3 bg-zinc-800 rounded-xl font-bold text-sm">Cancel</button>
-                 <button onClick={confirmExit} className="flex-1 py-3 bg-red-600 text-white rounded-xl font-bold text-sm">Quit</button>
+                 <button onClick={() => setShowExitModal(false)} className="flex-1 py-3 bg-zinc-800 rounded-xl font-bold text-sm hover:bg-zinc-700">Cancel</button>
+                 <button onClick={confirmExit} className="flex-1 py-3 bg-red-600 text-white rounded-xl font-bold text-sm hover:bg-red-500">Quit</button>
               </div>
            </div>
         </div>
@@ -196,11 +217,11 @@ export default function ExamPage() {
 
       {/* HEADER */}
       <div className="flex justify-between items-center mb-6">
-        <button onClick={() => setShowExitModal(true)} className="p-2 bg-zinc-800/50 rounded-full hover:bg-zinc-800"><X className="w-5 h-5 text-zinc-400"/></button>
+        <button onClick={() => setShowExitModal(true)} className="p-2 bg-zinc-800/50 rounded-full hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors"><X className="w-5 h-5"/></button>
         <div className={`font-mono font-bold text-lg ${timeLeft < 300 ? 'text-red-500 animate-pulse' : 'text-purple-400'}`}>
            {Math.floor(timeLeft/60)}:{String(timeLeft%60).padStart(2,'0')}
         </div>
-        <button onClick={() => setShowCalculator(!showCalculator)} className={`p-2 rounded-full ${showCalculator ? 'bg-purple-600 text-white' : 'bg-zinc-800/50 text-zinc-400'}`}><Calculator className="w-5 h-5"/></button>
+        <button onClick={() => setShowCalculator(!showCalculator)} className={`p-2 rounded-full transition-colors ${showCalculator ? 'bg-purple-600 text-white' : 'bg-zinc-800/50 text-zinc-400 hover:text-white'}`}><Calculator className="w-5 h-5"/></button>
       </div>
 
       {showCalculator && <ExamCalculator onClose={() => setShowCalculator(false)} />}
@@ -228,19 +249,19 @@ export default function ExamPage() {
               const isSelected = answers[currentQ.id] === label;
               
               // REVIEW MODE STYLING
-              let btnClass = "bg-black/20 border-zinc-800 text-zinc-300";
+              let btnClass = "bg-black/20 border-zinc-800 text-zinc-300 hover:bg-zinc-800";
               if (isReviewing) {
-                 if (label === currentQ.new_correct_option) btnClass = "bg-green-500/10 border-green-500 text-green-500"; // Correct Answer
-                 else if (isSelected && label !== currentQ.new_correct_option) btnClass = "bg-red-500/10 border-red-500 text-red-500"; // Wrong Choice
-                 else btnClass = "opacity-50 border-zinc-800"; // Irrelevant
+                 if (label === currentQ.new_correct_option) btnClass = "bg-green-500/10 border-green-500 text-green-500"; 
+                 else if (isSelected && label !== currentQ.new_correct_option) btnClass = "bg-red-500/10 border-red-500 text-red-500"; 
+                 else btnClass = "opacity-50 border-zinc-800"; 
               } else {
-                 if (isSelected) btnClass = "bg-purple-600 border-purple-600 text-white";
+                 if (isSelected) btnClass = "bg-purple-600 border-purple-600 text-white shadow-lg shadow-purple-900/20";
               }
 
               return (
                 <button key={idx} onClick={() => handleSelect(label)} disabled={isReviewing}
                   className={`w-full text-left p-4 rounded-xl border transition-all flex items-center gap-4 ${btnClass}`}>
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold border border-current opacity-80`}>{label}</div>
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold border border-current opacity-80 shrink-0`}>{label}</div>
                   <span>{opt.text}</span>
                 </button>
               );
@@ -249,12 +270,12 @@ export default function ExamPage() {
 
           {/* NAV BUTTONS */}
           <div className="flex justify-between pt-6 border-t border-zinc-800">
-            <button onClick={() => setCurrentIndex(p => Math.max(0, p-1))} disabled={currentIndex===0} className="px-6 py-3 rounded-xl bg-zinc-800 disabled:opacity-50 text-sm font-bold flex items-center gap-2"><ChevronLeft className="w-4 h-4"/> Prev</button>
+            <button onClick={() => setCurrentIndex(p => Math.max(0, p-1))} disabled={currentIndex===0} className="px-6 py-3 rounded-xl bg-zinc-800 disabled:opacity-50 text-sm font-bold flex items-center gap-2 hover:bg-zinc-700 transition-colors"><ChevronLeft className="w-4 h-4"/> Prev</button>
             {currentIndex === questions.length - 1 && !isReviewing ? (
-               <button onClick={() => setShowExitModal(true) /* Use custom modal for submit too? Or standard confirm */ } className="px-8 py-3 rounded-xl bg-green-600 text-white font-bold text-sm flex items-center gap-2" 
+               <button onClick={() => setShowExitModal(true)} className="px-8 py-3 rounded-xl bg-green-600 text-white font-bold text-sm flex items-center gap-2 hover:bg-green-500 transition-colors shadow-lg shadow-green-900/20" 
                   onMouseDown={() => { if(confirm("Submit Exam?")) handleSubmit(); }}>Submit <CheckCircle className="w-4 h-4"/></button>
             ) : (
-               <button onClick={() => setCurrentIndex(p => Math.min(questions.length-1, p+1))} className="px-6 py-3 rounded-xl bg-white text-black font-bold text-sm flex items-center gap-2">Next <ChevronRight className="w-4 h-4"/></button>
+               <button onClick={() => setCurrentIndex(p => Math.min(questions.length-1, p+1))} className="px-6 py-3 rounded-xl bg-white text-black font-bold text-sm flex items-center gap-2 hover:bg-zinc-200 transition-colors">Next <ChevronRight className="w-4 h-4"/></button>
             )}
           </div>
         </div>
@@ -262,11 +283,11 @@ export default function ExamPage() {
         {/* NAVIGATION GRID (PAGINATED) */}
         <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-3xl h-fit">
           <div className="flex justify-between items-center mb-4">
-            <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Map</h3>
-            <div className="flex gap-1">
-               <button onClick={() => setGridPage(p => Math.max(0, p-1))} disabled={gridPage===0} className="p-1 bg-zinc-800 rounded hover:bg-zinc-700 disabled:opacity-30"><ChevronLeft className="w-3 h-3"/></button>
-               <span className="text-xs text-zinc-400 font-mono self-center">{gridStart+1}-{gridEnd}</span>
-               <button onClick={() => setGridPage(p => (gridEnd < questions.length ? p+1 : p))} disabled={gridEnd >= questions.length} className="p-1 bg-zinc-800 rounded hover:bg-zinc-700 disabled:opacity-30"><ChevronRight className="w-3 h-3"/></button>
+            <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Question Map</h3>
+            <div className="flex gap-1 items-center bg-zinc-950 p-1 rounded-lg border border-zinc-800">
+               <button onClick={() => setGridPage(p => Math.max(0, p-1))} disabled={gridPage===0} className="p-1 hover:bg-zinc-800 rounded disabled:opacity-30"><ChevronLeft className="w-3 h-3 text-zinc-400"/></button>
+               <span className="text-xs text-zinc-300 font-mono w-16 text-center">{gridStart+1}-{gridEnd}</span>
+               <button onClick={() => setGridPage(p => (gridEnd < questions.length ? p+1 : p))} disabled={gridEnd >= questions.length} className="p-1 hover:bg-zinc-800 rounded disabled:opacity-30"><ChevronRight className="w-3 h-3 text-zinc-400"/></button>
             </div>
           </div>
           
@@ -274,7 +295,7 @@ export default function ExamPage() {
             {questions.slice(gridStart, gridEnd).map((q, i) => {
               const actualIndex = gridStart + i;
               const answered = answers[q.id];
-              let colorClass = "bg-black/40 border-zinc-800 text-zinc-600"; // Default
+              let colorClass = "bg-black/40 border-zinc-800 text-zinc-600 hover:border-zinc-600"; 
               
               if (actualIndex === currentIndex) colorClass = "bg-white text-black border-white ring-2 ring-purple-500";
               else if (isReviewing) {
@@ -292,13 +313,14 @@ export default function ExamPage() {
             })}
           </div>
           
-          <div className="mt-6 pt-6 border-t border-zinc-800">
-             <div className="flex gap-2 text-xs text-zinc-500 mb-2"><div className="w-3 h-3 bg-purple-600/20 border border-purple-500/50 rounded"></div> Answered</div>
-             <div className="flex gap-2 text-xs text-zinc-500"><div className="w-3 h-3 bg-white border border-zinc-200 rounded"></div> Current</div>
+          <div className="mt-6 pt-6 border-t border-zinc-800 flex gap-4 justify-center">
+             <div className="flex items-center gap-2 text-xs text-zinc-500"><div className="w-2 h-2 bg-purple-500 rounded-full"></div> Answered</div>
+             <div className="flex items-center gap-2 text-xs text-zinc-500"><div className="w-2 h-2 bg-zinc-700 rounded-full"></div> Unanswered</div>
           </div>
         </div>
 
       </div>
     </div>
   );
-}
+        }
+      
