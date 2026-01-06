@@ -56,7 +56,7 @@ const ExamCalculator = ({ onClose }: { onClose: () => void }) => {
     </div>
   );
 };
-  export default function ExamPage() {
+          export default function ExamPage() {
   const router = useRouter();
   const resultCardRef = useRef<any>(null);
   const [loading, setLoading] = useState(true);
@@ -133,7 +133,7 @@ const ExamCalculator = ({ onClose }: { onClose: () => void }) => {
   };
 
   if (loading) return <div className="h-screen bg-[#09090b] flex items-center justify-center text-white"><Loader2 className="animate-spin mr-2"/> Loading...</div>;
-      if (!examStarted) return (
+              if (!examStarted) return (
     <div className="min-h-screen bg-[#09090b] flex items-center justify-center p-6">
       <div className="max-w-md w-full bg-[#111113] border border-zinc-800 p-8 rounded-3xl text-center shadow-2xl">
         <div className="w-20 h-20 bg-purple-600/20 rounded-full flex items-center justify-center mx-auto mb-6"><Award className="w-10 h-10 text-purple-500"/></div>
@@ -273,5 +273,5 @@ const ExamCalculator = ({ onClose }: { onClose: () => void }) => {
       </div>
     </div>
   );
-  }
-                  
+                                             }
+      
