@@ -3,13 +3,17 @@ import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { useRouter } from 'next/navigation';
 import html2canvas from 'html2canvas';
-import { Loader2, CheckCircle, XCircle, Clock, ChevronRight, ChevronLeft, Award, AlertCircle, X, Calculator, Share2, Search, Info, Home } from 'lucide-react';
+import { 
+  Loader2, CheckCircle, XCircle, Clock, ChevronRight, ChevronLeft, 
+  Award, AlertCircle, X, Calculator, Share2, Search, Info, Home, RefreshCw 
+} from 'lucide-react';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
+// --- 1. PULSAR MODAL ---
 const PulsarModal = ({ title, message, onConfirm, onCancel, confirmText="Confirm", cancelText="Cancel", isDestructive=false, singleButton=false }: any) => (
   <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
      <div className="bg-[#111113] border border-zinc-800 p-6 rounded-2xl w-full max-w-sm text-center shadow-2xl scale-100">
@@ -28,19 +32,22 @@ const PulsarModal = ({ title, message, onConfirm, onCancel, confirmText="Confirm
   </div>
 );
 
+// --- 2. CALCULATOR ---
 const ExamCalculator = ({ onClose }: { onClose: () => void }) => {
   const [display, setDisplay] = useState('0');
+  
   const handlePress = (val: string) => {
     if (val === 'C') { setDisplay('0'); return; }
     if (val === '=') {
       try {
         // eslint-disable-next-line
-        setDisplay(eval(display).toString().substring(0,10));
+        setDisplay(Function('"use strict";return (' + display + ')')().toString().substring(0,10));
       } catch { setDisplay('Err'); }
       return;
     }
     setDisplay(prev => (prev === '0' ? val : prev + val));
   };
+
   return (
     <div className="fixed bottom-20 right-4 z-[60] bg-zinc-900 border border-zinc-700 p-4 rounded-2xl shadow-2xl w-64 animate-fade-in-up">
       <div className="flex justify-between mb-4">
@@ -56,7 +63,7 @@ const ExamCalculator = ({ onClose }: { onClose: () => void }) => {
     </div>
   );
 };
-          export default function ExamPage() {
+  export default function ExamPage() {
   const router = useRouter();
   const resultCardRef = useRef<any>(null);
   const [loading, setLoading] = useState(true);
@@ -133,7 +140,7 @@ const ExamCalculator = ({ onClose }: { onClose: () => void }) => {
   };
 
   if (loading) return <div className="h-screen bg-[#09090b] flex items-center justify-center text-white"><Loader2 className="animate-spin mr-2"/> Loading...</div>;
-              if (!examStarted) return (
+           if (!examStarted) return (
     <div className="min-h-screen bg-[#09090b] flex items-center justify-center p-6">
       <div className="max-w-md w-full bg-[#111113] border border-zinc-800 p-8 rounded-3xl text-center shadow-2xl">
         <div className="w-20 h-20 bg-purple-600/20 rounded-full flex items-center justify-center mx-auto mb-6"><Award className="w-10 h-10 text-purple-500"/></div>
@@ -273,5 +280,5 @@ const ExamCalculator = ({ onClose }: { onClose: () => void }) => {
       </div>
     </div>
   );
-                                             }
-      
+                                                                                                                 }
+        
