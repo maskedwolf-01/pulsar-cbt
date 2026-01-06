@@ -1,11 +1,11 @@
 "use client";
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { useRouter } from 'next/navigation';
+import html2canvas from 'html2canvas';
 import { 
-  Loader2, CheckCircle, Clock, ChevronRight, ChevronLeft, 
-  RefreshCw, Award, AlertCircle, X, Calculator, 
-  Share2, Search, Info 
+  Loader2, CheckCircle, XCircle, Clock, ChevronRight, ChevronLeft, 
+  Award, AlertCircle, X, Calculator, Share2, Search, Info, Home, Download 
 } from 'lucide-react';
 
 const supabase = createClient(
@@ -13,7 +13,26 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-// --- CALCULATOR ---
+// --- 1. PULSAR MODAL (Custom Popups - No System Defaults) ---
+const PulsarModal = ({ title, message, onConfirm, onCancel, confirmText="Confirm", cancelText="Cancel", isDestructive=false, singleButton=false }: any) => (
+  <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
+     <div className="bg-[#111113] border border-zinc-800 p-6 rounded-2xl w-full max-w-sm text-center shadow-2xl scale-100">
+        <div className={`w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4 ${isDestructive ? 'bg-red-500/10' : 'bg-purple-500/10'}`}>
+            {isDestructive ? <AlertCircle className="w-6 h-6 text-red-500"/> : <CheckCircle className="w-6 h-6 text-purple-500"/>}
+        </div>
+        <h3 className="text-lg font-bold text-white mb-2">{title}</h3>
+        <p className="text-sm text-zinc-500 mb-6">{message}</p>
+        <div className="flex gap-3">
+           {!singleButton && (
+             <button onClick={onCancel} className="flex-1 py-3 bg-zinc-800 rounded-xl font-bold text-sm hover:bg-zinc-700 text-white transition-colors">{cancelText}</button>
+           )}
+           <button onClick={onConfirm} className={`flex-1 py-3 rounded-xl font-bold text-sm text-white ${isDestructive ? 'bg-red-600 hover:bg-red-500' : 'bg-purple-600 hover:bg-purple-500'}`}>{confirmText}</button>
+        </div>
+     </div>
+  </div>
+);
+
+// --- 2. CALCULATOR ---
 const ExamCalculator = ({ onClose }: { onClose: () => void }) => {
   const [display, setDisplay] = useState('0');
   const [evalString, setEvalString] = useState('');
@@ -21,15 +40,10 @@ const ExamCalculator = ({ onClose }: { onClose: () => void }) => {
   const handlePress = (val: string) => {
     if (val === 'C') { setDisplay('0'); setEvalString(''); return; }
     if (val === '=') {
-      try {
-        const res = eval(evalString).toString(); // Simple eval for calc
-        setDisplay(res.substring(0, 10)); setEvalString(res);
-      } catch { setDisplay('Err'); }
+      try { const res = eval(evalString).toString(); setDisplay(res.substring(0, 10)); setEvalString(res); } catch { setDisplay('Err'); }
       return;
     }
-    const newStr = evalString + val;
-    setEvalString(newStr);
-    setDisplay(newStr);
+    const newStr = evalString + val; setEvalString(newStr); setDisplay(newStr);
   };
 
   return (
@@ -48,25 +62,11 @@ const ExamCalculator = ({ onClose }: { onClose: () => void }) => {
   );
 };
 
-// --- CUSTOM MODAL COMPONENT (Pulsar Theme) ---
-const PulsarModal = ({ title, message, onConfirm, onCancel, confirmText="Confirm", cancelText="Cancel", isDestructive=false }: any) => (
-  <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
-     <div className="bg-[#111113] border border-zinc-800 p-6 rounded-2xl w-full max-w-sm text-center shadow-2xl scale-100">
-        <div className={`w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4 ${isDestructive ? 'bg-red-500/10' : 'bg-purple-500/10'}`}>
-            {isDestructive ? <AlertCircle className="w-6 h-6 text-red-500"/> : <CheckCircle className="w-6 h-6 text-purple-500"/>}
-        </div>
-        <h3 className="text-lg font-bold text-white mb-2">{title}</h3>
-        <p className="text-sm text-zinc-500 mb-6">{message}</p>
-        <div className="flex gap-3">
-           <button onClick={onCancel} className="flex-1 py-3 bg-zinc-800 rounded-xl font-bold text-sm hover:bg-zinc-700 transition-colors">{cancelText}</button>
-           <button onClick={onConfirm} className={`flex-1 py-3 rounded-xl font-bold text-sm text-white ${isDestructive ? 'bg-red-600 hover:bg-red-500' : 'bg-purple-600 hover:bg-purple-500'}`}>{confirmText}</button>
-        </div>
-     </div>
-  </div>
-);
-
 export default function ExamPage() {
   const router = useRouter();
+  const resultCardRef = useRef<HTMLDivElement>(null); // CAPTURE TARGET
+
+  // STATES
   const [loading, setLoading] = useState(true);
   const [examStarted, setExamStarted] = useState(false);
   const [questions, setQuestions] = useState<any[]>([]);
@@ -76,14 +76,14 @@ export default function ExamPage() {
   const [isReviewing, setIsReviewing] = useState(false);
   const [score, setScore] = useState(0);
   const [timeLeft, setTimeLeft] = useState(60 * 45); 
+  const [timeTaken, setTimeTaken] = useState(0);
   const [showCalculator, setShowCalculator] = useState(false);
   const [gridPage, setGridPage] = useState(0); 
-
-  // Modal States
-  const [modalConfig, setModalConfig] = useState<any>(null); // { title, message, action, type }
+  const [modalConfig, setModalConfig] = useState<any>(null);
 
   useEffect(() => { fetchAndShuffleQuestions(); }, []);
 
+  // TIMER LOGIC
   useEffect(() => {
     if (!examStarted || submitted) return;
     const timer = setInterval(() => {
@@ -91,6 +91,7 @@ export default function ExamPage() {
         if (p <= 1) { clearInterval(timer); handleSubmit(); return 0; }
         return p - 1;
       });
+      setTimeTaken(p => p + 1);
     }, 1000);
     return () => clearInterval(timer);
   }, [examStarted, submitted]);
@@ -110,28 +111,34 @@ export default function ExamPage() {
   };
 
   const handleSelect = (label: string) => {
-    if (submitted && !isReviewing) return; 
-    if (isReviewing) return; 
+    if (submitted) return; 
     setAnswers({ ...answers, [questions[currentIndex].id]: label });
   };
 
   const triggerSubmit = () => {
     setModalConfig({
         title: "Submit Exam?",
-        message: "Are you sure you want to finish? You cannot change your answers after this.",
-        isDestructive: false,
-        onConfirm: () => { setModalConfig(null); handleSubmit(); }
+        message: "Are you sure? You cannot change answers after submitting.",
+        onConfirm: () => { setModalConfig(null); handleSubmit(); },
+        onCancel: () => setModalConfig(null)
     });
   };
 
   const triggerExit = () => {
-    setModalConfig({
-        title: "Quit Exam?",
-        message: "Your progress will be lost completely.",
-        isDestructive: true,
-        confirmText: "Quit",
-        onConfirm: () => { router.push('/dashboard'); }
-    });
+    if (isReviewing || submitted) {
+        // Direct exit if in review mode
+        router.push('/dashboard');
+    } else {
+        // Warning if exam is active
+        setModalConfig({
+            title: "Quit Exam?",
+            message: "Progress will be lost. This will not be saved.",
+            isDestructive: true,
+            confirmText: "Quit",
+            onConfirm: () => { router.push('/dashboard'); },
+            onCancel: () => setModalConfig(null)
+        });
+    }
   };
 
   const handleSubmit = async () => {
@@ -143,57 +150,141 @@ export default function ExamPage() {
     // SAVE TO DB
     const { data: { user } } = await supabase.auth.getUser();
     if(user) {
-        await supabase.from('results').insert({
+        const { error } = await supabase.from('results').insert({
             user_id: user.id, 
             course_code: 'GST 103', 
             score: Math.round((calcScore/questions.length)*100), 
             total_questions: questions.length
         });
+        if (error) console.error("Save Error:", error);
     }
   };
 
-  const handleShare = () => {
-    const text = `I just scored ${score}/${questions.length} in GST 103 on Pulsar CBT! 🚀`;
-    navigator.clipboard.writeText(text);
-    alert('Result copied!'); 
+  // --- IMAGE GENERATION & NATIVE SHARE ---
+  const handleShare = async () => {
+    if (!resultCardRef.current) return;
+    
+    try {
+      // Create image from the result card
+      const canvas = await html2canvas(resultCardRef.current, { backgroundColor: '#111113', scale: 2 });
+      
+      canvas.toBlob(async (blob) => {
+        if (!blob) return;
+        
+        // 1. Try Native Mobile Share (WhatsApp, etc.)
+        if (navigator.share) {
+            const file = new File([blob], 'pulsar-result.png', { type: 'image/png' });
+            try {
+                await navigator.share({
+                    title: 'Pulsar CBT Result',
+                    text: `I scored ${score}/${questions.length} in GST 103 on Pulsar CBT! 🚀`,
+                    files: [file]
+                });
+            } catch (shareError) {
+                console.log('Share canceled or failed', shareError);
+            }
+        } else {
+            // 2. Fallback: Download Image for Desktop/Older devices
+            const link = document.createElement('a');
+            link.download = 'Pulsar_GST103_Result.png';
+            link.href = canvas.toDataURL();
+            link.click();
+            setModalConfig({ title: "Image Saved", message: "Result saved to your device.", singleButton: true, onConfirm: () => setModalConfig(null) });
+        }
+      }, 'image/png');
+      
+    } catch (err) {
+      console.error(err);
+      setModalConfig({ title: "Error", message: "Could not generate image.", singleButton: true, onConfirm: () => setModalConfig(null) });
+    }
   };
 
   if (loading) return <div className="h-screen bg-[#09090b] flex items-center justify-center text-white"><Loader2 className="animate-spin mr-2"/> Loading...</div>;
 
-  // START SCREEN
+  // --- 3. START SCREEN (INSTRUCTIONS RESTORED) ---
   if (!examStarted) return (
     <div className="min-h-screen bg-[#09090b] flex items-center justify-center p-6">
       <div className="max-w-md w-full bg-[#111113] border border-zinc-800 p-8 rounded-3xl text-center shadow-2xl">
         <div className="w-20 h-20 bg-purple-600/20 rounded-full flex items-center justify-center mx-auto mb-6"><Award className="w-10 h-10 text-purple-500"/></div>
         <h1 className="text-2xl font-bold text-white mb-2">GST 103</h1>
-        <p className="text-zinc-500 text-sm mb-8">Use of Library & ICT | 100 Questions</p>
+        <p className="text-zinc-500 text-sm mb-6">Use of Library & ICT | 100 Questions</p>
+        
+        <div className="bg-zinc-900/50 text-left p-5 rounded-xl border border-zinc-800 mb-8">
+            <h3 className="text-zinc-400 font-bold text-xs uppercase tracking-widest mb-3 flex gap-2"><Info className="w-3 h-3"/> Instructions</h3>
+            <ul className="text-sm text-zinc-300 space-y-3">
+                <li className="flex gap-2"><CheckCircle className="w-4 h-4 text-green-500"/> Answer all 100 questions.</li>
+                <li className="flex gap-2"><Clock className="w-4 h-4 text-orange-500"/> Time limit: 45 Minutes.</li>
+                <li className="flex gap-2"><RefreshCw className="w-4 h-4 text-blue-500"/> Questions are shuffled every attempt.</li>
+            </ul>
+        </div>
+
         <button onClick={() => setExamStarted(true)} className="w-full py-4 bg-white text-black font-bold rounded-xl hover:bg-zinc-200 flex items-center justify-center gap-2">Start Exam <ChevronRight className="w-4 h-4"/></button>
       </div>
     </div>
   );
 
-  // RESULT SCREEN
+  // --- 4. RESULT SCREEN (PROFESSIONAL CARD) ---
   if (submitted && !isReviewing) {
     const percentage = Math.round((score / questions.length) * 100);
+    const timeDisplay = `${Math.floor(timeTaken / 60)}m ${timeTaken % 60}s`;
+
     return (
       <div className="min-h-screen bg-[#09090b] text-white p-6 flex items-center justify-center">
-        <div className="w-full max-w-lg bg-[#111113] border border-zinc-800 p-8 rounded-3xl relative overflow-hidden shadow-2xl">
-          <div className="text-center mb-8">
-             <h2 className="text-5xl font-bold mb-2 text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600">{percentage}%</h2>
-             <p className="text-zinc-500 text-sm uppercase tracking-widest">Accuracy Score</p>
-          </div>
-          <div className="grid grid-cols-2 gap-3 mb-6">
-             <button onClick={() => setIsReviewing(true)} className="py-4 bg-zinc-800 rounded-xl font-bold text-sm hover:bg-zinc-700">Review Answers</button>
-             <button onClick={handleShare} className="py-4 bg-purple-600 rounded-xl font-bold text-sm hover:bg-purple-500 flex items-center justify-center gap-2"><Share2 className="w-4 h-4"/> Share</button>
-          </div>
-          <button onClick={() => window.location.reload()} className="w-full py-4 bg-white text-black font-bold rounded-xl mb-3">Retake Exam</button>
-          <button onClick={() => router.push('/dashboard')} className="w-full py-4 text-zinc-500 font-bold text-sm hover:text-white">Back to Dashboard</button>
+        <div className="w-full max-w-md">
+            
+            {/* CAPTURABLE CARD AREA - This is what gets shared as an image */}
+            <div ref={resultCardRef} className="bg-[#111113] border border-zinc-800 p-8 rounded-3xl text-center shadow-2xl mb-6 relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 to-pink-500"></div>
+                
+                <div className="w-20 h-20 mx-auto mb-4 bg-gradient-to-tr from-purple-600 to-pink-600 rounded-full flex items-center justify-center shadow-lg shadow-purple-900/40">
+                    <Award className="w-10 h-10 text-white"/>
+                </div>
+                <h2 className="text-3xl font-bold text-white mb-1">Exam Completed!</h2>
+                <p className="text-zinc-500 text-sm mb-8">GST 103: Use of Library & ICT</p>
+
+                <div className="text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-600 mb-2">{percentage}%</div>
+                <p className="text-xs font-bold uppercase tracking-[0.2em] text-zinc-600 mb-8">Final Score</p>
+
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-green-500/10 border border-green-500/20 p-4 rounded-2xl">
+                        <CheckCircle className="w-6 h-6 text-green-500 mx-auto mb-2"/>
+                        <div className="text-xl font-bold text-white">{score}</div>
+                        <div className="text-[10px] text-green-400 uppercase font-bold">Correct</div>
+                    </div>
+                    <div className="bg-red-500/10 border border-red-500/20 p-4 rounded-2xl">
+                        <XCircle className="w-6 h-6 text-red-500 mx-auto mb-2"/>
+                        <div className="text-xl font-bold text-white">{questions.length - score}</div>
+                        <div className="text-[10px] text-red-400 uppercase font-bold">Wrong</div>
+                    </div>
+                    <div className="bg-blue-500/10 border border-blue-500/20 p-4 rounded-2xl col-span-2 flex items-center justify-between px-6">
+                        <div className="text-left">
+                            <div className="text-[10px] text-blue-400 uppercase font-bold mb-1">Time Taken</div>
+                            <div className="text-xl font-bold text-white">{timeDisplay}</div>
+                        </div>
+                        <Clock className="w-8 h-8 text-blue-500 opacity-50"/>
+                    </div>
+                </div>
+                
+                {/* Branding footer for image share */}
+                <div className="mt-6 pt-4 border-t border-zinc-800 text-[10px] text-zinc-600 uppercase tracking-widest">
+                    Pulsar CBT • Computer Science
+                </div>
+            </div>
+
+            {/* ACTION BUTTONS */}
+            <div className="grid grid-cols-2 gap-3">
+                <button onClick={() => setIsReviewing(true)} className="py-4 bg-zinc-800 text-white font-bold rounded-xl hover:bg-zinc-700 transition-colors">Review Answers</button>
+                <button onClick={handleShare} className="py-4 bg-purple-600 text-white font-bold rounded-xl hover:bg-purple-500 flex items-center justify-center gap-2 transition-colors shadow-lg shadow-purple-900/20">
+                    <Share2 className="w-4 h-4"/> Share Result
+                </button>
+            </div>
+            <button onClick={() => router.push('/dashboard')} className="w-full py-4 mt-3 text-zinc-500 font-bold text-sm hover:text-white transition-colors">Back to Dashboard</button>
         </div>
       </div>
     );
   }
 
-  // EXAM INTERFACE
+  // --- 5. EXAM & REVIEW INTERFACE ---
   const currentQ = questions[currentIndex];
   const gridStart = gridPage * 20;
   const gridEnd = Math.min(gridStart + 20, questions.length);
@@ -201,14 +292,25 @@ export default function ExamPage() {
   return (
     <div className="min-h-screen bg-[#09090b] text-zinc-200 font-sans p-4 md:p-6 pb-24 relative">
       
-      {/* RENDER MODAL IF ACTIVE */}
-      {modalConfig && <PulsarModal {...modalConfig} onCancel={() => setModalConfig(null)} />}
+      {modalConfig && <PulsarModal {...modalConfig} />}
 
       <div className="flex justify-between items-center mb-6">
-        <button onClick={triggerExit} className="p-2 bg-zinc-800/50 rounded-full hover:bg-zinc-800 text-zinc-400"><X className="w-5 h-5"/></button>
-        <div className={`font-mono font-bold text-lg ${timeLeft < 300 ? 'text-red-500 animate-pulse' : 'text-purple-400'}`}>
-           {Math.floor(timeLeft/60)}:{String(timeLeft%60).padStart(2,'0')}
-        </div>
+        {/* CLOSE BUTTON */}
+        <button onClick={triggerExit} className="p-2 bg-zinc-800/50 rounded-full hover:bg-zinc-800 text-zinc-400">
+             {isReviewing ? <Home className="w-5 h-5"/> : <X className="w-5 h-5"/>}
+        </button>
+        
+        {/* HEADER: TIMER or REVIEW MODE */}
+        {isReviewing ? (
+            <div className="px-4 py-1 bg-purple-900/30 border border-purple-500/30 rounded-full text-purple-300 text-xs font-bold uppercase tracking-widest shadow-[0_0_15px_rgba(168,85,247,0.2)]">
+                Review Mode
+            </div>
+        ) : (
+            <div className={`font-mono font-bold text-lg ${timeLeft < 300 ? 'text-red-500 animate-pulse' : 'text-purple-400'}`}>
+                {Math.floor(timeLeft/60)}:{String(timeLeft%60).padStart(2,'0')}
+            </div>
+        )}
+        
         <button onClick={() => setShowCalculator(!showCalculator)} className={`p-2 rounded-full ${showCalculator ? 'bg-purple-600 text-white' : 'bg-zinc-800/50 text-zinc-400'}`}><Calculator className="w-5 h-5"/></button>
       </div>
 
@@ -219,7 +321,7 @@ export default function ExamPage() {
           <div className="flex justify-between items-start mb-6">
              <span className="text-xs font-bold text-zinc-500 tracking-widest">QUESTION {currentIndex + 1}</span>
              {isReviewing && (
-                <a href={`https://www.google.com/search?q=${encodeURIComponent(currentQ.question_text)}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-xs text-blue-400 hover:underline"><Search className="w-3 h-3"/> Explain</a>
+                <a href={`https://www.google.com/search?q=${encodeURIComponent(currentQ.question_text)}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-xs text-blue-400 hover:underline"><Search className="w-3 h-3"/> Explain with Google</a>
              )}
           </div>
           
@@ -231,22 +333,20 @@ export default function ExamPage() {
               const isSelected = answers[currentQ.id] === label;
               const isCorrectOption = label === currentQ.new_correct_option;
               
-              // --- REVIEW MODE COLOR LOGIC ---
+              // --- SMART COLOR LOGIC FOR REVIEW ---
               let btnClass = "bg-black/20 border-zinc-800 text-zinc-300 hover:bg-zinc-800";
               
               if (isReviewing) {
                  if (isCorrectOption) {
-                     // ALWAYS GREEN for the correct answer
+                     // ALWAYS show correct answer in GREEN
                      btnClass = "bg-green-500/10 border-green-500 text-green-500 font-bold";
                  } else if (isSelected && !isCorrectOption) {
-                     // RED if user picked it but it was wrong
-                     btnClass = "bg-red-500/10 border-red-500 text-red-500 font-bold";
+                     // Show user error in RED
+                     btnClass = "bg-red-500/10 border-red-500 text-red-500 font-bold opacity-60";
                  } else {
-                     // Dim everything else
-                     btnClass = "opacity-40 border-zinc-800";
+                     btnClass = "opacity-30 border-zinc-900";
                  }
               } else {
-                 // Normal Exam Mode
                  if (isSelected) btnClass = "bg-purple-600 border-purple-600 text-white shadow-lg shadow-purple-900/20";
               }
 
@@ -263,46 +363,16 @@ export default function ExamPage() {
           <div className="flex justify-between pt-6 border-t border-zinc-800">
             <button onClick={() => setCurrentIndex(p => Math.max(0, p-1))} disabled={currentIndex===0} className="px-6 py-3 rounded-xl bg-zinc-800 disabled:opacity-50 text-sm font-bold flex items-center gap-2"><ChevronLeft className="w-4 h-4"/> Prev</button>
             {currentIndex === questions.length - 1 && !isReviewing ? (
-               <button onClick={triggerSubmit} className="px-8 py-3 rounded-xl bg-green-600 text-white font-bold text-sm flex items-center gap-2 hover:bg-green-500">Submit <CheckCircle className="w-4 h-4"/></button>
+               <button onClick={triggerSubmit} className="px-8 py-3 rounded-xl bg-green-600 text-white font-bold text-sm flex items-center gap-2 hover:bg-green-500 shadow-lg shadow-green-900/20">Submit <CheckCircle className="w-4 h-4"/></button>
             ) : (
-               <button onClick={() => setCurrentIndex(p => Math.min(questions.length-1, p+1))} className="px-6 py-3 rounded-xl bg-white text-black font-bold text-sm flex items-center gap-2">Next <ChevronRight className="w-4 h-4"/></button>
+               <button onClick={() => setCurrentIndex(p => Math.min(questions.length-1, p+1))} className="px-6 py-3 rounded-xl bg-white text-black font-bold text-sm flex items-center gap-2 hover:bg-zinc-200 hover:text-black transition-colors">Next <ChevronRight className="w-4 h-4"/></button>
             )}
           </div>
         </div>
 
+        {/* NAVIGATION GRID */}
         <div className="bg-[#111113] border border-zinc-800 p-6 rounded-3xl h-fit">
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Question Map</h3>
             <div className="flex gap-1 items-center bg-zinc-950 p-1 rounded-lg border border-zinc-800">
-               <button onClick={() => setGridPage(p => Math.max(0, p-1))} disabled={gridPage===0} className="p-1 hover:bg-zinc-800 rounded disabled:opacity-30"><ChevronLeft className="w-3 h-3 text-zinc-400"/></button>
-               <span className="text-xs text-zinc-300 font-mono w-16 text-center">{gridStart+1}-{gridEnd}</span>
-               <button onClick={() => setGridPage(p => (gridEnd < questions.length ? p+1 : p))} disabled={gridEnd >= questions.length} className="p-1 hover:bg-zinc-800 rounded disabled:opacity-30"><ChevronRight className="w-3 h-3 text-zinc-400"/></button>
-            </div>
-          </div>
-          
-          <div className="grid grid-cols-5 gap-2">
-            {questions.slice(gridStart, gridEnd).map((q, i) => {
-              const actualIndex = gridStart + i;
-              const answered = answers[q.id];
-              let colorClass = "bg-black/40 border-zinc-800 text-zinc-600 hover:border-zinc-600"; 
-              
-              if (actualIndex === currentIndex) colorClass = "bg-white text-black border-white ring-2 ring-purple-500";
-              else if (isReviewing) {
-                 const isCorrect = answers[q.id] === q.new_correct_option;
-                 colorClass = isCorrect ? "bg-green-500/20 text-green-500 border-green-500/50" : "bg-red-500/20 text-red-500 border-red-500/50";
-                 // If not answered but in review, keep dark
-                 if(!answers[q.id]) colorClass = "bg-zinc-800/50 border-zinc-800 text-zinc-700";
-              }
-              else if (answered) colorClass = "bg-purple-600/20 text-purple-400 border-purple-500/50";
-
-              return (
-                <button key={q.id} onClick={() => setCurrentIndex(actualIndex)} className={`h-9 rounded-lg text-xs font-bold border transition-all ${colorClass}`}>{actualIndex + 1}</button>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-          }
-          
+               <bu
