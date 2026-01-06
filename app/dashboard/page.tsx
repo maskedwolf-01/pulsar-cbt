@@ -27,6 +27,7 @@ export default function Dashboard() {
       if (error || !session?.user) { router.push('/login'); return; }
       setUser(session.user);
 
+      // Fetch Results
       const { data: results } = await supabase
         .from('results')
         .select('*')
@@ -48,62 +49,66 @@ export default function Dashboard() {
 
   if (loading) return <div className="h-screen bg-[#050505] flex items-center justify-center text-purple-500"><Loader2 className="animate-spin"/></div>;
 
+  // ROBUST USER DATA HANDLING
   const userName = user?.user_metadata?.full_name?.split(' ')[0] || 'Scholar';
-  const userAvatar = user?.user_metadata?.avatar_url;
+  // Check all possible keys for the avatar image
+  const userAvatar = user?.user_metadata?.avatar_url || user?.user_metadata?.picture || user?.user_metadata?.avatar;
 
   return (
     <div className="min-h-screen bg-[#050505] text-white font-sans pb-24 selection:bg-purple-500/30">
       
-      {/* HEADER: Restored "Terminal" Look */}
+      {/* HEADER: Exact Match to 'Terminal' Screenshot */}
       <div className="p-6 pt-12 flex justify-between items-center">
         <div>
           <div className="text-zinc-500 text-[10px] font-bold uppercase tracking-[0.2em] mb-2">TERMINAL</div>
           <h1 className="text-3xl font-bold text-white">
-            Welcome, <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-500">{userName}</span>
+            Welcome, <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-teal-400">{userName}</span>
           </h1>
         </div>
         
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-5">
             {/* Notification Bell (Restored) */}
-            <button className="relative p-2 text-zinc-400 hover:text-white transition-colors">
-                <Bell className="w-5 h-5" />
-                <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border border-[#050505]"></span>
+            <button className="relative text-zinc-400 hover:text-white transition-colors">
+                <Bell className="w-6 h-6" />
+                <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full border-2 border-[#050505]"></span>
             </button>
 
-            {/* Profile Avatar (Restored Round Styling) */}
-            <Link href="/profile" className="w-10 h-10 rounded-full bg-zinc-900 border border-zinc-800 overflow-hidden flex items-center justify-center hover:border-purple-500 transition-all">
+            {/* Profile Avatar (Fixed Display) */}
+            <Link href="/profile" className="w-10 h-10 rounded-full bg-zinc-900 border border-zinc-800 overflow-hidden relative">
                 {userAvatar ? (
-                    <img src={userAvatar} alt="Profile" className="w-full h-full object-cover" />
+                    <img 
+                      src={userAvatar} 
+                      alt="Profile" 
+                      className="w-full h-full object-cover" 
+                      referrerPolicy="no-referrer" // Fixes Google Image loading issues
+                    />
                 ) : (
-                    // Gradient Placeholder if no image
                     <div className="w-full h-full bg-gradient-to-br from-purple-900 to-black flex items-center justify-center">
-                        <User className="w-4 h-4 text-purple-300"/>
+                        <User className="w-5 h-5 text-purple-300"/>
                     </div>
                 )}
             </Link>
         </div>
       </div>
 
-      {/* STATS CARDS: Deep Black Theme */}
+      {/* STATS CARDS: Restored Green/Purple Neon Theme */}
       <div className="grid grid-cols-2 gap-4 px-6 mb-8">
-        <div className="bg-[#0A0A0B] border border-zinc-800/50 p-5 rounded-2xl relative overflow-hidden group">
-          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-             <TrendingUp className="w-12 h-12 text-green-500"/>
-          </div>
+        <div className="bg-[#0A0A0B] border border-zinc-800 p-5 rounded-2xl relative">
           <div className="text-zinc-500 text-[10px] font-bold uppercase tracking-wider mb-4 flex items-center gap-2">
-            <TrendingUp className="w-3 h-3 text-green-500"/> Avg. Score
+            <TrendingUp className="w-3 h-3 text-green-400"/> Avg. Score
           </div>
           <div className="text-4xl font-bold text-white">{stats.averageScore}<span className="text-lg text-zinc-600">%</span></div>
+          {/* Decorative Green Glow */}
+          <div className="absolute top-4 right-4 w-8 h-8 bg-green-500/10 rounded-full blur-xl"></div>
         </div>
 
-        <div className="bg-[#0A0A0B] border border-zinc-800/50 p-5 rounded-2xl relative overflow-hidden group">
-          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-             <BookOpen className="w-12 h-12 text-purple-500"/>
-          </div>
+        <div className="bg-[#0A0A0B] border border-zinc-800 p-5 rounded-2xl relative">
           <div className="text-zinc-500 text-[10px] font-bold uppercase tracking-wider mb-4 flex items-center gap-2">
-            <BookOpen className="w-3 h-3 text-purple-500"/> Exams Taken
+            <BookOpen className="w-3 h-3 text-purple-400"/> Exams Taken
           </div>
           <div className="text-4xl font-bold text-white">{stats.examsTaken}</div>
+          {/* Decorative Purple Glow */}
+          <div className="absolute top-4 right-4 w-8 h-8 bg-purple-500/10 rounded-full blur-xl"></div>
         </div>
       </div>
 
@@ -114,8 +119,8 @@ export default function Dashboard() {
         <div className="space-y-3">
           {recentResults.length === 0 ? (
             // EMPTY STATE: Matches Original Large Dark Card
-            <div className="bg-[#0A0A0B] border border-zinc-800/50 rounded-3xl p-8 py-12 flex flex-col items-center justify-center text-center">
-              <div className="w-14 h-14 bg-zinc-900/50 rounded-2xl flex items-center justify-center mb-4 border border-zinc-800">
+            <div className="bg-[#0A0A0B] border border-zinc-800 rounded-3xl p-8 py-12 flex flex-col items-center justify-center text-center">
+              <div className="w-14 h-14 bg-zinc-900 rounded-2xl flex items-center justify-center mb-4 border border-zinc-800">
                   <Activity className="w-6 h-6 text-zinc-600"/>
               </div>
               <h3 className="text-white font-bold text-lg mb-1">No Records Found</h3>
@@ -128,9 +133,9 @@ export default function Dashboard() {
               </Link>
             </div>
           ) : (
-            // LIST ITEMS: Darker & Cleaner
+            // LIST ITEMS
             recentResults.map((result) => (
-              <div key={result.id} className="bg-[#0A0A0B] border border-zinc-800/50 p-4 rounded-2xl flex items-center justify-between group hover:border-zinc-700 transition-all">
+              <div key={result.id} className="bg-[#0A0A0B] border border-zinc-800 p-4 rounded-2xl flex items-center justify-between group hover:border-zinc-700 transition-all">
                 <div className="flex items-center gap-4">
                   <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-bold text-sm border border-white/5 ${
                     result.score >= 70 ? 'bg-green-500/10 text-green-400' : 
@@ -160,5 +165,4 @@ export default function Dashboard() {
       <BottomNav active="home" />
     </div>
   );
-          }
-              
+    }
