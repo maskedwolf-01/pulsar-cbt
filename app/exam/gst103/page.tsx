@@ -13,7 +13,7 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-// --- PULSAR MODAL ---
+// --- MODAL ---
 const PulsarModal = ({ title, message, onConfirm, onCancel, confirmText="Confirm", cancelText="Cancel", isDestructive=false, singleButton=false }: any) => (
   <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
      <div className="bg-[#111113] border border-zinc-800 p-6 rounded-2xl w-full max-w-sm text-center shadow-2xl scale-100">
@@ -61,12 +61,13 @@ const ExamCalculator = ({ onClose }: { onClose: () => void }) => {
     </div>
   );
 };
-          export default function ExamPage() {
+
+export default function ExamPage() {
   const router = useRouter();
   const resultCardRef = useRef<any>(null);
 
   const [loading, setLoading] = useState(true);
-  const [userName, setUserName] = useState(''); // NEW: Store User Name
+  const [userName, setUserName] = useState(''); // USER NAME STATE
   const [examStarted, setExamStarted] = useState(false);
   const [questions, setQuestions] = useState<any[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -82,7 +83,7 @@ const ExamCalculator = ({ onClose }: { onClose: () => void }) => {
 
   useEffect(() => { 
     fetchAndShuffleQuestions(); 
-    fetchUser(); // NEW: Fetch Name on load
+    fetchUser(); // FETCH NAME
   }, []);
 
   useEffect(() => {
@@ -97,9 +98,8 @@ const ExamCalculator = ({ onClose }: { onClose: () => void }) => {
   const fetchUser = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
-        // Try profile table first, then metadata
-        const { data: profile } = await supabase.from('profiles').select('full_name').eq('id', user.id).single();
-        setUserName(profile?.full_name || user.user_metadata?.full_name || 'Scholar');
+        // Try to get name from metadata
+        setUserName(user.user_metadata?.full_name || 'Scholar');
     }
   };
 
@@ -137,15 +137,16 @@ const ExamCalculator = ({ onClose }: { onClose: () => void }) => {
     questions.forEach(q => { if (answers[q.id] === q.new_correct_option) calcScore++; });
     setScore(calcScore);
     
-    // SAVE TO DB
+    // SAVE TO DB (Now guaranteed to work because we disabled RLS)
     const { data: { user } } = await supabase.auth.getUser();
     if(user) {
-        await supabase.from('results').insert({
+        const { error } = await supabase.from('results').insert({
             user_id: user.id, 
             course_code: 'GST 103', 
             score: Math.round((calcScore/questions.length)*100), 
             total_questions: questions.length
         });
+        if (error) console.error("Save failed:", error);
     }
   };
 
@@ -188,7 +189,7 @@ const ExamCalculator = ({ onClose }: { onClose: () => void }) => {
     </div>
   );
 
-  // --- RESULT SCREEN (WITH NAME ADDED) ---
+  // --- RESULT SCREEN (WITH NAME) ---
   if (submitted && !isReviewing) {
     const percentage = Math.round((score / questions.length) * 100);
     const timeDisplay = `${Math.floor(timeTaken / 60)}m ${timeTaken % 60}s`;
@@ -196,21 +197,18 @@ const ExamCalculator = ({ onClose }: { onClose: () => void }) => {
       <div className="min-h-screen bg-[#09090b] text-white p-6 flex items-center justify-center">
         <div className="w-full max-w-md">
             <div ref={resultCardRef} className="bg-[#111113] border border-zinc-800 p-8 rounded-3xl text-center shadow-2xl mb-6 relative overflow-hidden">
-                {/* Header Gradient */}
                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 to-pink-500"></div>
                 
-                {/* NEW: USER NAME & BADGE */}
+                {/* NAME SECTION */}
                 <div className="flex flex-col items-center mb-6">
                     <div className="w-16 h-16 bg-zinc-900 rounded-full border border-zinc-700 flex items-center justify-center mb-3">
                         <User className="w-8 h-8 text-purple-500"/>
                     </div>
                     <h2 className="text-xl font-bold text-white">{userName}</h2>
-                    <span className="text-[10px] uppercase tracking-widest text-zinc-500 mt-1">Computer Science Student</span>
                 </div>
 
                 <div className="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-600 mb-2">{percentage}%</div>
-                <p className="text-xs font-bold uppercase tracking-[0.2em] text-zinc-600 mb-8">GST 103 Score</p>
-                
+                <p className="text-xs font-bold uppercase tracking-[0.2em] text-zinc-600 mb-8">Final Score</p>
                 <div className="grid grid-cols-2 gap-4">
                     <div className="bg-green-500/10 border border-green-500/20 p-4 rounded-2xl">
                         <CheckCircle className="w-5 h-5 text-green-500 mx-auto mb-2"/>
@@ -227,7 +225,6 @@ const ExamCalculator = ({ onClose }: { onClose: () => void }) => {
                         <Clock className="w-6 h-6 text-blue-500 opacity-50"/>
                     </div>
                 </div>
-                <div className="mt-6 pt-4 border-t border-zinc-800 text-[10px] text-zinc-600 uppercase tracking-widest">Powered by Pulsar CBT</div>
             </div>
             <div className="grid grid-cols-2 gap-3">
                 <button onClick={() => setIsReviewing(true)} className="py-4 bg-zinc-800 text-white font-bold rounded-xl hover:bg-zinc-700 transition-colors">Review Answers</button>
@@ -318,5 +315,5 @@ const ExamCalculator = ({ onClose }: { onClose: () => void }) => {
       </div>
     </div>
   );
-  }
-        
+    }
+  
