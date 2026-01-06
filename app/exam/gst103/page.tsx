@@ -3,17 +3,13 @@ import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { useRouter } from 'next/navigation';
 import html2canvas from 'html2canvas';
-import { 
-  Loader2, CheckCircle, XCircle, Clock, ChevronRight, ChevronLeft, 
-  Award, AlertCircle, X, Calculator, Share2, Search, Info, Home 
-} from 'lucide-react';
+import { Loader2, CheckCircle, XCircle, Clock, ChevronRight, ChevronLeft, Award, AlertCircle, X, Calculator, Share2, Search, Info, Home } from 'lucide-react';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-// --- MODAL COMPONENT ---
 const PulsarModal = ({ title, message, onConfirm, onCancel, confirmText="Confirm", cancelText="Cancel", isDestructive=false, singleButton=false }: any) => (
   <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
      <div className="bg-[#111113] border border-zinc-800 p-6 rounded-2xl w-full max-w-sm text-center shadow-2xl scale-100">
@@ -32,22 +28,19 @@ const PulsarModal = ({ title, message, onConfirm, onCancel, confirmText="Confirm
   </div>
 );
 
-// --- CALCULATOR COMPONENT ---
 const ExamCalculator = ({ onClose }: { onClose: () => void }) => {
   const [display, setDisplay] = useState('0');
-  
   const handlePress = (val: string) => {
     if (val === 'C') { setDisplay('0'); return; }
     if (val === '=') {
       try {
         // eslint-disable-next-line
-        setDisplay(Function('"use strict";return (' + display + ')')().toString().substring(0,10));
+        setDisplay(eval(display).toString().substring(0,10));
       } catch { setDisplay('Err'); }
       return;
     }
     setDisplay(prev => (prev === '0' ? val : prev + val));
   };
-
   return (
     <div className="fixed bottom-20 right-4 z-[60] bg-zinc-900 border border-zinc-700 p-4 rounded-2xl shadow-2xl w-64 animate-fade-in-up">
       <div className="flex justify-between mb-4">
@@ -63,10 +56,9 @@ const ExamCalculator = ({ onClose }: { onClose: () => void }) => {
     </div>
   );
 };
-export default function ExamPage() {
+  export default function ExamPage() {
   const router = useRouter();
   const resultCardRef = useRef<any>(null);
-
   const [loading, setLoading] = useState(true);
   const [examStarted, setExamStarted] = useState(false);
   const [questions, setQuestions] = useState<any[]>([]);
@@ -82,14 +74,10 @@ export default function ExamPage() {
   const [modalConfig, setModalConfig] = useState<any>(null);
 
   useEffect(() => { fetchAndShuffleQuestions(); }, []);
-
   useEffect(() => {
     if (!examStarted || submitted) return;
     const timer = setInterval(() => {
-      setTimeLeft(p => {
-        if (p <= 1) { clearInterval(timer); handleSubmit(); return 0; }
-        return p - 1;
-      });
+      setTimeLeft(p => { if (p <= 1) { clearInterval(timer); handleSubmit(); return 0; } return p - 1; });
       setTimeTaken(p => p + 1);
     }, 1000);
     return () => clearInterval(timer);
@@ -98,7 +86,6 @@ export default function ExamPage() {
   const fetchAndShuffleQuestions = async () => {
     const { data, error } = await supabase.from('questions').select('*').eq('course_code', 'GST 103');
     if (error || !data || data.length === 0) { setLoading(false); return; }
-
     const shuffled = data.sort(() => Math.random() - 0.5).slice(0, 100).map((q, i) => {
       const correctText = q[`option_${q.correct_option.toLowerCase()}`];
       let options = [ { id: 'A', text: q.option_a }, { id: 'B', text: q.option_b }, { id: 'C', text: q.option_c }, { id: 'D', text: q.option_d } ];
@@ -113,48 +100,21 @@ export default function ExamPage() {
     if (submitted) return; 
     setAnswers({ ...answers, [questions[currentIndex].id]: label });
   };
-
   const triggerSubmit = () => {
-    setModalConfig({
-        title: "Submit Exam?",
-        message: "Are you sure? You cannot change answers after submitting.",
-        onConfirm: () => { setModalConfig(null); handleSubmit(); },
-        onCancel: () => setModalConfig(null)
-    });
+    setModalConfig({ title: "Submit Exam?", message: "Cannot change answers after submitting.", onConfirm: () => { setModalConfig(null); handleSubmit(); }, onCancel: () => setModalConfig(null) });
   };
-
   const triggerExit = () => {
-    if (isReviewing || submitted) {
-        router.push('/dashboard');
-    } else {
-        setModalConfig({
-            title: "Quit Exam?",
-            message: "Progress will be lost. This will not be saved.",
-            isDestructive: true,
-            confirmText: "Quit",
-            onConfirm: () => { router.push('/dashboard'); },
-            onCancel: () => setModalConfig(null)
-        });
-    }
+    if (isReviewing || submitted) { router.push('/dashboard'); } 
+    else { setModalConfig({ title: "Quit Exam?", message: "Progress will be lost.", isDestructive: true, confirmText: "Quit", onConfirm: () => { router.push('/dashboard'); }, onCancel: () => setModalConfig(null) }); }
   };
-
   const handleSubmit = async () => {
     setSubmitted(true);
     let calcScore = 0;
     questions.forEach(q => { if (answers[q.id] === q.new_correct_option) calcScore++; });
     setScore(calcScore);
-    
     const { data: { user } } = await supabase.auth.getUser();
-    if(user) {
-        await supabase.from('results').insert({
-            user_id: user.id, 
-            course_code: 'GST 103', 
-            score: Math.round((calcScore/questions.length)*100), 
-            total_questions: questions.length
-        });
-    }
+    if(user) { await supabase.from('results').insert({ user_id: user.id, course_code: 'GST 103', score: Math.round((calcScore/questions.length)*100), total_questions: questions.length }); }
   };
-
   const handleShare = async () => {
     if (!resultCardRef.current) return;
     try {
@@ -163,30 +123,17 @@ export default function ExamPage() {
         if (!blob) return;
         if (navigator.share) {
             const file = new File([blob], 'pulsar-result.png', { type: 'image/png' });
-            try {
-                await navigator.share({
-                    title: 'Pulsar CBT Result',
-                    text: `I scored ${score}/${questions.length} in GST 103!`,
-                    files: [file]
-                });
-            } catch (err) { console.log(err); }
+            try { await navigator.share({ title: 'Pulsar CBT Result', text: `I scored ${score}/${questions.length} in GST 103!`, files: [file] }); } catch (err) { console.log(err); }
         } else {
-            const link = document.createElement('a');
-            link.download = 'Pulsar_Result.png';
-            link.href = canvas.toDataURL();
-            link.click();
-            setModalConfig({ title: "Saved", message: "Result image saved to gallery.", singleButton: true, onConfirm: () => setModalConfig(null) });
+            const link = document.createElement('a'); link.download = 'Pulsar_Result.png'; link.href = canvas.toDataURL(); link.click();
+            setModalConfig({ title: "Saved", message: "Image saved to gallery.", singleButton: true, onConfirm: () => setModalConfig(null) });
         }
       }, 'image/png');
-    } catch (err) {
-      console.error(err);
-      setModalConfig({ title: "Error", message: "Share failed.", singleButton: true, onConfirm: () => setModalConfig(null) });
-    }
+    } catch (err) { setModalConfig({ title: "Error", message: "Share failed.", singleButton: true, onConfirm: () => setModalConfig(null) }); }
   };
-        if (loading) return <div className="h-screen bg-[#09090b] flex items-center justify-center text-white"><Loader2 className="animate-spin mr-2"/> Loading...</div>;
 
-  // --- START SCREEN ---
-  if (!examStarted) return (
+  if (loading) return <div className="h-screen bg-[#09090b] flex items-center justify-center text-white"><Loader2 className="animate-spin mr-2"/> Loading...</div>;
+      if (!examStarted) return (
     <div className="min-h-screen bg-[#09090b] flex items-center justify-center p-6">
       <div className="max-w-md w-full bg-[#111113] border border-zinc-800 p-8 rounded-3xl text-center shadow-2xl">
         <div className="w-20 h-20 bg-purple-600/20 rounded-full flex items-center justify-center mx-auto mb-6"><Award className="w-10 h-10 text-purple-500"/></div>
@@ -205,11 +152,9 @@ export default function ExamPage() {
     </div>
   );
 
-  // --- RESULT SCREEN ---
   if (submitted && !isReviewing) {
     const percentage = Math.round((score / questions.length) * 100);
     const timeDisplay = `${Math.floor(timeTaken / 60)}m ${timeTaken % 60}s`;
-
     return (
       <div className="min-h-screen bg-[#09090b] text-white p-6 flex items-center justify-center">
         <div className="w-full max-w-md">
@@ -250,7 +195,6 @@ export default function ExamPage() {
     );
   }
 
-  // --- EXAM INTERFACE ---
   const currentQ = questions[currentIndex];
   const gridStart = gridPage * 20;
   const gridEnd = Math.min(gridStart + 20, questions.length);
@@ -258,28 +202,17 @@ export default function ExamPage() {
   return (
     <div className="min-h-screen bg-[#09090b] text-zinc-200 font-sans p-4 md:p-6 pb-24 relative">
       {modalConfig && <PulsarModal {...modalConfig} />}
-
       <div className="flex justify-between items-center mb-6">
-        <button onClick={triggerExit} className="p-2 bg-zinc-800/50 rounded-full hover:bg-zinc-800 text-zinc-400">
-             {isReviewing ? <Home className="w-5 h-5"/> : <X className="w-5 h-5"/>}
-        </button>
-        {isReviewing ? (
-            <div className="px-4 py-1 bg-purple-900/30 border border-purple-500/30 rounded-full text-purple-300 text-xs font-bold uppercase tracking-widest">Review Mode</div>
-        ) : (
-            <div className={`font-mono font-bold text-lg ${timeLeft < 300 ? 'text-red-500 animate-pulse' : 'text-purple-400'}`}>{Math.floor(timeLeft/60)}:{String(timeLeft%60).padStart(2,'0')}</div>
-        )}
+        <button onClick={triggerExit} className="p-2 bg-zinc-800/50 rounded-full hover:bg-zinc-800 text-zinc-400">{isReviewing ? <Home className="w-5 h-5"/> : <X className="w-5 h-5"/>}</button>
+        {isReviewing ? (<div className="px-4 py-1 bg-purple-900/30 border border-purple-500/30 rounded-full text-purple-300 text-xs font-bold uppercase tracking-widest">Review Mode</div>) : (<div className={`font-mono font-bold text-lg ${timeLeft < 300 ? 'text-red-500 animate-pulse' : 'text-purple-400'}`}>{Math.floor(timeLeft/60)}:{String(timeLeft%60).padStart(2,'0')}</div>)}
         <button onClick={() => setShowCalculator(!showCalculator)} className={`p-2 rounded-full ${showCalculator ? 'bg-purple-600 text-white' : 'bg-zinc-800/50 text-zinc-400'}`}><Calculator className="w-5 h-5"/></button>
       </div>
-
       {showCalculator && <ExamCalculator onClose={() => setShowCalculator(false)} />}
-
       <div className="max-w-5xl mx-auto grid md:grid-cols-[1fr_320px] gap-8">
         <div className="bg-[#111113] border border-zinc-800 p-6 md:p-10 rounded-3xl shadow-lg relative min-h-[500px] flex flex-col">
           <div className="flex justify-between items-start mb-6">
              <span className="text-xs font-bold text-zinc-500 tracking-widest">QUESTION {currentIndex + 1}</span>
-             {isReviewing && (
-                <a href={`https://www.google.com/search?q=${encodeURIComponent(currentQ.question_text)}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-xs text-blue-400 hover:underline"><Search className="w-3 h-3"/> Explain with Google</a>
-             )}
+             {isReviewing && (<a href={`https://www.google.com/search?q=${encodeURIComponent(currentQ.question_text)}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-xs text-blue-400 hover:underline"><Search className="w-3 h-3"/> Explain with Google</a>)}
           </div>
           <h2 className="text-lg md:text-xl font-medium text-white leading-relaxed mb-8 flex-1">{currentQ.question_text}</h2>
           <div className="space-y-3 mb-8">
@@ -292,9 +225,7 @@ export default function ExamPage() {
                  if (isCorrectOption) btnClass = "bg-green-500/10 border-green-500 text-green-500 font-bold";
                  else if (isSelected && !isCorrectOption) btnClass = "bg-red-500/10 border-red-500 text-red-500 font-bold opacity-60";
                  else btnClass = "opacity-30 border-zinc-900";
-              } else {
-                 if (isSelected) btnClass = "bg-purple-600 border-purple-600 text-white shadow-lg shadow-purple-900/20";
-              }
+              } else { if (isSelected) btnClass = "bg-purple-600 border-purple-600 text-white shadow-lg shadow-purple-900/20"; }
               return (
                 <button key={idx} onClick={() => handleSelect(label)} disabled={isReviewing} className={`w-full text-left p-4 rounded-xl border transition-all flex items-center gap-4 ${btnClass}`}>
                   <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold border border-current opacity-80 shrink-0`}>{label}</div>
@@ -342,5 +273,5 @@ export default function ExamPage() {
       </div>
     </div>
   );
-                  }
-        
+  }
+                  
