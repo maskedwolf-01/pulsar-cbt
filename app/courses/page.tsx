@@ -23,7 +23,7 @@ export default function Courses() {
       title: 'Introduction to Computing',
       desc: 'History of computing, hardware, software, logic, and binary systems. Master the basics of CS.',
       icon: <Cpu className="w-6 h-6 text-blue-400"/>,
-      link: '/exam/cos101', // <--- CORRECT LINK
+      link: '/exam/cos101',
       theme: 'blue'
     }
   ];
@@ -35,6 +35,8 @@ export default function Courses() {
 
   return (
     <div className="min-h-screen bg-[#09090b] text-white font-sans pb-24 selection:bg-purple-500/30">
+      
+      {/* HEADER */}
       <div className="p-6 pt-12 flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold text-white">Course Catalog</h1>
@@ -45,6 +47,7 @@ export default function Courses() {
         </div>
       </div>
 
+      {/* SEARCH BAR */}
       <div className="px-6 mb-6">
         <div className="relative">
             <Search className="absolute left-4 top-3.5 w-5 h-5 text-zinc-500"/>
@@ -58,17 +61,24 @@ export default function Courses() {
         </div>
       </div>
 
+      {/* COURSE LIST */}
       <div className="px-6 space-y-4">
         {filteredCourses.length > 0 ? (
             filteredCourses.map((course) => (
                 <div key={course.id} className="bg-[#111113] border border-zinc-800 p-5 rounded-3xl relative overflow-hidden group hover:border-zinc-700 transition-all">
+                    
+                    {/* Badge */}
                     <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider mb-3 ${
                         course.theme === 'blue' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' : 'bg-purple-500/10 text-purple-400 border border-purple-500/20'
                     }`}>
                         {course.code}
                     </div>
+
                     <h2 className="text-lg font-bold text-white mb-2">{course.title}</h2>
-                    <p className="text-zinc-500 text-xs leading-relaxed mb-6 max-w-[90%]">{course.desc}</p>
+                    <p className="text-zinc-500 text-xs leading-relaxed mb-6 max-w-[90%]">
+                        {course.desc}
+                    </p>
+
                     <Link href={course.link}>
                         <button className={`w-full py-3 text-black font-bold text-sm rounded-xl flex items-center justify-center gap-2 transition-transform active:scale-95 ${
                             course.theme === 'blue' ? 'bg-white hover:bg-blue-50' : 'bg-white hover:bg-purple-50'
@@ -76,8 +86,10 @@ export default function Courses() {
                             Start Exam <ChevronRight className="w-4 h-4"/>
                         </button>
                     </Link>
+
+                    {/* Floating Duration Label (UPDATED TO 15m) */}
                     <div className="absolute top-5 right-5 flex items-center gap-1 text-zinc-500 text-[10px] font-bold">
-                        <Clock className="w-3 h-3"/> 45m
+                        <Clock className="w-3 h-3"/> 15m
                     </div>
                 </div>
             ))
@@ -87,8 +99,9 @@ export default function Courses() {
             </div>
         )}
       </div>
+
       <BottomNav active="browse" />
     </div>
   );
-              }
-                  
+      }
+        
