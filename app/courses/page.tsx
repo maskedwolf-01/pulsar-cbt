@@ -1,22 +1,13 @@
 "use client";
 import { useState } from 'react';
 import Link from 'next/link';
-import { Search, Clock, BookOpen, ChevronRight, Cpu, Leaf } from 'lucide-react';
+import { Search, Clock, BookOpen, ChevronRight, Cpu, Leaf, Briefcase } from 'lucide-react';
 import BottomNav from '../components/BottomNav';
 
 export default function Courses() {
   const [searchTerm, setSearchTerm] = useState('');
 
   const courses = [
-        {
-      id: 'ent101',
-      code: 'ENT 101',
-      title: 'Intro to Entrepreneurship',
-      desc: 'Business models, Nigerian ecosystem (SMEDAN, CAC), funding, and innovation. Master the art of business.',
-      icon: <Briefcase className="w-6 h-6 text-orange-400"/>, // Import 'Briefcase' from lucide-react
-      link: '/exam/ent101',
-      theme: 'orange'
-        },
     {
       id: 'gst103',
       code: 'GST 103',
@@ -43,6 +34,15 @@ export default function Courses() {
       icon: <Leaf className="w-6 h-6 text-green-400"/>,
       link: '/exam/bio101',
       theme: 'green'
+    },
+    {
+      id: 'ent101',
+      code: 'ENT 101',
+      title: 'Introduction to Entrepreneurship',
+      desc: 'Business models, Nigerian ecosystem (SMEDAN, CAC), funding, and innovation. Master the art of business.',
+      icon: <Briefcase className="w-6 h-6 text-orange-400"/>,
+      link: '/exam/ent101',
+      theme: 'orange'
     }
   ];
 
@@ -71,7 +71,7 @@ export default function Courses() {
             <Search className="absolute left-4 top-3.5 w-5 h-5 text-zinc-500"/>
             <input 
               type="text" 
-              placeholder="Search (e.g. BIO 101)" 
+              placeholder="Search (e.g. ENT 101)" 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full bg-[#111113] border border-zinc-800 text-white pl-12 pr-4 py-3.5 rounded-2xl focus:outline-none focus:border-purple-500/50 transition-all placeholder:text-zinc-600 text-sm"
@@ -89,6 +89,7 @@ export default function Courses() {
                     <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider mb-3 ${
                         course.theme === 'blue' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' : 
                         course.theme === 'green' ? 'bg-green-500/10 text-green-400 border border-green-500/20' :
+                        course.theme === 'orange' ? 'bg-orange-500/10 text-orange-400 border border-orange-500/20' :
                         'bg-purple-500/10 text-purple-400 border border-purple-500/20'
                     }`}>
                         {course.code}
@@ -103,6 +104,7 @@ export default function Courses() {
                         <button className={`w-full py-3 text-black font-bold text-sm rounded-xl flex items-center justify-center gap-2 transition-transform active:scale-95 ${
                             course.theme === 'blue' ? 'bg-white hover:bg-blue-50' : 
                             course.theme === 'green' ? 'bg-white hover:bg-green-50' :
+                            course.theme === 'orange' ? 'bg-white hover:bg-orange-50' :
                             'bg-white hover:bg-purple-50'
                         }`}>
                             Start Exam <ChevronRight className="w-4 h-4"/>
