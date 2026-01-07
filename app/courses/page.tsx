@@ -8,6 +8,15 @@ export default function Courses() {
   const [searchTerm, setSearchTerm] = useState('');
 
   const courses = [
+        {
+      id: 'ent101',
+      code: 'ENT 101',
+      title: 'Intro to Entrepreneurship',
+      desc: 'Business models, Nigerian ecosystem (SMEDAN, CAC), funding, and innovation. Master the art of business.',
+      icon: <Briefcase className="w-6 h-6 text-orange-400"/>, // Import 'Briefcase' from lucide-react
+      link: '/exam/ent101',
+      theme: 'orange'
+        },
     {
       id: 'gst103',
       code: 'GST 103',
