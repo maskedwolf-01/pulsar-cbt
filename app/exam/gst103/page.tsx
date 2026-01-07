@@ -13,7 +13,6 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-// --- MODAL ---
 const PulsarModal = ({ title, message, onConfirm, onCancel, confirmText="Confirm", cancelText="Cancel", isDestructive=false, singleButton=false }: any) => (
   <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
      <div className="bg-[#111113] border border-zinc-800 p-6 rounded-2xl w-full max-w-sm text-center shadow-2xl scale-100">
@@ -32,7 +31,6 @@ const PulsarModal = ({ title, message, onConfirm, onCancel, confirmText="Confirm
   </div>
 );
 
-// --- CALCULATOR ---
 const ExamCalculator = ({ onClose }: { onClose: () => void }) => {
   const [display, setDisplay] = useState('0');
   const handlePress = (val: string) => {
@@ -61,13 +59,12 @@ const ExamCalculator = ({ onClose }: { onClose: () => void }) => {
     </div>
   );
 };
-
-export default function ExamPage() {
+       export default function ExamPage() {
   const router = useRouter();
   const resultCardRef = useRef<any>(null);
 
   const [loading, setLoading] = useState(true);
-  const [userName, setUserName] = useState(''); // USER NAME STATE
+  const [userName, setUserName] = useState(''); 
   const [examStarted, setExamStarted] = useState(false);
   const [questions, setQuestions] = useState<any[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -75,7 +72,10 @@ export default function ExamPage() {
   const [submitted, setSubmitted] = useState(false);
   const [isReviewing, setIsReviewing] = useState(false);
   const [score, setScore] = useState(0);
-  const [timeLeft, setTimeLeft] = useState(60 * 45); 
+  
+  // --- TIMER SET TO 15 MINUTES (900 seconds) ---
+  const [timeLeft, setTimeLeft] = useState(60 * 15); 
+  
   const [timeTaken, setTimeTaken] = useState(0);
   const [showCalculator, setShowCalculator] = useState(false);
   const [gridPage, setGridPage] = useState(0); 
@@ -83,7 +83,7 @@ export default function ExamPage() {
 
   useEffect(() => { 
     fetchAndShuffleQuestions(); 
-    fetchUser(); // FETCH NAME
+    fetchUser(); 
   }, []);
 
   useEffect(() => {
@@ -98,12 +98,12 @@ export default function ExamPage() {
   const fetchUser = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
-        // Try to get name from metadata
         setUserName(user.user_metadata?.full_name || 'Scholar');
     }
   };
 
   const fetchAndShuffleQuestions = async () => {
+    // FETCHING GST 103
     const { data, error } = await supabase.from('questions').select('*').eq('course_code', 'GST 103');
     if (error || !data || data.length === 0) { setLoading(false); return; }
 
@@ -137,16 +137,15 @@ export default function ExamPage() {
     questions.forEach(q => { if (answers[q.id] === q.new_correct_option) calcScore++; });
     setScore(calcScore);
     
-    // SAVE TO DB (Now guaranteed to work because we disabled RLS)
     const { data: { user } } = await supabase.auth.getUser();
     if(user) {
-        const { error } = await supabase.from('results').insert({
+        // SAVING TO GST 103
+        await supabase.from('results').insert({
             user_id: user.id, 
             course_code: 'GST 103', 
             score: Math.round((calcScore/questions.length)*100), 
             total_questions: questions.length
         });
-        if (error) console.error("Save failed:", error);
     }
   };
 
@@ -169,18 +168,18 @@ export default function ExamPage() {
 
   if (loading) return <div className="h-screen bg-[#09090b] flex items-center justify-center text-white"><Loader2 className="animate-spin mr-2"/> Loading...</div>;
 
-  // --- START SCREEN ---
   if (!examStarted) return (
     <div className="min-h-screen bg-[#09090b] flex items-center justify-center p-6">
       <div className="max-w-md w-full bg-[#111113] border border-zinc-800 p-8 rounded-3xl text-center shadow-2xl">
         <div className="w-20 h-20 bg-purple-600/20 rounded-full flex items-center justify-center mx-auto mb-6"><Award className="w-10 h-10 text-purple-500"/></div>
         <h1 className="text-2xl font-bold text-white mb-2">GST 103</h1>
-        <p className="text-zinc-500 text-sm mb-6">Use of Library & ICT | 100 Questions</p>
+        <p className="text-zinc-500 text-sm mb-6">Use of Library & ICT</p>
         <div className="bg-zinc-900/50 text-left p-5 rounded-xl border border-zinc-800 mb-8">
             <h3 className="text-zinc-400 font-bold text-xs uppercase tracking-widest mb-3 flex gap-2"><Info className="w-3 h-3"/> Instructions</h3>
             <ul className="text-sm text-zinc-300 space-y-3">
-                <li className="flex gap-2"><CheckCircle className="w-4 h-4 text-green-500"/> Answer all 100 questions.</li>
-                <li className="flex gap-2"><Clock className="w-4 h-4 text-orange-500"/> Time limit: 45 Minutes.</li>
+                <li className="flex gap-2"><CheckCircle className="w-4 h-4 text-green-500"/> Answer all questions.</li>
+                {/* --- TIME UPDATED --- */}
+                <li className="flex gap-2"><Clock className="w-4 h-4 text-orange-500"/> Time limit: 15 Minutes.</li>
                 <li className="flex gap-2"><RefreshCw className="w-4 h-4 text-blue-500"/> Questions are shuffled.</li>
             </ul>
         </div>
@@ -189,7 +188,6 @@ export default function ExamPage() {
     </div>
   );
 
-  // --- RESULT SCREEN (WITH NAME) ---
   if (submitted && !isReviewing) {
     const percentage = Math.round((score / questions.length) * 100);
     const timeDisplay = `${Math.floor(timeTaken / 60)}m ${timeTaken % 60}s`;
@@ -198,17 +196,14 @@ export default function ExamPage() {
         <div className="w-full max-w-md">
             <div ref={resultCardRef} className="bg-[#111113] border border-zinc-800 p-8 rounded-3xl text-center shadow-2xl mb-6 relative overflow-hidden">
                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 to-pink-500"></div>
-                
-                {/* NAME SECTION */}
                 <div className="flex flex-col items-center mb-6">
                     <div className="w-16 h-16 bg-zinc-900 rounded-full border border-zinc-700 flex items-center justify-center mb-3">
                         <User className="w-8 h-8 text-purple-500"/>
                     </div>
                     <h2 className="text-xl font-bold text-white">{userName}</h2>
                 </div>
-
                 <div className="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-600 mb-2">{percentage}%</div>
-                <p className="text-xs font-bold uppercase tracking-[0.2em] text-zinc-600 mb-8">Final Score</p>
+                <p className="text-xs font-bold uppercase tracking-[0.2em] text-zinc-600 mb-8">GST 103 Score</p>
                 <div className="grid grid-cols-2 gap-4">
                     <div className="bg-green-500/10 border border-green-500/20 p-4 rounded-2xl">
                         <CheckCircle className="w-5 h-5 text-green-500 mx-auto mb-2"/>
@@ -236,7 +231,6 @@ export default function ExamPage() {
     );
   }
 
-  // --- EXAM INTERFACE ---
   const currentQ = questions[currentIndex];
   const gridStart = gridPage * 20;
   const gridEnd = Math.min(gridStart + 20, questions.length);
@@ -315,5 +309,5 @@ export default function ExamPage() {
       </div>
     </div>
   );
-    }
-  
+                        }
+        
