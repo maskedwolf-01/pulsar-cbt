@@ -1,7 +1,7 @@
 "use client";
 import { useState } from 'react';
 import Link from 'next/link';
-import { Search, Clock, BookOpen, ChevronRight, Cpu } from 'lucide-react';
+import { Search, Clock, BookOpen, ChevronRight, Cpu, Leaf } from 'lucide-react';
 import BottomNav from '../components/BottomNav';
 
 export default function Courses() {
@@ -25,6 +25,15 @@ export default function Courses() {
       icon: <Cpu className="w-6 h-6 text-blue-400"/>,
       link: '/exam/cos101',
       theme: 'blue'
+    },
+    {
+      id: 'bio101',
+      code: 'BIO 101',
+      title: 'Introductory Biology',
+      desc: 'Cell biology, genetics, ecology, and botany. Master the fundamental concepts of life science.',
+      icon: <Leaf className="w-6 h-6 text-green-400"/>,
+      link: '/exam/bio101',
+      theme: 'green'
     }
   ];
 
@@ -53,7 +62,7 @@ export default function Courses() {
             <Search className="absolute left-4 top-3.5 w-5 h-5 text-zinc-500"/>
             <input 
               type="text" 
-              placeholder="Search (e.g. COS 101)" 
+              placeholder="Search (e.g. BIO 101)" 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full bg-[#111113] border border-zinc-800 text-white pl-12 pr-4 py-3.5 rounded-2xl focus:outline-none focus:border-purple-500/50 transition-all placeholder:text-zinc-600 text-sm"
@@ -69,7 +78,9 @@ export default function Courses() {
                     
                     {/* Badge */}
                     <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider mb-3 ${
-                        course.theme === 'blue' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' : 'bg-purple-500/10 text-purple-400 border border-purple-500/20'
+                        course.theme === 'blue' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' : 
+                        course.theme === 'green' ? 'bg-green-500/10 text-green-400 border border-green-500/20' :
+                        'bg-purple-500/10 text-purple-400 border border-purple-500/20'
                     }`}>
                         {course.code}
                     </div>
@@ -81,13 +92,15 @@ export default function Courses() {
 
                     <Link href={course.link}>
                         <button className={`w-full py-3 text-black font-bold text-sm rounded-xl flex items-center justify-center gap-2 transition-transform active:scale-95 ${
-                            course.theme === 'blue' ? 'bg-white hover:bg-blue-50' : 'bg-white hover:bg-purple-50'
+                            course.theme === 'blue' ? 'bg-white hover:bg-blue-50' : 
+                            course.theme === 'green' ? 'bg-white hover:bg-green-50' :
+                            'bg-white hover:bg-purple-50'
                         }`}>
                             Start Exam <ChevronRight className="w-4 h-4"/>
                         </button>
                     </Link>
 
-                    {/* Floating Duration Label (UPDATED TO 15m) */}
+                    {/* Floating Duration Label */}
                     <div className="absolute top-5 right-5 flex items-center gap-1 text-zinc-500 text-[10px] font-bold">
                         <Clock className="w-3 h-3"/> 15m
                     </div>
