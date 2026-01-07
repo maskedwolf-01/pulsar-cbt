@@ -59,7 +59,31 @@ const ExamCalculator = ({ onClose }: { onClose: () => void }) => {
     </div>
   );
 };
-                      export default function ExamPage() {
+                                                
+                        <div className="text-lg font-bold text-white">{score}</div>
+                        <div className="text-[10px] text-green-400 uppercase font-bold">Correct</div>
+                    </div>
+                    <div className="bg-red-500/10 border border-red-500/20 p-4 rounded-2xl">
+                        <XCircle className="w-5 h-5 text-red-500 mx-auto mb-2"/>
+                        <div className="text-lg font-bold text-white">{questions.length - score}</div>
+                        <div className="text-[10px] text-red-400 uppercase font-bold">Wrong</div>
+                    </div>
+                    <div className="bg-blue-500/10 border border-blue-500/20 p-3 rounded-2xl col-span-2 flex items-center justify-between px-6">
+                        <div className="text-left"><div className="text-[10px] text-blue-400 uppercase font-bold mb-1">Time Taken</div><div className="text-lg font-bold text-white">{timeDisplay}</div></div>
+                        <Clock className="w-6 h-6 text-blue-500 opacity-50"/>
+                    </div>
+                </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+                <button onClick={() => setIsReviewing(true)} className="py-4 bg-zinc-800 text-white font-bold rounded-xl hover:bg-zinc-700 transition-colors">Review Answers</button>
+                <button onClick={handleShare} className="py-4 bg-purple-600 text-white font-bold rounded-xl hover:bg-purple-500 flex items-center justify-center gap-2 transition-colors shadow-lg shadow-purple-900/20"><Share2 className="w-4 h-4"/> Share Result</button>
+            </div>
+            <button onClick={() => router.push('/dashboard')} className="w-full py-4 mt-3 text-zinc-500 font-bold text-sm hover:text-white transition-colors">Back to Dashboard</button>
+        </div>
+      </div>
+    );
+  }
+export default function ExamPage() {
   const router = useRouter();
   const resultCardRef = useRef<any>(null);
 
@@ -72,7 +96,10 @@ const ExamCalculator = ({ onClose }: { onClose: () => void }) => {
   const [submitted, setSubmitted] = useState(false);
   const [isReviewing, setIsReviewing] = useState(false);
   const [score, setScore] = useState(0);
-  const [timeLeft, setTimeLeft] = useState(60 * 45); 
+  
+  // --- TIMER UPDATED TO 15 MINUTES ---
+  const [timeLeft, setTimeLeft] = useState(60 * 15); 
+  
   const [timeTaken, setTimeTaken] = useState(0);
   const [showCalculator, setShowCalculator] = useState(false);
   const [gridPage, setGridPage] = useState(0); 
@@ -100,7 +127,6 @@ const ExamCalculator = ({ onClose }: { onClose: () => void }) => {
   };
 
   const fetchAndShuffleQuestions = async () => {
-    // CORRECTED: Fetch COS 101 Questions
     const { data, error } = await supabase.from('questions').select('*').eq('course_code', 'COS 101');
     if (error || !data || data.length === 0) { setLoading(false); return; }
 
@@ -136,7 +162,6 @@ const ExamCalculator = ({ onClose }: { onClose: () => void }) => {
     
     const { data: { user } } = await supabase.auth.getUser();
     if(user) {
-        // CORRECTED: Save as COS 101
         await supabase.from('results').insert({
             user_id: user.id, 
             course_code: 'COS 101', 
@@ -175,7 +200,8 @@ const ExamCalculator = ({ onClose }: { onClose: () => void }) => {
             <h3 className="text-zinc-400 font-bold text-xs uppercase tracking-widest mb-3 flex gap-2"><Info className="w-3 h-3"/> Instructions</h3>
             <ul className="text-sm text-zinc-300 space-y-3">
                 <li className="flex gap-2"><CheckCircle className="w-4 h-4 text-green-500"/> Answer all questions.</li>
-                <li className="flex gap-2"><Clock className="w-4 h-4 text-orange-500"/> Time limit: 45 Minutes.</li>
+                {/* --- INSTRUCTION TEXT UPDATED --- */}
+                <li className="flex gap-2"><Clock className="w-4 h-4 text-orange-500"/> Time limit: 15 Minutes.</li>
                 <li className="flex gap-2"><RefreshCw className="w-4 h-4 text-blue-500"/> Questions are shuffled.</li>
             </ul>
         </div>
@@ -305,5 +331,5 @@ const ExamCalculator = ({ onClose }: { onClose: () => void }) => {
       </div>
     </div>
   );
-                      }
-                                                 
+                                                                            }
+                                                     
