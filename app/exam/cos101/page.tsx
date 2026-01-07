@@ -59,30 +59,7 @@ const ExamCalculator = ({ onClose }: { onClose: () => void }) => {
     </div>
   );
 };
-                                                
-                        <div className="text-lg font-bold text-white">{score}</div>
-                        <div className="text-[10px] text-green-400 uppercase font-bold">Correct</div>
-                    </div>
-                    <div className="bg-red-500/10 border border-red-500/20 p-4 rounded-2xl">
-                        <XCircle className="w-5 h-5 text-red-500 mx-auto mb-2"/>
-                        <div className="text-lg font-bold text-white">{questions.length - score}</div>
-                        <div className="text-[10px] text-red-400 uppercase font-bold">Wrong</div>
-                    </div>
-                    <div className="bg-blue-500/10 border border-blue-500/20 p-3 rounded-2xl col-span-2 flex items-center justify-between px-6">
-                        <div className="text-left"><div className="text-[10px] text-blue-400 uppercase font-bold mb-1">Time Taken</div><div className="text-lg font-bold text-white">{timeDisplay}</div></div>
-                        <Clock className="w-6 h-6 text-blue-500 opacity-50"/>
-                    </div>
-                </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-                <button onClick={() => setIsReviewing(true)} className="py-4 bg-zinc-800 text-white font-bold rounded-xl hover:bg-zinc-700 transition-colors">Review Answers</button>
-                <button onClick={handleShare} className="py-4 bg-purple-600 text-white font-bold rounded-xl hover:bg-purple-500 flex items-center justify-center gap-2 transition-colors shadow-lg shadow-purple-900/20"><Share2 className="w-4 h-4"/> Share Result</button>
-            </div>
-            <button onClick={() => router.push('/dashboard')} className="w-full py-4 mt-3 text-zinc-500 font-bold text-sm hover:text-white transition-colors">Back to Dashboard</button>
-        </div>
-      </div>
-    );
-  }
+
 export default function ExamPage() {
   const router = useRouter();
   const resultCardRef = useRef<any>(null);
@@ -96,10 +73,7 @@ export default function ExamPage() {
   const [submitted, setSubmitted] = useState(false);
   const [isReviewing, setIsReviewing] = useState(false);
   const [score, setScore] = useState(0);
-  
-  // --- TIMER UPDATED TO 15 MINUTES ---
-  const [timeLeft, setTimeLeft] = useState(60 * 15); 
-  
+  const [timeLeft, setTimeLeft] = useState(60 * 15); // 15 Minutes
   const [timeTaken, setTimeTaken] = useState(0);
   const [showCalculator, setShowCalculator] = useState(false);
   const [gridPage, setGridPage] = useState(0); 
@@ -189,8 +163,7 @@ export default function ExamPage() {
   };
 
   if (loading) return <div className="h-screen bg-[#09090b] flex items-center justify-center text-white"><Loader2 className="animate-spin mr-2"/> Loading...</div>;
-
-  if (!examStarted) return (
+      if (!examStarted) return (
     <div className="min-h-screen bg-[#09090b] flex items-center justify-center p-6">
       <div className="max-w-md w-full bg-[#111113] border border-zinc-800 p-8 rounded-3xl text-center shadow-2xl">
         <div className="w-20 h-20 bg-purple-600/20 rounded-full flex items-center justify-center mx-auto mb-6"><Award className="w-10 h-10 text-purple-500"/></div>
@@ -200,7 +173,6 @@ export default function ExamPage() {
             <h3 className="text-zinc-400 font-bold text-xs uppercase tracking-widest mb-3 flex gap-2"><Info className="w-3 h-3"/> Instructions</h3>
             <ul className="text-sm text-zinc-300 space-y-3">
                 <li className="flex gap-2"><CheckCircle className="w-4 h-4 text-green-500"/> Answer all questions.</li>
-                {/* --- INSTRUCTION TEXT UPDATED --- */}
                 <li className="flex gap-2"><Clock className="w-4 h-4 text-orange-500"/> Time limit: 15 Minutes.</li>
                 <li className="flex gap-2"><RefreshCw className="w-4 h-4 text-blue-500"/> Questions are shuffled.</li>
             </ul>
@@ -331,5 +303,5 @@ export default function ExamPage() {
       </div>
     </div>
   );
-                                                                            }
-                                                     
+                        }
+      
