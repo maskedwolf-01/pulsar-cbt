@@ -3,9 +3,9 @@ import { useEffect, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Loader2, BookOpen, Activity, Search, FileText } from "lucide-react";
+import { Loader2, BookOpen, Activity, FileText } from "lucide-react";
 import BottomNav from "../components/BottomNav";
-import Header from "../components/Header"; // Reusing your working Header
+import Header from "../components/Header"; // This fixes the Bell & Red Dot alignment
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -135,18 +135,21 @@ export default function Dashboard() {
         ) : (
           <div className="space-y-3">
             {recentResults.map((r) => {
-              // Color Logic based on score
-              let colorClass = "bg-red-500/10 text-red-500 border-red-500/20";
-              if (r.score >= 70) colorClass = "bg-green-500/10 text-green-500 border-green-500/20";
-              else if (r.score >= 50) colorClass = "bg-yellow-500/10 text-yellow-500 border-yellow-500/20";
+              // COLOR LOGIC (Using safer syntax)
+              let colorClasses = "bg-red-500 bg-opacity-10 text-red-500 border-red-500 border-opacity-20";
+              if (r.score >= 70) {
+                colorClasses = "bg-green-500 bg-opacity-10 text-green-500 border-green-500 border-opacity-20";
+              } else if (r.score >= 50) {
+                colorClasses = "bg-yellow-500 bg-opacity-10 text-yellow-500 border-yellow-500 border-opacity-20";
+              }
 
               return (
                 <div
                   key={r.id}
                   className="bg-[#111113] border border-zinc-800 p-4 rounded-2xl flex items-center gap-4 hover:border-zinc-700 transition-colors"
                 >
-                  {/* Score Box (Left Side) */}
-                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-bold text-sm border ${colorClass}`}>
+                  {/* Score Box (Left Side) - Restored Size & Color */}
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-bold text-sm border ${colorClasses}`}>
                     {r.score}%
                   </div>
                   
@@ -171,5 +174,5 @@ export default function Dashboard() {
       <BottomNav active="home" />
     </div>
   );
-        }
-          
+          }
+        
