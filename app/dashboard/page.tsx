@@ -1,19 +1,11 @@
 "use client";
-
 import { useEffect, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import {
-  Loader2,
-  BookOpen,
-  Activity,
-  Search,
-  Bell,
-  CheckCheck,
-  FileText,
-} from "lucide-react";
+import { Loader2, BookOpen, Activity, Search, FileText } from "lucide-react";
 import BottomNav from "../components/BottomNav";
+import Header from "../components/Header"; // Reusing your working Header
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -22,18 +14,13 @@ const supabase = createClient(
 
 export default function Dashboard() {
   const router = useRouter();
-
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
-
+  
+  // Data States
   const [stats, setStats] = useState({ examsTaken: 0, cgpa: 0 });
   const [recentResults, setRecentResults] = useState<any[]>([]);
-
-  const [notifications, setNotifications] = useState<any[]>([]);
-  const [hasUnread, setHasUnread] = useState(false);
-  const [showNotifPanel, setShowNotifPanel] = useState(false);
-
   const [greeting, setGreeting] = useState("Welcome");
 
   /* ---------------- DYNAMIC GREETING ---------------- */
@@ -58,7 +45,7 @@ export default function Dashboard() {
 
       setUser(session.user);
 
-      // Profile
+      // 1. Get Profile
       const { data: profileData } = await supabase
         .from("profiles")
         .select("*")
@@ -67,7 +54,7 @@ export default function Dashboard() {
 
       setProfile(profileData || session.user.user_metadata);
 
-      // Results
+      // 2. Get Results
       const { data: results } = await supabase
         .from("results")
         .select("*")
@@ -77,10 +64,8 @@ export default function Dashboard() {
       if (results && results.length > 0) {
         setRecentResults(results);
 
-        const total = results.reduce(
-          (sum, r) => sum + (r.score || 0),
-          0
-        );
+        // Calculate Stats
+        const total = results.reduce((sum, r) => sum + (r.score || 0), 0);
         const avg = total / results.length;
 
         setStats({
@@ -88,142 +73,97 @@ export default function Dashboard() {
           cgpa: Number((avg / 20).toFixed(2)),
         });
       }
-
-      // Notifications
-      const { data: personal } = await supabase
-        .from("notifications")
-        .select("*")
-        .eq("user_id", session.user.id);
-
-      const { data: broadcasts } = await supabase
-        .from("broadcasts")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(5);
-
-      const merged = [
-        ...(personal || []),
-        ...(broadcasts || []).map((b) => ({
-          ...b,
-          is_read: false,
-          type: "broadcast",
-        })),
-      ];
-
-      setNotifications(merged);
-      setHasUnread(merged.some((n) => !n.is_read));
-
       setLoading(false);
     };
 
     fetchDashboard();
   }, [router]);
 
-  /* ---------------- ACTIONS ---------------- */
-  const markAllRead = async () => {
-    if (!user) return;
-
-    setNotifications((prev) =>
-      prev.map((n) => ({ ...n, is_read: true }))
-    );
-    setHasUnread(false);
-
-    await supabase
-      .from("notifications")
-      .update({ is_read: true })
-      .eq("user_id", user.id);
-  };
-
-  /* ---------------- LOADING STATE (FIXED) ---------------- */
+  /* ---------------- RENDER ---------------- */
   if (loading) {
     return (
       <div className="h-screen bg-[#09090b] flex items-center justify-center text-[#7cffd9]">
-        <Loader2 className="animate-spin w-6 h-6" />
+        <Loader2 className="animate-spin w-8 h-8" />
       </div>
     );
   }
 
-  const firstName =
-    profile?.full_name?.split(" ")[0] ||
-    user?.user_metadata?.full_name?.split(" ")[0] ||
-    "Scholar";
-
-  const avatar =
-    profile?.avatar_url || user?.user_metadata?.avatar_url;
+  const firstName = profile?.full_name?.split(" ")[0] || user?.user_metadata?.full_name?.split(" ")[0] || "Scholar";
 
   return (
-    <div className="min-h-screen bg-[#09090b] text-white pb-24 relative">
+    <div className="min-h-screen bg-[#09090b] text-white pb-24 font-sans">
+      
+      {/* 1. REUSED HEADER (Fixes Notification & Alignment) */}
+      {/* We pass the greeting as the title so it looks like the Dashboard */}
+      <Header title={`${greeting}, ${firstName}`} />
 
-      {/* HEADER */}
-      <div className="p-6 pt-12 flex justify-between items-center">
-        <div>
-          <p className="text-[10px] uppercase tracking-widest text-zinc-500 font-bold">
-            Terminal
-          </p>
-          <h1 className="text-3xl font-bold">
-            {greeting},{" "}
-            <span className="neon-text">{firstName}</span>
-          </h1>
+      {/* 2. STATS CARDS */}
+      <div className="grid grid-cols-2 gap-4 px-6 my-6">
+        <div className="bg-[#111113] border border-zinc-800 p-5 rounded-2xl">
+          <div className="text-[10px] uppercase text-zinc-500 font-bold flex items-center gap-2">
+            <Activity className="w-3 h-3 text-[#7cffd9]" /> CGPA EST.
+          </div>
+          <div className="text-4xl font-bold mt-2 text-white">{stats.cgpa.toFixed(2)}</div>
         </div>
-
-        <div className="flex items-center gap-4">
-          <button
-            onClick={() => setShowNotifPanel(true)}
-            className="relative text-zinc-400 hover:text-white"
-          >
-            <Bell className="w-6 h-6" />
-            {hasUnread && (
-              <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-            )}
-          </button>
-
-          <Link
-            href="/profile"
-            className="w-10 h-10 rounded-full overflow-hidden border border-zinc-800 bg-zinc-900"
-          >
-            {avatar ? (
-              <img
-                src={avatar}
-                alt="Profile"
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center font-bold">
-                {firstName[0]}
-              </div>
-            )}
-          </Link>
+        <div className="bg-[#111113] border border-zinc-800 p-5 rounded-2xl">
+          <div className="text-[10px] uppercase text-zinc-500 font-bold flex items-center gap-2">
+            <BookOpen className="w-3 h-3 text-purple-500" /> EXAMS TAKEN
+          </div>
+          <div className="text-4xl font-bold mt-2 text-white">{stats.examsTaken}</div>
         </div>
       </div>
 
-      {/* STATS */}
-      <div className="grid grid-cols-2 gap-4 px-6 mb-8">
-        <Stat label="CGPA EST." value={stats.cgpa.toFixed(2)} />
-        <Stat label="EXAMS TAKEN" value={stats.examsTaken} />
-      </div>
-
-      {/* RECENT ACTIVITY */}
+      {/* 3. RECENT ACTIVITY (Restored Layout & Colors) */}
       <div className="px-6">
-        <h2 className="text-lg font-bold mb-4">Recent Activity</h2>
+        <h2 className="text-lg font-bold text-white mb-4">Recent Activity</h2>
 
         {recentResults.length === 0 ? (
-          <EmptyState />
+          <div className="bg-[#111113] border border-zinc-800 rounded-3xl p-10 text-center flex flex-col items-center">
+            <div className="w-12 h-12 bg-zinc-900 rounded-full flex items-center justify-center mb-4">
+               <FileText className="w-6 h-6 text-zinc-600" />
+            </div>
+            <h3 className="font-bold text-white">No Records Found</h3>
+            <p className="text-xs text-zinc-500 mt-2 mb-6 max-w-[200px]">
+              You haven’t taken any CBT exams yet. Results will appear here.
+            </p>
+            <Link href="/courses">
+              <button className="px-6 py-3 bg-[#7cffd9] hover:bg-[#6beec9] text-black rounded-xl font-bold text-sm transition-colors">
+                Browse Courses
+              </button>
+            </Link>
+          </div>
         ) : (
           <div className="space-y-3">
-            {recentResults.map((r) => (
-              <div
-                key={r.id}
-                className="bg-[#111113] border border-zinc-800 p-4 rounded-2xl flex justify-between"
-              >
-                <div>
-                  <p className="font-bold">{r.course_code}</p>
-                  <p className="text-xs text-zinc-500">
-                    {new Date(r.created_at).toLocaleDateString()}
-                  </p>
+            {recentResults.map((r) => {
+              // Color Logic based on score
+              let colorClass = "bg-red-500/10 text-red-500 border-red-500/20";
+              if (r.score >= 70) colorClass = "bg-green-500/10 text-green-500 border-green-500/20";
+              else if (r.score >= 50) colorClass = "bg-yellow-500/10 text-yellow-500 border-yellow-500/20";
+
+              return (
+                <div
+                  key={r.id}
+                  className="bg-[#111113] border border-zinc-800 p-4 rounded-2xl flex items-center gap-4 hover:border-zinc-700 transition-colors"
+                >
+                  {/* Score Box (Left Side) */}
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-bold text-sm border ${colorClass}`}>
+                    {r.score}%
+                  </div>
+                  
+                  {/* Details (Right Side) */}
+                  <div>
+                    <h4 className="font-bold text-white text-sm">{r.course_code}</h4>
+                    <p className="text-[10px] text-zinc-500 font-medium">
+                      {new Date(r.created_at).toLocaleDateString(undefined, {
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric'
+                      })}
+                    </p>
+                  </div>
                 </div>
-                <div className="font-bold">{r.score}%</div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
@@ -231,34 +171,5 @@ export default function Dashboard() {
       <BottomNav active="home" />
     </div>
   );
-}
-
-/* ---------------- COMPONENTS ---------------- */
-
-function Stat({ label, value }: any) {
-  return (
-    <div className="bg-[#111113] border border-zinc-800 p-5 rounded-2xl">
-      <div className="text-[10px] uppercase text-zinc-500 font-bold">
-        {label}
-      </div>
-      <div className="text-4xl font-bold mt-2">{value}</div>
-    </div>
-  );
-}
-
-function EmptyState() {
-  return (
-    <div className="bg-[#111113] border border-zinc-800 rounded-3xl p-10 text-center">
-      <FileText className="mx-auto mb-4 text-zinc-600" />
-      <h3 className="font-bold">No Records Found</h3>
-      <p className="text-sm text-zinc-500 mt-2 mb-6">
-        You haven’t taken any CBT exams yet.
-      </p>
-      <Link href="/courses">
-        <button className="px-6 py-3 bg-[#7cffd9] text-black rounded-xl font-bold">
-          Browse Courses
-        </button>
-      </Link>
-    </div>
-  );
-    }
+        }
+          
