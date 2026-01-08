@@ -59,37 +59,57 @@ export default function Dashboard() {
       }
 
       // 3. GET NOTIFICATIONS (Synced Logic)
-      const { data: notifs } = await supabase
-        .from('notifications')
-        .select('*')
-        .or(`user_id.eq.${session.user.id},user_id.is.null`)
-        .order('created_at', { ascending: false })
-        .limit(20);
+      const fetchNotifications = async (userId: string) => {
+    // A. Fetch Personal Notifications
+    const { data: personal } = await supabase
+      .from('notifications')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
 
-      if (notifs && notifs.length > 0) {
-        setNotifications(notifs);
-        const newestMessageTime = new Date(notifs[0].created_at).getTime();
-        const lastReadTime = localStorage.getItem('pulsar_last_read_timestamp');
-        if (!lastReadTime || newestMessageTime > parseInt(lastReadTime)) {
-            setHasUnread(true);
-        } else {
-            setHasUnread(false);
-        }
-      }
-      setLoading(false);
-    };
-    fetchData();
-  }, []);
+    // B. Fetch Global Broadcasts (Announcements)
+    const { data: broadcasts } = await supabase
+      .from('broadcasts')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(5);
 
-  const markAllRead = () => {
-    setHasUnread(false);
-    if (notifications.length > 0) {
-        const newestTime = new Date(notifications[0].created_at).getTime();
-        localStorage.setItem('pulsar_last_read_timestamp', (newestTime + 1000).toString());
-    } else {
-        localStorage.setItem('pulsar_last_read_timestamp', Date.now().toString());
+    // C. Merge Them
+    // We tag broadcasts with a special 'type' so we can style them differently if needed
+    const formattedBroadcasts = (broadcasts || []).map(b => ({
+      id: `b-${b.id}`, // Unique ID for key
+      title: b.title,
+      message: b.message,
+      created_at: b.created_at,
+      is_read: false, // Broadcasts are always "new" until read logic is deeper
+      link: '#',
+      type: 'broadcast' 
+    }));
+
+    const allNotifs = [...(personal || []), ...formattedBroadcasts];
+    
+    // Sort by Date (Newest First)
+    allNotifs.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+    setNotifs(allNotifs);
+    setUnreadCount(allNotifs.filter(n => !n.is_read).length);
+  };
+
+  const markAllRead = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      // Optimistic Update
+      setNotifs(prev => prev.map(n => ({ ...n, is_read: true })));
+      setUnreadCount(0);
+      
+      // DB Update (Only for personal notifs)
+      await supabase.from('notifications').update({ is_read: true }).eq('user_id', user.id);
     }
   };
+
+  return (
+    <>
+    
 
   if (loading) return <div className="h-screen bg-[#09090b] flex items-center justify-center text-purple-500"><Loader2 className="animate-spin"/></div>;
 
@@ -98,29 +118,7 @@ export default function Dashboard() {
     return (
     <div className="min-h-screen bg-[#09090b] text-white font-sans pb-24 relative overflow-x-hidden">
       
-      {/* NOTIFICATION PANEL */}
-      <div className={`fixed inset-y-0 right-0 w-full md:w-96 bg-[#09090b] border-l border-zinc-800 transform transition-transform duration-300 z-50 flex flex-col ${showNotifPanel ? 'translate-x-0' : 'translate-x-full'}`}>
-        <div className="p-5 border-b border-zinc-800 flex justify-between items-center bg-[#09090b] z-10">
-            <h3 className="font-bold text-white text-lg">Transmission Log</h3>
-            <button onClick={() => setShowNotifPanel(false)} className="p-2 bg-zinc-800 rounded-full hover:bg-zinc-700 transition-colors"><X className="w-5 h-5 text-white"/></button>
-        </div>
-        <div className="flex-1 overflow-y-auto p-4 space-y-3">
-            {notifications.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-64 text-zinc-500"><Bell className="w-12 h-12 mb-3 opacity-20"/><p>No transmissions received.</p></div>
-            ) : (
-                notifications.map(n => (
-                    <div key={n.id} className="bg-[#111113] border border-zinc-800/60 p-4 rounded-xl relative overflow-hidden group">
-                        <div className="absolute top-0 left-0 w-1 h-full bg-purple-600"></div>
-                        <div className="flex justify-between items-start mb-2 pl-3">
-                            <span className="text-[10px] font-bold text-purple-400 uppercase tracking-wider flex items-center gap-1"><span className="w-2 h-2 bg-purple-500 rounded-full animate-pulse"></span>{n.user_id ? 'Personal' : 'Broadcast'}</span>
-                            <span className="text-[10px] text-zinc-600">{new Date(n.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-                        </div>
-                        <h4 className="text-sm font-bold text-white pl-3 mb-1">{n.title}</h4>
-                        <p className="text-xs text-zinc-400 pl-3 leading-relaxed">{n.message}</p>
-                    </div>
-                ))
-            )}
-        </div>
+
         <div className="p-4 border-t border-zinc-800 bg-[#09090b]">
             <button onClick={markAllRead} className="w-full py-3 bg-white text-black font-bold rounded-xl flex items-center justify-center gap-2 hover:bg-zinc-200 transition-colors"><CheckCheck className="w-4 h-4"/> Mark all as Read</button>
         </div>
