@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -36,7 +36,7 @@ export default function Dashboard() {
 
   const [greeting, setGreeting] = useState("Welcome");
 
-  /* ---------------- GREETING ---------------- */
+  /* ---------------- DYNAMIC GREETING ---------------- */
   useEffect(() => {
     const hour = new Date().getHours();
     if (hour < 5) setGreeting("Up late");
@@ -47,7 +47,7 @@ export default function Dashboard() {
 
   /* ---------------- FETCH DATA ---------------- */
   useEffect(() => {
-    const fetchAll = async () => {
+    const fetchDashboard = async () => {
       const { data: sessionData } = await supabase.auth.getSession();
       const session = sessionData.session;
 
@@ -58,6 +58,7 @@ export default function Dashboard() {
 
       setUser(session.user);
 
+      // Profile
       const { data: profileData } = await supabase
         .from("profiles")
         .select("*")
@@ -66,16 +67,20 @@ export default function Dashboard() {
 
       setProfile(profileData || session.user.user_metadata);
 
+      // Results
       const { data: results } = await supabase
         .from("results")
         .select("*")
         .eq("user_id", session.user.id)
         .order("created_at", { ascending: false });
 
-      if (results && results.length) {
+      if (results && results.length > 0) {
         setRecentResults(results);
 
-        const total = results.reduce((a, b) => a + (b.score || 0), 0);
+        const total = results.reduce(
+          (sum, r) => sum + (r.score || 0),
+          0
+        );
         const avg = total / results.length;
 
         setStats({
@@ -84,6 +89,7 @@ export default function Dashboard() {
         });
       }
 
+      // Notifications
       const { data: personal } = await supabase
         .from("notifications")
         .select("*")
@@ -110,14 +116,16 @@ export default function Dashboard() {
       setLoading(false);
     };
 
-    fetchAll();
+    fetchDashboard();
   }, [router]);
 
   /* ---------------- ACTIONS ---------------- */
   const markAllRead = async () => {
     if (!user) return;
 
-    setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+    setNotifications((prev) =>
+      prev.map((n) => ({ ...n, is_read: true }))
+    );
     setHasUnread(false);
 
     await supabase
@@ -126,10 +134,11 @@ export default function Dashboard() {
       .eq("user_id", user.id);
   };
 
+  /* ---------------- LOADING STATE (FIXED) ---------------- */
   if (loading) {
     return (
       <div className="h-screen bg-[#09090b] flex items-center justify-center text-[#7cffd9]">
-        <Loader2 className="animate-spin" />
+        <Loader2 className="animate-spin w-6 h-6" />
       </div>
     );
   }
@@ -143,7 +152,7 @@ export default function Dashboard() {
     profile?.avatar_url || user?.user_metadata?.avatar_url;
 
   return (
-    <div className="min-h-screen bg-[#09090b] text-white pb-24">
+    <div className="min-h-screen bg-[#09090b] text-white pb-24 relative">
 
       {/* HEADER */}
       <div className="p-6 pt-12 flex justify-between items-center">
@@ -162,9 +171,9 @@ export default function Dashboard() {
             onClick={() => setShowNotifPanel(true)}
             className="relative text-zinc-400 hover:text-white"
           >
-            <Bell />
+            <Bell className="w-6 h-6" />
             {hasUnread && (
-              <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+              <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse" />
             )}
           </button>
 
@@ -173,7 +182,11 @@ export default function Dashboard() {
             className="w-10 h-10 rounded-full overflow-hidden border border-zinc-800 bg-zinc-900"
           >
             {avatar ? (
-              <img src={avatar} className="w-full h-full object-cover" />
+              <img
+                src={avatar}
+                alt="Profile"
+                className="w-full h-full object-cover"
+              />
             ) : (
               <div className="w-full h-full flex items-center justify-center font-bold">
                 {firstName[0]}
@@ -185,11 +198,11 @@ export default function Dashboard() {
 
       {/* STATS */}
       <div className="grid grid-cols-2 gap-4 px-6 mb-8">
-        <Stat label="CGPA EST." value={stats.cgpa.toFixed(2)} icon={<Activity />} />
-        <Stat label="EXAMS TAKEN" value={stats.examsTaken} icon={<BookOpen />} />
+        <Stat label="CGPA EST." value={stats.cgpa.toFixed(2)} />
+        <Stat label="EXAMS TAKEN" value={stats.examsTaken} />
       </div>
 
-      {/* ACTIVITY */}
+      {/* RECENT ACTIVITY */}
       <div className="px-6">
         <h2 className="text-lg font-bold mb-4">Recent Activity</h2>
 
@@ -222,11 +235,11 @@ export default function Dashboard() {
 
 /* ---------------- COMPONENTS ---------------- */
 
-function Stat({ label, value, icon }: any) {
+function Stat({ label, value }: any) {
   return (
     <div className="bg-[#111113] border border-zinc-800 p-5 rounded-2xl">
-      <div className="flex items-center gap-2 text-[10px] uppercase text-zinc-500 font-bold">
-        {icon} {label}
+      <div className="text-[10px] uppercase text-zinc-500 font-bold">
+        {label}
       </div>
       <div className="text-4xl font-bold mt-2">{value}</div>
     </div>
@@ -248,4 +261,4 @@ function EmptyState() {
       </Link>
     </div>
   );
-                        }
+    }
