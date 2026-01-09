@@ -35,6 +35,15 @@ export default function Courses() {
       link: '/exam/bio101',
       theme: 'green'
     },
+        {
+      id: 'sta111',
+      code: 'STA 111',
+      title: 'Descriptive Statistics',
+      desc: 'Data presentation, central tendency, dispersion, probability, and index numbers. Essential for Science/Social Science.',
+      icon: <BarChart3 className="w-6 h-6 text-blue-400"/>, // Import BarChart3 from lucide-react
+      link: '/exam/sta111',
+      theme: 'blue'
+    },
     {
       id: 'ent101',
       code: 'ENT 101',
