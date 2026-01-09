@@ -43,6 +43,15 @@ export default function Courses() {
       icon: <Briefcase className="w-6 h-6 text-orange-400"/>,
       link: '/exam/ent101',
       theme: 'orange'
+    },
+    {
+      id: 'gst101',
+      code: 'GST 101',
+      title: 'Communication in English I',
+      desc: 'Master listening, reading, writing skills, grammar, and study techniques for academic success.',
+      icon: <BookOpen className="w-6 h-6 text-pink-400"/>,
+      link: '/exam/gst101',
+      theme: 'pink'
     }
   ];
 
@@ -71,7 +80,7 @@ export default function Courses() {
             <Search className="absolute left-4 top-3.5 w-5 h-5 text-zinc-500"/>
             <input 
               type="text" 
-              placeholder="Search (e.g. ENT 101)" 
+              placeholder="Search (e.g. GST 101)" 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full bg-[#111113] border border-zinc-800 text-white pl-12 pr-4 py-3.5 rounded-2xl focus:outline-none focus:border-purple-500/50 transition-all placeholder:text-zinc-600 text-sm"
@@ -90,6 +99,7 @@ export default function Courses() {
                         course.theme === 'blue' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' : 
                         course.theme === 'green' ? 'bg-green-500/10 text-green-400 border border-green-500/20' :
                         course.theme === 'orange' ? 'bg-orange-500/10 text-orange-400 border border-orange-500/20' :
+                        course.theme === 'pink' ? 'bg-pink-500/10 text-pink-400 border border-pink-500/20' :
                         'bg-purple-500/10 text-purple-400 border border-purple-500/20'
                     }`}>
                         {course.code}
@@ -105,6 +115,7 @@ export default function Courses() {
                             course.theme === 'blue' ? 'bg-white hover:bg-blue-50' : 
                             course.theme === 'green' ? 'bg-white hover:bg-green-50' :
                             course.theme === 'orange' ? 'bg-white hover:bg-orange-50' :
+                            course.theme === 'pink' ? 'bg-white hover:bg-pink-50' :
                             'bg-white hover:bg-purple-50'
                         }`}>
                             Start Exam <ChevronRight className="w-4 h-4"/>
@@ -128,4 +139,4 @@ export default function Courses() {
     </div>
   );
       }
-        
+    
