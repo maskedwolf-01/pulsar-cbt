@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { 
-  Search, Clock, BookOpen, ChevronRight, Cpu, Leaf, Briefcase, BarChart3, Atom, Calculator
+  Search, Clock, BookOpen, ChevronRight, Cpu, Leaf, Briefcase, BarChart3, Atom, Calculator, FlaskConical
 } from 'lucide-react';
 import BottomNav from '../components/BottomNav';
 
@@ -81,6 +81,15 @@ export default function Courses() {
       icon: <Calculator className="w-6 h-6 text-red-400"/>,
       link: '/exam/mth101',
       theme: 'red'
+    },
+    {
+      id: 'chm101',
+      code: 'CHM 101',
+      title: 'General Chemistry I',
+      desc: 'Atoms, Bonding, States of Matter, and Stoichiometry. The central science explained.',
+      icon: <FlaskConical className="w-6 h-6 text-teal-400"/>,
+      link: '/exam/chm101',
+      theme: 'teal'
     }
   ];
 
@@ -109,7 +118,7 @@ export default function Courses() {
             <Search className="absolute left-4 top-3.5 w-5 h-5 text-zinc-500"/>
             <input 
               type="text" 
-              placeholder="Search (e.g. MTH 101)" 
+              placeholder="Search (e.g. CHM 101)" 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full bg-[#111113] border border-zinc-800 text-white pl-12 pr-4 py-3.5 rounded-2xl focus:outline-none focus:border-purple-500/50 transition-all placeholder:text-zinc-600 text-sm"
@@ -132,6 +141,7 @@ export default function Courses() {
                         course.theme === 'cyan' ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20' :
                         course.theme === 'yellow' ? 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20' :
                         course.theme === 'red' ? 'bg-red-500/10 text-red-400 border border-red-500/20' :
+                        course.theme === 'teal' ? 'bg-teal-500/10 text-teal-400 border border-teal-500/20' :
                         'bg-purple-500/10 text-purple-400 border border-purple-500/20'
                     }`}>
                         {course.code}
@@ -151,6 +161,7 @@ export default function Courses() {
                             course.theme === 'cyan' ? 'bg-white hover:bg-cyan-50' :
                             course.theme === 'yellow' ? 'bg-white hover:bg-yellow-50' :
                             course.theme === 'red' ? 'bg-white hover:bg-red-50' :
+                            course.theme === 'teal' ? 'bg-white hover:bg-teal-50' :
                             'bg-white hover:bg-purple-50'
                         }`}>
                             Start Exam <ChevronRight className="w-4 h-4"/>
@@ -174,4 +185,4 @@ export default function Courses() {
     </div>
   );
       }
-        
+      
