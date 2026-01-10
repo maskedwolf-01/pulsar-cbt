@@ -13,6 +13,7 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
+// --- MODAL COMPONENT ---
 const PulsarModal = ({ title, message, onConfirm, onCancel, confirmText="Confirm", cancelText="Cancel", isDestructive=false, singleButton=false }: any) => (
   <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
      <div className="bg-[#111113] border border-zinc-800 p-6 rounded-2xl w-full max-w-sm text-center shadow-2xl scale-100">
@@ -31,6 +32,7 @@ const PulsarModal = ({ title, message, onConfirm, onCancel, confirmText="Confirm
   </div>
 );
 
+// --- CALCULATOR COMPONENT ---
 const ExamCalculator = ({ onClose }: { onClose: () => void }) => {
   const [display, setDisplay] = useState('0');
   const handlePress = (val: string) => {
@@ -59,8 +61,7 @@ const ExamCalculator = ({ onClose }: { onClose: () => void }) => {
     </div>
   );
 };
-
-export default function ExamPage() {
+                export default function ExamPage() {
   const router = useRouter();
   const resultCardRef = useRef<any>(null);
 
@@ -100,19 +101,51 @@ export default function ExamPage() {
     }
   };
 
+  // --- ROBUST FETCH FUNCTION (PREVENTS 0 SCORE BUG) ---
   const fetchAndShuffleQuestions = async () => {
-    // FETCHING MTH 101 SPECIFICALLY
-    const { data, error } = await supabase.from('questions').select('*').eq('course_code', 'MTH 101');
-    if (error || !data || data.length === 0) { setLoading(false); return; }
+    const { data, error } = await supabase
+      .from('questions')
+      .select('*')
+      .eq('course_code', 'MTH 101'); 
+
+    if (error || !data || data.length === 0) {
+      setLoading(false);
+      return;
+    }
 
     const shuffled = data.sort(() => Math.random() - 0.5).slice(0, 100).map((q, i) => {
-      const correctText = q[`option_${q.correct_option.toLowerCase()}`];
-      let options = [ { id: 'A', text: q.option_a }, { id: 'B', text: q.option_b }, { id: 'C', text: q.option_c }, { id: 'D', text: q.option_d } ];
+      // 1. Get the text of the correct answer from the DB (safe trim)
+      const correctKey = `option_${q.correct_option.toLowerCase().trim()}`;
+      const correctText = q[correctKey];
+
+      // 2. Create options array
+      let options = [
+        { id: 'A', text: q.option_a },
+        { id: 'B', text: q.option_b },
+        { id: 'C', text: q.option_c },
+        { id: 'D', text: q.option_d }
+      ];
+
+      // 3. Shuffle options
       options = options.sort(() => Math.random() - 0.5);
-      const newCorrect = ['A', 'B', 'C', 'D'][options.findIndex(o => o.text === correctText)];
-      return { ...q, exam_number: i + 1, display_options: options, new_correct_option: newCorrect };
+
+      // 4. Find where the correct answer moved to
+      // We use a loose check (trim) to ensure matching even if DB has spaces
+      const foundIndex = options.findIndex(o => o.text?.trim() === correctText?.trim());
+      
+      // 5. SAFETY FALLBACK: If index is -1 (not found), default to original correct option.
+      const newCorrect = foundIndex !== -1 ? ['A', 'B', 'C', 'D'][foundIndex] : q.correct_option;
+
+      return { 
+        ...q, 
+        exam_number: i + 1, 
+        display_options: options, 
+        new_correct_option: newCorrect 
+      };
     });
-    setQuestions(shuffled); setLoading(false);
+
+    setQuestions(shuffled);
+    setLoading(false);
   };
 
   const handleSelect = (label: string) => {
@@ -132,12 +165,18 @@ export default function ExamPage() {
   const handleSubmit = async () => {
     setSubmitted(true);
     let calcScore = 0;
-    questions.forEach(q => { if (answers[q.id] === q.new_correct_option) calcScore++; });
+    // Robust scoring check
+    questions.forEach(q => { 
+        const userAns = answers[q.id];
+        // Ensure both are valid strings before comparing
+        if (userAns && q.new_correct_option && userAns === q.new_correct_option) {
+            calcScore++; 
+        }
+    });
     setScore(calcScore);
     
     const { data: { user } } = await supabase.auth.getUser();
     if(user) {
-        // SAVING TO MTH 101
         await supabase.from('results').insert({
             user_id: user.id, 
             course_code: 'MTH 101', 
@@ -306,5 +345,5 @@ export default function ExamPage() {
       </div>
     </div>
   );
-      }
-                                           
+          }
+          
