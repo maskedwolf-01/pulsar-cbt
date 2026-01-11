@@ -73,7 +73,7 @@ export default function ExamPage() {
   const [submitted, setSubmitted] = useState(false);
   const [isReviewing, setIsReviewing] = useState(false);
   const [score, setScore] = useState(0);
-  const [timeLeft, setTimeLeft] = useState(60 * 15); // 15 Minutes
+  const [timeLeft, setTimeLeft] = useState(60 * 35); // 35 Minutes
   const [timeTaken, setTimeTaken] = useState(0);
   const [showCalculator, setShowCalculator] = useState(false);
   const [gridPage, setGridPage] = useState(0); 
@@ -101,16 +101,33 @@ export default function ExamPage() {
   };
 
   const fetchAndShuffleQuestions = async () => {
-    // FETCHING PHY 101 SPECIFICALLY
+    // FETCHING PHY 101
     const { data, error } = await supabase.from('questions').select('*').eq('course_code', 'PHY 101');
     if (error || !data || data.length === 0) { setLoading(false); return; }
 
     const shuffled = data.sort(() => Math.random() - 0.5).slice(0, 100).map((q, i) => {
-      const correctText = q[`option_${q.correct_option.toLowerCase()}`];
-      let options = [ { id: 'A', text: q.option_a }, { id: 'B', text: q.option_b }, { id: 'C', text: q.option_c }, { id: 'D', text: q.option_d } ];
+      // Robust Grading Logic
+      const correctKey = `option_${q.correct_option.toLowerCase().trim()}`;
+      const correctText = q[correctKey];
+
+      let options = [ 
+        { id: 'A', text: q.option_a }, 
+        { id: 'B', text: q.option_b }, 
+        { id: 'C', text: q.option_c }, 
+        { id: 'D', text: q.option_d } 
+      ];
+      
       options = options.sort(() => Math.random() - 0.5);
-      const newCorrect = ['A', 'B', 'C', 'D'][options.findIndex(o => o.text === correctText)];
-      return { ...q, exam_number: i + 1, display_options: options, new_correct_option: newCorrect };
+      
+      const foundIndex = options.findIndex(o => o.text?.trim() === correctText?.trim());
+      const newCorrect = foundIndex !== -1 ? ['A', 'B', 'C', 'D'][foundIndex] : q.correct_option;
+
+      return { 
+        ...q, 
+        exam_number: i + 1, 
+        display_options: options, 
+        new_correct_option: newCorrect 
+      };
     });
     setQuestions(shuffled); setLoading(false);
   };
@@ -132,12 +149,15 @@ export default function ExamPage() {
   const handleSubmit = async () => {
     setSubmitted(true);
     let calcScore = 0;
-    questions.forEach(q => { if (answers[q.id] === q.new_correct_option) calcScore++; });
+    questions.forEach(q => { 
+        if (answers[q.id] && q.new_correct_option && answers[q.id] === q.new_correct_option) {
+            calcScore++;
+        }
+    });
     setScore(calcScore);
     
     const { data: { user } } = await supabase.auth.getUser();
     if(user) {
-        // SAVING TO PHY 101
         await supabase.from('results').insert({
             user_id: user.id, 
             course_code: 'PHY 101', 
@@ -176,7 +196,7 @@ export default function ExamPage() {
             <h3 className="text-zinc-400 font-bold text-xs uppercase tracking-widest mb-3 flex gap-2"><Info className="w-3 h-3"/> Instructions</h3>
             <ul className="text-sm text-zinc-300 space-y-3">
                 <li className="flex gap-2"><CheckCircle className="w-4 h-4 text-green-500"/> Answer all questions.</li>
-                <li className="flex gap-2"><Clock className="w-4 h-4 text-orange-500"/> Time limit: 15 Minutes.</li>
+                <li className="flex gap-2"><Clock className="w-4 h-4 text-orange-500"/> Time limit: 35 Minutes.</li>
                 <li className="flex gap-2"><RefreshCw className="w-4 h-4 text-blue-500"/> Questions are shuffled.</li>
             </ul>
         </div>
@@ -306,5 +326,5 @@ export default function ExamPage() {
       </div>
     </div>
   );
-  }
-                                                                                                
+                      }
+          
