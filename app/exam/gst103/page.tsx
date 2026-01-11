@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import html2canvas from 'html2canvas';
 import { 
   Loader2, CheckCircle, XCircle, Clock, ChevronRight, ChevronLeft, 
-  Award, AlertCircle, X, Calculator, Share2, Search, Info, Home, RefreshCw, User, BookOpen
+  Award, AlertCircle, X, Calculator, Share2, Search, Info, Home, RefreshCw, User, Lightbulb, BookOpen
 } from 'lucide-react';
 
 const supabase = createClient(
@@ -73,7 +73,7 @@ export default function ExamPage() {
   const [submitted, setSubmitted] = useState(false);
   const [isReviewing, setIsReviewing] = useState(false);
   const [score, setScore] = useState(0);
-  const [timeLeft, setTimeLeft] = useState(60 * 35); // 35 Minutes
+  const [timeLeft, setTimeLeft] = useState(60 * 35); 
   const [timeTaken, setTimeTaken] = useState(0);
   const [showCalculator, setShowCalculator] = useState(false);
   const [gridPage, setGridPage] = useState(0); 
@@ -101,17 +101,22 @@ export default function ExamPage() {
   };
 
   const fetchAndShuffleQuestions = async () => {
-    // FETCHING GST 103
-    const { data, error } = await supabase.from('questions').select('*').eq('course_code', 'GST 103');
-    if (error || !data || data.length === 0) { setLoading(false); return; }
+    const { data, error } = await supabase
+      .from('questions')
+      .select('*, explanation') // Fetch explanation
+      .eq('course_code', 'GST 103'); // GST 103
+
+    if (error || !data || data.length === 0) {
+      setLoading(false);
+      return;
+    }
 
     const shuffled = data.sort(() => Math.random() - 0.5).slice(0, 100).map((q, i) => {
-      // Robust Grading Logic
       const correctKey = `option_${q.correct_option.toLowerCase().trim()}`;
       const correctText = q[correctKey];
 
-      let options = [ 
-        { id: 'A', text: q.option_a }, 
+      let options = [
+        { id: 'A', text: q.option_a },
         { id: 'B', text: q.option_b }, 
         { id: 'C', text: q.option_c }, 
         { id: 'D', text: q.option_d } 
@@ -131,8 +136,7 @@ export default function ExamPage() {
     });
     setQuestions(shuffled); setLoading(false);
   };
-
-  const handleSelect = (label: string) => {
+    const handleSelect = (label: string) => {
     if (submitted) return; 
     setAnswers({ ...answers, [questions[currentIndex].id]: label });
   };
@@ -150,7 +154,8 @@ export default function ExamPage() {
     setSubmitted(true);
     let calcScore = 0;
     questions.forEach(q => { 
-        if (answers[q.id] && q.new_correct_option && answers[q.id] === q.new_correct_option) {
+        const userAns = answers[q.id];
+        if (userAns && q.new_correct_option && userAns === q.new_correct_option) {
             calcScore++;
         }
     });
@@ -162,7 +167,11 @@ export default function ExamPage() {
             user_id: user.id, 
             course_code: 'GST 103', 
             score: Math.round((calcScore/questions.length)*100), 
-            total_questions: questions.length
+            total_questions: questions.length,
+            exam_snapshot: { // Save History
+                questions: questions,
+                answers: answers
+            }
         });
     }
   };
@@ -265,28 +274,56 @@ export default function ExamPage() {
         <div className="bg-[#111113] border border-zinc-800 p-6 md:p-10 rounded-3xl shadow-lg relative min-h-[500px] flex flex-col">
           <div className="flex justify-between items-start mb-6">
              <span className="text-xs font-bold text-zinc-500 tracking-widest">QUESTION {currentIndex + 1}</span>
-             {isReviewing && (<a href={`https://www.google.com/search?q=${encodeURIComponent(currentQ.question_text)}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-xs text-blue-400 hover:underline"><Search className="w-3 h-3"/> Explain with Google</a>)}
+             
+             {isReviewing && currentQ.explanation ? (
+                <div className="flex items-center gap-1 text-xs text-yellow-500 font-bold"><Lightbulb className="w-3 h-3"/> Explanation Available</div>
+             ) : isReviewing && (
+                <a href={`https://www.google.com/search?q=${encodeURIComponent(currentQ.question_text)}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-xs text-blue-400 hover:underline"><Search className="w-3 h-3"/> Explain with Google</a>
+             )}
           </div>
+
           <h2 className="text-lg md:text-xl font-medium text-white leading-relaxed mb-8 flex-1">{currentQ.question_text}</h2>
+          
           <div className="space-y-3 mb-8">
             {currentQ.display_options.map((opt: any, idx: number) => {
               const label = ['A', 'B', 'C', 'D'][idx];
               const isSelected = answers[currentQ.id] === label;
               const isCorrectOption = label === currentQ.new_correct_option;
+              
               let btnClass = "bg-black/20 border-zinc-800 text-zinc-300 hover:bg-zinc-800";
+              
               if (isReviewing) {
-                 if (isCorrectOption) btnClass = "bg-green-500/10 border-green-500 text-green-500 font-bold";
-                 else if (isSelected && !isCorrectOption) btnClass = "bg-red-500/10 border-red-500 text-red-500 font-bold opacity-60";
-                 else btnClass = "opacity-30 border-zinc-900";
-              } else { if (isSelected) btnClass = "bg-purple-600 border-purple-600 text-white shadow-lg shadow-purple-900/20"; }
+                 if (isCorrectOption) {
+                     btnClass = "bg-green-500/10 border-green-500 text-green-500 font-bold opacity-100";
+                 } else if (isSelected && !isCorrectOption) {
+                     btnClass = "bg-red-500/10 border-red-500 text-red-500 font-bold opacity-100";
+                 } else {
+                     btnClass = "opacity-30 border-zinc-900";
+                 }
+              } else { 
+                  if (isSelected) btnClass = "bg-purple-600 border-purple-600 text-white shadow-lg shadow-purple-900/20"; 
+              }
+
               return (
                 <button key={idx} onClick={() => handleSelect(label)} disabled={isReviewing} className={`w-full text-left p-4 rounded-xl border transition-all flex items-center gap-4 ${btnClass}`}>
                   <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold border border-current opacity-80 shrink-0`}>{label}</div>
                   <span>{opt.text}</span>
+                  {isReviewing && isCorrectOption && <CheckCircle className="ml-auto w-5 h-5"/>}
+                  {isReviewing && isSelected && !isCorrectOption && <XCircle className="ml-auto w-5 h-5"/>}
                 </button>
               );
             })}
           </div>
+
+          {isReviewing && currentQ.explanation && (
+             <div className="mb-6 p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-xl animate-fade-in">
+                <div className="text-yellow-500 text-xs font-bold uppercase tracking-widest mb-2 flex items-center gap-2">
+                    <Lightbulb className="w-4 h-4"/> Explanation
+                </div>
+                <p className="text-sm text-zinc-300 leading-relaxed">{currentQ.explanation}</p>
+             </div>
+          )}
+
           <div className="flex justify-between pt-6 border-t border-zinc-800">
             <button onClick={() => setCurrentIndex(p => Math.max(0, p-1))} disabled={currentIndex===0} className="px-6 py-3 rounded-xl bg-zinc-800 disabled:opacity-50 text-sm font-bold flex items-center gap-2"><ChevronLeft className="w-4 h-4"/> Prev</button>
             {currentIndex === questions.length - 1 && !isReviewing ? (
@@ -326,5 +363,6 @@ export default function ExamPage() {
       </div>
     </div>
   );
-                      }
-              
+                                              }
+        
+               
