@@ -3,9 +3,10 @@ import { useEffect, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Loader2, BookOpen, Activity, FileText } from "lucide-react";
+// Added ChevronRight for the clickable indicator
+import { Loader2, BookOpen, Activity, FileText, ChevronRight } from "lucide-react";
 import BottomNav from "../components/BottomNav";
-import Header from "../components/Header"; // This fixes the Bell & Red Dot alignment
+import Header from "../components/Header"; 
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -93,11 +94,10 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-[#09090b] text-white pb-24 font-sans">
       
-      {/* 1. REUSED HEADER (Fixes Notification & Alignment) */}
-      {/* We pass the greeting as the title so it looks like the Dashboard */}
+      {/* 1. REUSED HEADER (Kept your logic) */}
       <Header title={`${greeting}, ${firstName}`} />
 
-      {/* 2. STATS CARDS */}
+      {/* 2. STATS CARDS (Kept your logic) */}
       <div className="grid grid-cols-2 gap-4 px-6 my-6">
         <div className="bg-[#111113] border border-zinc-800 p-5 rounded-2xl">
           <div className="text-[10px] uppercase text-zinc-500 font-bold flex items-center gap-2">
@@ -113,7 +113,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* 3. RECENT ACTIVITY (Restored Layout & Colors) */}
+      {/* 3. RECENT ACTIVITY (UPDATED to be Clickable) */}
       <div className="px-6">
         <h2 className="text-lg font-bold text-white mb-4">Recent Activity</h2>
 
@@ -135,7 +135,7 @@ export default function Dashboard() {
         ) : (
           <div className="space-y-3">
             {recentResults.map((r) => {
-              // COLOR LOGIC (Using safer syntax)
+              // COLOR LOGIC (Kept your exact color logic)
               let colorClasses = "bg-red-500 bg-opacity-10 text-red-500 border-red-500 border-opacity-20";
               if (r.score >= 70) {
                 colorClasses = "bg-green-500 bg-opacity-10 text-green-500 border-green-500 border-opacity-20";
@@ -144,27 +144,33 @@ export default function Dashboard() {
               }
 
               return (
-                <div
-                  key={r.id}
-                  className="bg-[#111113] border border-zinc-800 p-4 rounded-2xl flex items-center gap-4 hover:border-zinc-700 transition-colors"
-                >
-                  {/* Score Box (Left Side) - Restored Size & Color */}
-                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-bold text-sm border ${colorClasses}`}>
-                    {r.score}%
+                // WRAPPED IN LINK TO MAKE IT CLICKABLE
+                <Link href={`/history/${r.id}`} key={r.id} className="block group">
+                  <div className="bg-[#111113] border border-zinc-800 p-4 rounded-2xl flex items-center justify-between hover:border-zinc-600 transition-colors">
+                    
+                    <div className="flex items-center gap-4">
+                        {/* Score Box (Left Side) */}
+                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-bold text-sm border ${colorClasses}`}>
+                        {r.score}%
+                        </div>
+                        
+                        {/* Details */}
+                        <div>
+                        <h4 className="font-bold text-white text-sm group-hover:text-[#7cffd9] transition-colors">{r.course_code}</h4>
+                        <p className="text-[10px] text-zinc-500 font-medium">
+                            {new Date(r.created_at).toLocaleDateString(undefined, {
+                            month: 'short',
+                            day: 'numeric',
+                            year: 'numeric'
+                            })}
+                        </p>
+                        </div>
+                    </div>
+
+                    {/* Added Chevron for better UX */}
+                    <ChevronRight className="w-5 h-5 text-zinc-600 group-hover:text-white transition-colors"/>
                   </div>
-                  
-                  {/* Details (Right Side) */}
-                  <div>
-                    <h4 className="font-bold text-white text-sm">{r.course_code}</h4>
-                    <p className="text-[10px] text-zinc-500 font-medium">
-                      {new Date(r.created_at).toLocaleDateString(undefined, {
-                        month: 'short',
-                        day: 'numeric',
-                        year: 'numeric'
-                      })}
-                    </p>
-                  </div>
-                </div>
+                </Link>
               );
             })}
           </div>
@@ -174,5 +180,5 @@ export default function Dashboard() {
       <BottomNav active="home" />
     </div>
   );
-          }
-        
+}
+  
