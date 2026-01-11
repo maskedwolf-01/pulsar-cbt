@@ -168,9 +168,9 @@ export default function Courses() {
                         </button>
                     </Link>
 
-                    {/* Floating Duration Label */}
+                    {/* Floating Duration Label - UPDATED TO 25m */}
                     <div className="absolute top-5 right-5 flex items-center gap-1 text-zinc-500 text-[10px] font-bold">
-                        <Clock className="w-3 h-3"/> 15m
+                        <Clock className="w-3 h-3"/> 25m
                     </div>
                 </div>
             ))
@@ -185,4 +185,4 @@ export default function Courses() {
     </div>
   );
       }
-      
+                                 
