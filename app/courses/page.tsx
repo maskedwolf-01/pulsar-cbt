@@ -118,7 +118,7 @@ export default function Courses() {
             <Search className="absolute left-4 top-3.5 w-5 h-5 text-zinc-500"/>
             <input 
               type="text" 
-              placeholder="Search (e.g. CHM 101)" 
+              placeholder="Search (e.g. MTH 101)" 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full bg-[#111113] border border-zinc-800 text-white pl-12 pr-4 py-3.5 rounded-2xl focus:outline-none focus:border-purple-500/50 transition-all placeholder:text-zinc-600 text-sm"
@@ -168,9 +168,9 @@ export default function Courses() {
                         </button>
                     </Link>
 
-                    {/* Floating Duration Label - UPDATED TO 25m */}
+                    {/* Floating Duration Label - UPDATED TO 35m */}
                     <div className="absolute top-5 right-5 flex items-center gap-1 text-zinc-500 text-[10px] font-bold">
-                        <Clock className="w-3 h-3"/> 25m
+                        <Clock className="w-3 h-3"/> 35m
                     </div>
                 </div>
             ))
@@ -185,4 +185,4 @@ export default function Courses() {
     </div>
   );
       }
-                                 
+      
