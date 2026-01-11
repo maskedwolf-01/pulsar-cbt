@@ -5,7 +5,7 @@ import './globals.css';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://pulsar-cbt.vercel.app'), // Tells Google this is your main link
+  metadataBase: new URL('https://pulsar-cbt.vercel.app'),
   title: {
     default: 'Pulsar CBT | Best Exam Practice Site for Students',
     template: '%s | Pulsar CBT', 
@@ -32,7 +32,7 @@ export const metadata: Metadata = {
     siteName: 'Pulsar CBT',
     images: [
       {
-        url: '/og-image.png', // We will add this image in Step 4
+        url: '/og-image.png',
         width: 1200,
         height: 630,
         alt: 'Pulsar CBT Dashboard',
@@ -41,11 +41,9 @@ export const metadata: Metadata = {
     locale: 'en_NG',
     type: 'website',
   },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'Pulsar CBT | Practice Exams Online',
-    description: 'Real-time scoring and corrections for university exams.',
-    images: ['/og-image.png'],
+  // ✅ YOUR GOOGLE VERIFICATION CODE IS HERE:
+  verification: {
+    google: 'hugNiTDq-Yc1WjydouZi5mmLtNU6iaCmbhxSymjAWe8',
   },
   robots: {
     index: true,
@@ -73,4 +71,3 @@ export default function RootLayout({
     </html>
   );
     }
-      
