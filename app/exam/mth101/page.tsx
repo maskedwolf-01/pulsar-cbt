@@ -13,7 +13,6 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-// --- MODAL COMPONENT ---
 const PulsarModal = ({ title, message, onConfirm, onCancel, confirmText="Confirm", cancelText="Cancel", isDestructive=false, singleButton=false }: any) => (
   <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
      <div className="bg-[#111113] border border-zinc-800 p-6 rounded-2xl w-full max-w-sm text-center shadow-2xl scale-100">
@@ -32,7 +31,6 @@ const PulsarModal = ({ title, message, onConfirm, onCancel, confirmText="Confirm
   </div>
 );
 
-// --- CALCULATOR COMPONENT ---
 const ExamCalculator = ({ onClose }: { onClose: () => void }) => {
   const [display, setDisplay] = useState('0');
   const handlePress = (val: string) => {
@@ -61,7 +59,8 @@ const ExamCalculator = ({ onClose }: { onClose: () => void }) => {
     </div>
   );
 };
-                export default function ExamPage() {
+
+export default function ExamPage() {
   const router = useRouter();
   const resultCardRef = useRef<any>(null);
 
@@ -74,7 +73,7 @@ const ExamCalculator = ({ onClose }: { onClose: () => void }) => {
   const [submitted, setSubmitted] = useState(false);
   const [isReviewing, setIsReviewing] = useState(false);
   const [score, setScore] = useState(0);
-  const [timeLeft, setTimeLeft] = useState(60 * 15); // 15 Minutes
+  const [timeLeft, setTimeLeft] = useState(60 * 35); // 35 Minutes
   const [timeTaken, setTimeTaken] = useState(0);
   const [showCalculator, setShowCalculator] = useState(false);
   const [gridPage, setGridPage] = useState(0); 
@@ -101,39 +100,26 @@ const ExamCalculator = ({ onClose }: { onClose: () => void }) => {
     }
   };
 
-  // --- ROBUST FETCH FUNCTION (PREVENTS 0 SCORE BUG) ---
   const fetchAndShuffleQuestions = async () => {
-    const { data, error } = await supabase
-      .from('questions')
-      .select('*')
-      .eq('course_code', 'MTH 101'); 
-
-    if (error || !data || data.length === 0) {
-      setLoading(false);
-      return;
-    }
+    // FETCHING MTH 101
+    const { data, error } = await supabase.from('questions').select('*').eq('course_code', 'MTH 101');
+    if (error || !data || data.length === 0) { setLoading(false); return; }
 
     const shuffled = data.sort(() => Math.random() - 0.5).slice(0, 100).map((q, i) => {
-      // 1. Get the text of the correct answer from the DB (safe trim)
+      // Robust Grading Logic
       const correctKey = `option_${q.correct_option.toLowerCase().trim()}`;
       const correctText = q[correctKey];
 
-      // 2. Create options array
-      let options = [
-        { id: 'A', text: q.option_a },
-        { id: 'B', text: q.option_b },
-        { id: 'C', text: q.option_c },
-        { id: 'D', text: q.option_d }
+      let options = [ 
+        { id: 'A', text: q.option_a }, 
+        { id: 'B', text: q.option_b }, 
+        { id: 'C', text: q.option_c }, 
+        { id: 'D', text: q.option_d } 
       ];
-
-      // 3. Shuffle options
-      options = options.sort(() => Math.random() - 0.5);
-
-      // 4. Find where the correct answer moved to
-      // We use a loose check (trim) to ensure matching even if DB has spaces
-      const foundIndex = options.findIndex(o => o.text?.trim() === correctText?.trim());
       
-      // 5. SAFETY FALLBACK: If index is -1 (not found), default to original correct option.
+      options = options.sort(() => Math.random() - 0.5);
+      
+      const foundIndex = options.findIndex(o => o.text?.trim() === correctText?.trim());
       const newCorrect = foundIndex !== -1 ? ['A', 'B', 'C', 'D'][foundIndex] : q.correct_option;
 
       return { 
@@ -143,9 +129,7 @@ const ExamCalculator = ({ onClose }: { onClose: () => void }) => {
         new_correct_option: newCorrect 
       };
     });
-
-    setQuestions(shuffled);
-    setLoading(false);
+    setQuestions(shuffled); setLoading(false);
   };
 
   const handleSelect = (label: string) => {
@@ -165,12 +149,9 @@ const ExamCalculator = ({ onClose }: { onClose: () => void }) => {
   const handleSubmit = async () => {
     setSubmitted(true);
     let calcScore = 0;
-    // Robust scoring check
     questions.forEach(q => { 
-        const userAns = answers[q.id];
-        // Ensure both are valid strings before comparing
-        if (userAns && q.new_correct_option && userAns === q.new_correct_option) {
-            calcScore++; 
+        if (answers[q.id] && q.new_correct_option && answers[q.id] === q.new_correct_option) {
+            calcScore++;
         }
     });
     setScore(calcScore);
@@ -215,7 +196,7 @@ const ExamCalculator = ({ onClose }: { onClose: () => void }) => {
             <h3 className="text-zinc-400 font-bold text-xs uppercase tracking-widest mb-3 flex gap-2"><Info className="w-3 h-3"/> Instructions</h3>
             <ul className="text-sm text-zinc-300 space-y-3">
                 <li className="flex gap-2"><CheckCircle className="w-4 h-4 text-green-500"/> Answer all questions.</li>
-                <li className="flex gap-2"><Clock className="w-4 h-4 text-orange-500"/> Time limit: 15 Minutes.</li>
+                <li className="flex gap-2"><Clock className="w-4 h-4 text-orange-500"/> Time limit: 35 Minutes.</li>
                 <li className="flex gap-2"><RefreshCw className="w-4 h-4 text-blue-500"/> Questions are shuffled.</li>
             </ul>
         </div>
@@ -345,5 +326,5 @@ const ExamCalculator = ({ onClose }: { onClose: () => void }) => {
       </div>
     </div>
   );
-          }
-          
+  }
+    
