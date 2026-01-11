@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import html2canvas from 'html2canvas';
 import { 
   Loader2, CheckCircle, XCircle, Clock, ChevronRight, ChevronLeft, 
-  Award, AlertCircle, X, Calculator, Share2, Search, Info, Home, RefreshCw, User
+  Award, AlertCircle, X, Calculator, Share2, Search, Info, Home, RefreshCw, User, Briefcase
 } from 'lucide-react';
 
 const supabase = createClient(
@@ -16,8 +16,8 @@ const supabase = createClient(
 const PulsarModal = ({ title, message, onConfirm, onCancel, confirmText="Confirm", cancelText="Cancel", isDestructive=false, singleButton=false }: any) => (
   <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
      <div className="bg-[#111113] border border-zinc-800 p-6 rounded-2xl w-full max-w-sm text-center shadow-2xl scale-100">
-        <div className={`w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4 ${isDestructive ? 'bg-red-500/10' : 'bg-purple-500/10'}`}>
-            {isDestructive ? <AlertCircle className="w-6 h-6 text-red-500"/> : <CheckCircle className="w-6 h-6 text-purple-500"/>}
+        <div className={`w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4 ${isDestructive ? 'bg-red-500/10' : 'bg-orange-500/10'}`}>
+            {isDestructive ? <AlertCircle className="w-6 h-6 text-red-500"/> : <CheckCircle className="w-6 h-6 text-orange-500"/>}
         </div>
         <h3 className="text-lg font-bold text-white mb-2">{title}</h3>
         <p className="text-sm text-zinc-500 mb-6">{message}</p>
@@ -25,7 +25,7 @@ const PulsarModal = ({ title, message, onConfirm, onCancel, confirmText="Confirm
            {!singleButton && (
              <button onClick={onCancel} className="flex-1 py-3 bg-zinc-800 rounded-xl font-bold text-sm hover:bg-zinc-700 text-white transition-colors">{cancelText}</button>
            )}
-           <button onClick={onConfirm} className={`flex-1 py-3 rounded-xl font-bold text-sm text-white ${isDestructive ? 'bg-red-600 hover:bg-red-500' : 'bg-purple-600 hover:bg-purple-500'}`}>{confirmText}</button>
+           <button onClick={onConfirm} className={`flex-1 py-3 rounded-xl font-bold text-sm text-white ${isDestructive ? 'bg-red-600 hover:bg-red-500' : 'bg-orange-600 hover:bg-orange-500'}`}>{confirmText}</button>
         </div>
      </div>
   </div>
@@ -53,7 +53,7 @@ const ExamCalculator = ({ onClose }: { onClose: () => void }) => {
       <div className="bg-black p-3 rounded-lg text-right text-xl font-mono text-white mb-3 truncate">{display}</div>
       <div className="grid grid-cols-4 gap-2">
         {['7','8','9','/','4','5','6','*','1','2','3','-','C','0','=','+'].map(btn => (
-          <button key={btn} onClick={() => handlePress(btn)} className={`p-2 rounded-lg font-bold text-sm ${btn === '=' ? 'bg-purple-600 text-white col-span-2' : 'bg-zinc-800 text-zinc-300'}`}>{btn}</button>
+          <button key={btn} onClick={() => handlePress(btn)} className={`p-2 rounded-lg font-bold text-sm ${btn === '=' ? 'bg-orange-600 text-white col-span-2' : 'bg-zinc-800 text-zinc-300'}`}>{btn}</button>
         ))}
       </div>
     </div>
@@ -73,7 +73,7 @@ export default function ExamPage() {
   const [submitted, setSubmitted] = useState(false);
   const [isReviewing, setIsReviewing] = useState(false);
   const [score, setScore] = useState(0);
-  const [timeLeft, setTimeLeft] = useState(60 * 15); // 15 Minutes
+  const [timeLeft, setTimeLeft] = useState(60 * 35); // 35 Minutes
   const [timeTaken, setTimeTaken] = useState(0);
   const [showCalculator, setShowCalculator] = useState(false);
   const [gridPage, setGridPage] = useState(0); 
@@ -101,16 +101,33 @@ export default function ExamPage() {
   };
 
   const fetchAndShuffleQuestions = async () => {
-    // FETCHING ENT 101 SPECIFICALLY
+    // FETCHING ENT 101
     const { data, error } = await supabase.from('questions').select('*').eq('course_code', 'ENT 101');
     if (error || !data || data.length === 0) { setLoading(false); return; }
 
     const shuffled = data.sort(() => Math.random() - 0.5).slice(0, 100).map((q, i) => {
-      const correctText = q[`option_${q.correct_option.toLowerCase()}`];
-      let options = [ { id: 'A', text: q.option_a }, { id: 'B', text: q.option_b }, { id: 'C', text: q.option_c }, { id: 'D', text: q.option_d } ];
+      // Robust Grading Logic
+      const correctKey = `option_${q.correct_option.toLowerCase().trim()}`;
+      const correctText = q[correctKey];
+
+      let options = [ 
+        { id: 'A', text: q.option_a }, 
+        { id: 'B', text: q.option_b }, 
+        { id: 'C', text: q.option_c }, 
+        { id: 'D', text: q.option_d } 
+      ];
+      
       options = options.sort(() => Math.random() - 0.5);
-      const newCorrect = ['A', 'B', 'C', 'D'][options.findIndex(o => o.text === correctText)];
-      return { ...q, exam_number: i + 1, display_options: options, new_correct_option: newCorrect };
+      
+      const foundIndex = options.findIndex(o => o.text?.trim() === correctText?.trim());
+      const newCorrect = foundIndex !== -1 ? ['A', 'B', 'C', 'D'][foundIndex] : q.correct_option;
+
+      return { 
+        ...q, 
+        exam_number: i + 1, 
+        display_options: options, 
+        new_correct_option: newCorrect 
+      };
     });
     setQuestions(shuffled); setLoading(false);
   };
@@ -132,12 +149,15 @@ export default function ExamPage() {
   const handleSubmit = async () => {
     setSubmitted(true);
     let calcScore = 0;
-    questions.forEach(q => { if (answers[q.id] === q.new_correct_option) calcScore++; });
+    questions.forEach(q => { 
+        if (answers[q.id] && q.new_correct_option && answers[q.id] === q.new_correct_option) {
+            calcScore++;
+        }
+    });
     setScore(calcScore);
     
     const { data: { user } } = await supabase.auth.getUser();
     if(user) {
-        // SAVING TO ENT 101
         await supabase.from('results').insert({
             user_id: user.id, 
             course_code: 'ENT 101', 
@@ -169,14 +189,14 @@ export default function ExamPage() {
   if (!examStarted) return (
     <div className="min-h-screen bg-[#09090b] flex items-center justify-center p-6">
       <div className="max-w-md w-full bg-[#111113] border border-zinc-800 p-8 rounded-3xl text-center shadow-2xl">
-        <div className="w-20 h-20 bg-purple-600/20 rounded-full flex items-center justify-center mx-auto mb-6"><Award className="w-10 h-10 text-purple-500"/></div>
+        <div className="w-20 h-20 bg-orange-600/20 rounded-full flex items-center justify-center mx-auto mb-6"><Briefcase className="w-10 h-10 text-orange-500"/></div>
         <h1 className="text-2xl font-bold text-white mb-2">ENT 101</h1>
         <p className="text-zinc-500 text-sm mb-6">Introduction to Entrepreneurship</p>
         <div className="bg-zinc-900/50 text-left p-5 rounded-xl border border-zinc-800 mb-8">
             <h3 className="text-zinc-400 font-bold text-xs uppercase tracking-widest mb-3 flex gap-2"><Info className="w-3 h-3"/> Instructions</h3>
             <ul className="text-sm text-zinc-300 space-y-3">
                 <li className="flex gap-2"><CheckCircle className="w-4 h-4 text-green-500"/> Answer all questions.</li>
-                <li className="flex gap-2"><Clock className="w-4 h-4 text-orange-500"/> Time limit: 15 Minutes.</li>
+                <li className="flex gap-2"><Clock className="w-4 h-4 text-orange-500"/> Time limit: 35 Minutes.</li>
                 <li className="flex gap-2"><RefreshCw className="w-4 h-4 text-blue-500"/> Questions are shuffled.</li>
             </ul>
         </div>
@@ -192,10 +212,10 @@ export default function ExamPage() {
       <div className="min-h-screen bg-[#09090b] text-white p-6 flex items-center justify-center">
         <div className="w-full max-w-md">
             <div ref={resultCardRef} className="bg-[#111113] border border-zinc-800 p-8 rounded-3xl text-center shadow-2xl mb-6 relative overflow-hidden">
-                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 to-pink-500"></div>
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-orange-500 to-amber-500"></div>
                 <div className="flex flex-col items-center mb-6">
                     <div className="w-16 h-16 bg-zinc-900 rounded-full border border-zinc-700 flex items-center justify-center mb-3">
-                        <User className="w-8 h-8 text-purple-500"/>
+                        <User className="w-8 h-8 text-orange-500"/>
                     </div>
                     <h2 className="text-xl font-bold text-white">{userName}</h2>
                 </div>
@@ -220,7 +240,7 @@ export default function ExamPage() {
             </div>
             <div className="grid grid-cols-2 gap-3">
                 <button onClick={() => setIsReviewing(true)} className="py-4 bg-zinc-800 text-white font-bold rounded-xl hover:bg-zinc-700 transition-colors">Review Answers</button>
-                <button onClick={handleShare} className="py-4 bg-purple-600 text-white font-bold rounded-xl hover:bg-purple-500 flex items-center justify-center gap-2 transition-colors shadow-lg shadow-purple-900/20"><Share2 className="w-4 h-4"/> Share Result</button>
+                <button onClick={handleShare} className="py-4 bg-orange-600 text-white font-bold rounded-xl hover:bg-orange-500 flex items-center justify-center gap-2 transition-colors shadow-lg shadow-orange-900/20"><Share2 className="w-4 h-4"/> Share Result</button>
             </div>
             <button onClick={() => router.push('/dashboard')} className="w-full py-4 mt-3 text-zinc-500 font-bold text-sm hover:text-white transition-colors">Back to Dashboard</button>
         </div>
@@ -237,8 +257,8 @@ export default function ExamPage() {
       {modalConfig && <PulsarModal {...modalConfig} />}
       <div className="flex justify-between items-center mb-6">
         <button onClick={triggerExit} className="p-2 bg-zinc-800/50 rounded-full hover:bg-zinc-800 text-zinc-400">{isReviewing ? <Home className="w-5 h-5"/> : <X className="w-5 h-5"/>}</button>
-        {isReviewing ? (<div className="px-4 py-1 bg-purple-900/30 border border-purple-500/30 rounded-full text-purple-300 text-xs font-bold uppercase tracking-widest">Review Mode</div>) : (<div className={`font-mono font-bold text-lg ${timeLeft < 300 ? 'text-red-500 animate-pulse' : 'text-purple-400'}`}>{Math.floor(timeLeft/60)}:{String(timeLeft%60).padStart(2,'0')}</div>)}
-        <button onClick={() => setShowCalculator(!showCalculator)} className={`p-2 rounded-full ${showCalculator ? 'bg-purple-600 text-white' : 'bg-zinc-800/50 text-zinc-400'}`}><Calculator className="w-5 h-5"/></button>
+        {isReviewing ? (<div className="px-4 py-1 bg-orange-900/30 border border-orange-500/30 rounded-full text-orange-300 text-xs font-bold uppercase tracking-widest">Review Mode</div>) : (<div className={`font-mono font-bold text-lg ${timeLeft < 300 ? 'text-red-500 animate-pulse' : 'text-orange-400'}`}>{Math.floor(timeLeft/60)}:{String(timeLeft%60).padStart(2,'0')}</div>)}
+        <button onClick={() => setShowCalculator(!showCalculator)} className={`p-2 rounded-full ${showCalculator ? 'bg-orange-600 text-white' : 'bg-zinc-800/50 text-zinc-400'}`}><Calculator className="w-5 h-5"/></button>
       </div>
       {showCalculator && <ExamCalculator onClose={() => setShowCalculator(false)} />}
       <div className="max-w-5xl mx-auto grid md:grid-cols-[1fr_320px] gap-8">
@@ -258,7 +278,7 @@ export default function ExamPage() {
                  if (isCorrectOption) btnClass = "bg-green-500/10 border-green-500 text-green-500 font-bold";
                  else if (isSelected && !isCorrectOption) btnClass = "bg-red-500/10 border-red-500 text-red-500 font-bold opacity-60";
                  else btnClass = "opacity-30 border-zinc-900";
-              } else { if (isSelected) btnClass = "bg-purple-600 border-purple-600 text-white shadow-lg shadow-purple-900/20"; }
+              } else { if (isSelected) btnClass = "bg-orange-600 border-orange-600 text-white shadow-lg shadow-orange-900/20"; }
               return (
                 <button key={idx} onClick={() => handleSelect(label)} disabled={isReviewing} className={`w-full text-left p-4 rounded-xl border transition-all flex items-center gap-4 ${btnClass}`}>
                   <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold border border-current opacity-80 shrink-0`}>{label}</div>
@@ -290,13 +310,13 @@ export default function ExamPage() {
               const actualIndex = gridStart + i;
               const answered = answers[q.id];
               let colorClass = "bg-black/40 border-zinc-800 text-zinc-600 hover:border-zinc-600"; 
-              if (actualIndex === currentIndex) colorClass = "bg-white text-black border-white ring-2 ring-purple-500";
+              if (actualIndex === currentIndex) colorClass = "bg-white text-black border-white ring-2 ring-orange-500";
               else if (isReviewing) {
                  const isCorrect = answers[q.id] === q.new_correct_option;
                  colorClass = isCorrect ? "bg-green-500/20 text-green-500 border-green-500/50" : "bg-red-500/20 text-red-500 border-red-500/50";
                  if (!answers[q.id]) colorClass = "bg-zinc-800 text-zinc-500 border-zinc-700";
               }
-              else if (answered) colorClass = "bg-purple-600/20 text-purple-400 border-purple-500/50";
+              else if (answered) colorClass = "bg-orange-600/20 text-orange-400 border-orange-500/50";
               return (
                 <button key={q.id} onClick={() => setCurrentIndex(actualIndex)} className={`h-9 rounded-lg text-xs font-bold border transition-all ${colorClass}`}>{actualIndex + 1}</button>
               );
@@ -306,5 +326,5 @@ export default function ExamPage() {
       </div>
     </div>
   );
-  }
-       
+       }
+             
