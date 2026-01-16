@@ -73,7 +73,7 @@ export default function ExamPage() {
   const [submitted, setSubmitted] = useState(false);
   const [isReviewing, setIsReviewing] = useState(false);
   const [score, setScore] = useState(0);
-  const [timeLeft, setTimeLeft] = useState(60 * 35); 
+  const [timeLeft, setTimeLeft] = useState(60 * 25); 
   const [timeTaken, setTimeTaken] = useState(0);
   const [showCalculator, setShowCalculator] = useState(false);
   const [gridPage, setGridPage] = useState(0); 
