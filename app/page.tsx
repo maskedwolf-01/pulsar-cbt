@@ -7,7 +7,6 @@ import {
 } from 'lucide-react';
 
 // --- 1. DATA CONFIGURATION ---
-
 const EXAM_LINKS = [
   { code: "MTH 101", title: "Elementary Mathematics I", link: "/exam/mth101" },
   { code: "PHY 101", title: "General Physics I", link: "/exam/phy101" },
@@ -25,19 +24,19 @@ const REVIEWS = [
   {
     name: "Onipe Joshua",
     dept: "English Education",
-    img: "joshua.jpg", // Ensure this file is in your /public folder
+    img: "joshua.jpg", 
     quote: "I was drowning in GST 101 notes until I found PULSAR. The 'Rapid Fire' mode didn't just help me memorize; it helped me understand the logic."
   },
   {
     name: "Amuemoje Caleb",
     dept: "Computer Science",
-    img: "caleb.jpg", // Ensure this file is in your /public folder
+    img: "caleb.jpg", 
     quote: "PULSAR is the only platform that matches the actual speed of the FUOYE ICT center. No lag, no glitches. It’s a full simulation."
   },
   {
     name: "Raji Muzzamil",
     dept: "Geology",
-    img: "raji.jpg", // Ensure this file is in your /public folder
+    img: "raji.jpg", 
     quote: "The step-by-step corrections on this site broke down vectors and motion into simple math I could actually do in my head."
   }
 ];
@@ -46,13 +45,13 @@ const TEAM = [
   {
     name: "Majeed Abdulwali",
     role: "Founder & Visionary",
-    img: "founder.jpg", // Ensure this file is in your /public folder
+    img: "founder.jpg",
     desc: "100L Computer Science student combining technical expertise with academic insight to build tools that matter."
   },
   {
     name: "Amuemoje Caleb",
     role: "Co-Founder & Lead Dev",
-    img: "caleb.jpg", // Ensure this file is in your /public folder
+    img: "caleb.jpg",
     desc: "A brilliant software architect ensuring PULSAR runs with military-grade precision and zero downtime."
   }
 ];
@@ -69,12 +68,17 @@ const ReviewCard = ({ data }: { data: any }) => (
   <div className="w-[85vw] md:w-[450px] flex-shrink-0 snap-center p-4">
     <div className="h-full p-8 rounded-2xl bg-[#111113] border border-zinc-800 flex flex-col relative group hover:border-purple-500/30 transition-all">
       <div className="flex items-center gap-4 mb-6">
-        <div className="w-14 h-14 rounded-full p-[2px] bg-gradient-to-br from-purple-500 to-blue-500 shadow-lg">
+        <div className="w-14 h-14 rounded-full p-[2px] bg-gradient-to-br from-purple-500 to-blue-500 shadow-lg flex-shrink-0 relative overflow-hidden">
+           {/* Fallback to initials if image fails */}
            <img 
              src={`/${data.img}`} 
              alt={data.name} 
-             className="w-full h-full rounded-full object-cover border-2 border-[#111113]" 
+             className="w-full h-full rounded-full object-cover border-2 border-[#111113] bg-zinc-800"
+             onError={(e) => { e.currentTarget.style.opacity = '0'; e.currentTarget.nextElementSibling?.classList.remove('hidden'); }}
            />
+           <div className="hidden absolute inset-0 rounded-full bg-zinc-700 flex items-center justify-center font-bold text-white">
+             {data.name[0]}
+           </div>
         </div>
         <div>
           <h3 className="text-base font-bold text-white">{data.name}</h3>
@@ -94,7 +98,6 @@ const ReviewCard = ({ data }: { data: any }) => (
 export default function Home() {
   const sliderRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll Reviews
   useEffect(() => {
     const interval = setInterval(() => {
       if (sliderRef.current) {
@@ -110,7 +113,7 @@ export default function Home() {
     <div className="min-h-screen bg-[#050508] text-white font-sans selection:bg-purple-500/30 selection:text-white overflow-x-hidden">
       
       {/* NAVBAR */}
-      <nav className="fixed top-0 w-full z-50 backdrop-blur-xl border-b border-white/5 bg-[#050508]/80 supports-[backdrop-filter]:bg-[#050508]/60">
+      <nav className="fixed top-0 w-full z-50 backdrop-blur-xl border-b border-white/5 bg-[#050508]/80">
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-gradient-to-br from-purple-600 to-blue-600 rounded-lg flex items-center justify-center shadow-lg shadow-purple-900/20">
@@ -122,16 +125,15 @@ export default function Home() {
              <Link href="/login" className="hidden md:flex px-5 py-2 text-zinc-400 hover:text-white text-sm font-medium transition-colors">
                Login
              </Link>
-             <Link href="/courses" className="px-6 py-2 bg-white text-black hover:bg-zinc-200 rounded-full text-sm font-bold transition-all flex items-center gap-2">
-               Start Drill
+             <Link href="/dashboard" className="px-6 py-2 bg-white text-black hover:bg-zinc-200 rounded-full text-sm font-bold transition-all flex items-center gap-2">
+               Student Portal
              </Link>
           </div>
         </div>
       </nav>
 
-      {/* 1. HERO SECTION */}
+      {/* HERO SECTION */}
       <section className="relative pt-40 pb-20 px-6 overflow-hidden border-b border-white/5">
-        {/* Background Glows */}
         <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-purple-900/20 rounded-full blur-[120px] -z-10 translate-x-1/2 -translate-y-1/4"></div>
         <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-blue-900/10 rounded-full blur-[100px] -z-10 -translate-x-1/3 translate-y-1/4"></div>
         
@@ -153,8 +155,8 @@ export default function Home() {
               The premier CBT simulation platform for Federal University Oye-Ekiti. Precision timing, detailed analytics, and the exact 100-level syllabus.
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
-              <Link href="/courses" className="px-8 py-4 bg-white text-black font-bold rounded-xl hover:bg-zinc-200 transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(255,255,255,0.1)]">
-                View Catalog <ArrowRight className="w-4 h-4" />
+              <Link href="/dashboard" className="px-8 py-4 bg-white text-black font-bold rounded-xl hover:bg-zinc-200 transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(255,255,255,0.1)]">
+                Start Drill <ArrowRight className="w-4 h-4" />
               </Link>
               <Link href="#links" className="px-8 py-4 bg-zinc-900 border border-zinc-800 text-white font-bold rounded-xl hover:bg-zinc-800 transition-all flex items-center justify-center">
                 Quick Access
@@ -162,10 +164,8 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Abstract Graphic */}
           <div className="relative h-[450px] w-full bg-zinc-900/30 rounded-3xl border border-white/5 p-4 backdrop-blur-sm hidden md:block shadow-2xl">
              <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-blue-500/5 rounded-3xl"></div>
-             {/* UI Representation */}
              <div className="h-full w-full border border-white/5 rounded-2xl bg-[#09090b] p-8 relative overflow-hidden flex flex-col">
                 <div className="flex justify-between items-center mb-10">
                    <div className="h-3 w-32 bg-zinc-800 rounded-full"></div>
@@ -196,7 +196,7 @@ export default function Home() {
           </div>
         </div>
       </section>
-         {/* 2. QUICK ACCESS PORTAL */}
+          {/* QUICK ACCESS PORTAL */}
       <section id="links" className="py-24 bg-[#0a0a0f]">
         <div className="max-w-7xl mx-auto px-6">
           <div className="flex flex-col md:flex-row justify-between items-end mb-12 border-b border-white/5 pb-8">
@@ -269,15 +269,10 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 4. REVIEWS (With Real Images) */}
+      {/* 4. REVIEWS */}
       <section className="py-24 bg-[#0a0a0f] border-t border-white/5 overflow-hidden">
         <div className="max-w-7xl mx-auto px-6 mb-12 flex items-center justify-between">
            <h2 className="text-3xl font-bold text-white font-serif">Success Stories</h2>
-           <div className="flex gap-2">
-              <div className="w-2 h-2 rounded-full bg-purple-500"></div>
-              <div className="w-2 h-2 rounded-full bg-zinc-800"></div>
-              <div className="w-2 h-2 rounded-full bg-zinc-800"></div>
-           </div>
         </div>
         <div 
           ref={sliderRef}
@@ -290,18 +285,25 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 5. TEAM (With Real Images) */}
+      {/* 5. TEAM */}
       <section className="py-24 px-6 max-w-6xl mx-auto">
         <div className="text-center mb-16">
            <h2 className="text-3xl font-bold text-white font-serif mb-4">Built By Students, For Students</h2>
-           <p className="text-zinc-400">The engineering team behind the platform.</p>
         </div>
-        
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {TEAM.map((member, i) => (
              <div key={i} className="p-6 rounded-2xl bg-[#111113] border border-zinc-800 flex items-start gap-6 hover:bg-zinc-900/50 transition-colors group">
                 <div className="w-24 h-24 rounded-xl flex-shrink-0 border-2 border-zinc-700 overflow-hidden group-hover:border-purple-500 transition-colors">
-                    <img src={`/${member.img}`} alt={member.name} className="w-full h-full object-cover" />
+                    {/* Crash protection for team images */}
+                    <img 
+                      src={`/${member.img}`} 
+                      alt={member.name} 
+                      className="w-full h-full object-cover" 
+                      onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling?.classList.remove('hidden'); }}
+                    />
+                    <div className="hidden w-full h-full bg-zinc-800 flex items-center justify-center font-bold text-white">
+                      {member.name[0]}
+                    </div>
                 </div>
                 <div>
                    <h3 className="text-xl font-bold text-white">{member.name}</h3>
@@ -313,7 +315,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 6. SEO BLOCK (Academic Mission) */}
+      {/* 6. SEO BLOCK */}
       <section className="py-20 bg-zinc-900/30 border-y border-white/5">
          <div className="max-w-4xl mx-auto text-center px-6">
             <h2 className="text-2xl font-serif text-white mb-6">Our Mission</h2>
@@ -338,9 +340,8 @@ export default function Home() {
               <PulsarLogo className="w-6 h-6 text-zinc-600" />
               <span className="text-2xl font-bold text-zinc-700 font-serif">PULSAR</span>
            </div>
-           
            <div className="flex flex-col md:flex-row justify-center gap-6 md:gap-12 text-sm text-zinc-500 mb-12">
-              <Link href="/login" className="hover:text-white transition-colors">Student Terminal</Link>
+              <Link href="/dashboard" className="hover:text-white transition-colors">Student Terminal</Link>
               <Link href="/courses" className="hover:text-white transition-colors">Course Catalog</Link>
               <a href="mailto:abdulwalimajeed@gmail.com" className="hover:text-white transition-colors flex items-center justify-center gap-2">
                  <Mail className="w-4 h-4"/> abdulwalimajeed@gmail.com
@@ -349,14 +350,12 @@ export default function Home() {
                  <Phone className="w-4 h-4"/> 09068206698
               </a>
            </div>
-
            <div className="text-xs text-zinc-800 border-t border-zinc-900 pt-8">
               © 2025 Pulsar CBT. Engineered in Oye-Ekiti.
            </div>
         </div>
       </footer>
-
     </div>
   );
-      }
-            
+            }
+      
