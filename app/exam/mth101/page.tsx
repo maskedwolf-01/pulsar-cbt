@@ -73,7 +73,10 @@ export default function ExamPage() {
   const [submitted, setSubmitted] = useState(false);
   const [isReviewing, setIsReviewing] = useState(false);
   const [score, setScore] = useState(0);
+  
+  // 25 MINUTES TIMER (Calculation Course)
   const [timeLeft, setTimeLeft] = useState(60 * 25); 
+  
   const [timeTaken, setTimeTaken] = useState(0);
   const [showCalculator, setShowCalculator] = useState(false);
   const [gridPage, setGridPage] = useState(0); 
@@ -101,10 +104,9 @@ export default function ExamPage() {
   };
 
   const fetchAndShuffleQuestions = async () => {
-    // Select explanation along with other fields
     const { data, error } = await supabase
       .from('questions')
-      .select('*, explanation')
+      .select('*, explanation') 
       .eq('course_code', 'MTH 101'); 
 
     if (error || !data || data.length === 0) {
@@ -118,12 +120,13 @@ export default function ExamPage() {
 
       let options = [
         { id: 'A', text: q.option_a },
-        { id: 'B', text: q.option_b },
-        { id: 'C', text: q.option_c },
-        { id: 'D', text: q.option_d }
+        { id: 'B', text: q.option_b }, 
+        { id: 'C', text: q.option_c }, 
+        { id: 'D', text: q.option_d } 
       ];
-
+      
       options = options.sort(() => Math.random() - 0.5);
+      
       const foundIndex = options.findIndex(o => o.text?.trim() === correctText?.trim());
       const newCorrect = foundIndex !== -1 ? ['A', 'B', 'C', 'D'][foundIndex] : q.correct_option;
 
@@ -134,11 +137,9 @@ export default function ExamPage() {
         new_correct_option: newCorrect 
       };
     });
-
-    setQuestions(shuffled);
-    setLoading(false);
+    setQuestions(shuffled); setLoading(false);
   };
-             const handleSelect = (label: string) => {
+                     const handleSelect = (label: string) => {
     if (submitted) return; 
     setAnswers({ ...answers, [questions[currentIndex].id]: label });
   };
@@ -158,7 +159,7 @@ export default function ExamPage() {
     questions.forEach(q => { 
         const userAns = answers[q.id];
         if (userAns && q.new_correct_option && userAns === q.new_correct_option) {
-            calcScore++; 
+            calcScore++;
         }
     });
     setScore(calcScore);
@@ -170,7 +171,7 @@ export default function ExamPage() {
             course_code: 'MTH 101', 
             score: Math.round((calcScore/questions.length)*100), 
             total_questions: questions.length,
-            exam_snapshot: {
+            exam_snapshot: { // Save History
                 questions: questions,
                 answers: answers
             }
@@ -207,7 +208,7 @@ export default function ExamPage() {
             <h3 className="text-zinc-400 font-bold text-xs uppercase tracking-widest mb-3 flex gap-2"><Info className="w-3 h-3"/> Instructions</h3>
             <ul className="text-sm text-zinc-300 space-y-3">
                 <li className="flex gap-2"><CheckCircle className="w-4 h-4 text-green-500"/> Answer all questions.</li>
-                <li className="flex gap-2"><Clock className="w-4 h-4 text-orange-500"/> Time limit: 35 Minutes.</li>
+                <li className="flex gap-2"><Clock className="w-4 h-4 text-orange-500"/> Time limit: 25 Minutes.</li>
                 <li className="flex gap-2"><RefreshCw className="w-4 h-4 text-blue-500"/> Questions are shuffled.</li>
             </ul>
         </div>
@@ -365,5 +366,5 @@ export default function ExamPage() {
       </div>
     </div>
   );
-        }
-        
+      }
+    
