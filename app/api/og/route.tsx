@@ -2,7 +2,8 @@ import { ImageResponse } from 'next/og';
 
 export const runtime = 'edge';
 
-export default async function GET() {
+// FIXED: Removed "default". It must be a named export.
+export async function GET() {
   return new ImageResponse(
     (
       <div
@@ -94,5 +95,5 @@ export default async function GET() {
       height: 630,
     },
   );
-              }
-              
+            }
+        
