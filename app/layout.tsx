@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Playfair_Display } from "next/font/google"; 
 import "./globals.css";
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({ subsets: ["latin"], variable: '--font-inter' });
+const playfair = Playfair_Display({ subsets: ["latin"], variable: '--font-playfair' });
 
 export const metadata: Metadata = {
   title: 'Pulsar CBT | #1 FUOYE Exam Practice Platform',
-  description: 'The best free CBT practice site for FUOYE students. Master GST 101, GST 103, MTH 101, PHY 101, and more with realistic simulations and instant results.',
+  description: 'The premier academic simulation engine for Federal University Oye-Ekiti. Master MTH 101, GST 101, and more with precision timing and instant analytics.',
   metadataBase: new URL('https://pulsar-cbt.vercel.app'), 
   icons: {
     icon: '/icon.svg',
@@ -14,14 +15,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Pulsar CBT | Dominate Your FUOYE Exams',
     description: 'Free CBT practice for Federal University Oye-Ekiti. 200+ Questions per course. Instant Scoring.',
-    images: [
-      {
-        url: '/api/og',
-        width: 1200,
-        height: 630,
-        alt: 'Pulsar CBT Preview',
-      },
-    ],
+    images: [{ url: '/api/og', width: 1200, height: 630, alt: 'Pulsar CBT Preview' }],
     type: 'website',
   },
   twitter: {
@@ -40,7 +34,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={inter.className}>{children}</body>
+      <body className={`${inter.variable} ${playfair.variable} font-sans bg-[#050508] text-white antialiased`}>
+        {children}
+      </body>
     </html>
   );
 }
