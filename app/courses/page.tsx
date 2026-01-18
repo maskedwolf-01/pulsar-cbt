@@ -1,188 +1,184 @@
 "use client";
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { 
-  Search, Clock, BookOpen, ChevronRight, Cpu, Leaf, Briefcase, BarChart3, Atom, Calculator, FlaskConical
+  Loader2, ArrowLeft, Search, Calculator, FlaskConical, 
+  Cpu, BookOpen, Briefcase, Atom, BarChart3, Leaf, Mountain 
 } from 'lucide-react';
-import BottomNav from '../components/BottomNav';
+import { createClient } from '@supabase/supabase-js';
 
-export default function Courses() {
-  const [searchTerm, setSearchTerm] = useState('');
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
+
+export default function CoursesPage() {
+  const router = useRouter();
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+
+  useEffect(() => {
+    const checkUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) router.push('/auth');
+      else setLoading(false);
+    };
+    checkUser();
+  }, [router]);
 
   const courses = [
     {
-      id: 'gst103',
-      code: 'GST 103',
-      title: 'Use of Library & ICT',
-      desc: 'Fundamental library skills and ICT concepts. Take this exam often—questions are shuffled every time!',
-      icon: <BookOpen className="w-6 h-6 text-purple-400"/>,
-      link: '/exam/gst103',
-      theme: 'purple'
-    },
-    {
-      id: 'cos101',
-      code: 'COS 101',
-      title: 'Introduction to Computing',
-      desc: 'History of computing, hardware, software, logic, and binary systems. Master the basics of CS.',
-      icon: <Cpu className="w-6 h-6 text-blue-400"/>,
-      link: '/exam/cos101',
-      theme: 'blue'
-    },
-    {
-      id: 'bio101',
-      code: 'BIO 101',
-      title: 'Introductory Biology',
-      desc: 'Cell biology, genetics, ecology, and botany. Master the fundamental concepts of life science.',
-      icon: <Leaf className="w-6 h-6 text-green-400"/>,
-      link: '/exam/bio101',
-      theme: 'green'
-    },
-    {
-      id: 'ent101',
-      code: 'ENT 101',
-      title: 'Introduction to Entrepreneurship',
-      desc: 'Business models, Nigerian ecosystem (SMEDAN, CAC), funding, and innovation. Master the art of business.',
-      icon: <Briefcase className="w-6 h-6 text-orange-400"/>,
-      link: '/exam/ent101',
-      theme: 'orange'
-    },
-    {
-      id: 'gst101',
-      code: 'GST 101',
-      title: 'Communication in English I',
-      desc: 'Master listening, reading, writing skills, grammar, and study techniques for academic success.',
-      icon: <BookOpen className="w-6 h-6 text-pink-400"/>,
-      link: '/exam/gst101',
-      theme: 'pink'
-    },
-    {
-      id: 'sta111',
-      code: 'STA 111',
-      title: 'Descriptive Statistics',
-      desc: 'Data presentation, central tendency, dispersion, probability, and index numbers. Essential for Science/Social Science.',
-      icon: <BarChart3 className="w-6 h-6 text-cyan-400"/>,
-      link: '/exam/sta111',
-      theme: 'cyan'
+      id: 'mth101',
+      code: 'MTH 101',
+      title: 'Elementary Mathematics I',
+      icon: <Calculator className="w-6 h-6 text-red-500" />,
+      color: 'border-red-500/20 bg-red-500/5 hover:border-red-500',
+      text: 'text-red-500',
+      desc: 'Algebra, Trigonometry, and Calculus basics.'
     },
     {
       id: 'phy101',
       code: 'PHY 101',
       title: 'General Physics I',
-      desc: 'Mechanics, Properties of Matter, and Thermal Physics. The foundation of Engineering and Science.',
-      icon: <Atom className="w-6 h-6 text-yellow-400"/>,
-      link: '/exam/phy101',
-      theme: 'yellow'
-    },
-    {
-      id: 'mth101',
-      code: 'MTH 101',
-      title: 'Elementary Mathematics I',
-      desc: 'Algebra, Trigonometry, Calculus intro, and Matrices. The language of science and engineering.',
-      icon: <Calculator className="w-6 h-6 text-red-400"/>,
-      link: '/exam/mth101',
-      theme: 'red'
+      icon: <Atom className="w-6 h-6 text-yellow-500" />,
+      color: 'border-yellow-500/20 bg-yellow-500/5 hover:border-yellow-500',
+      text: 'text-yellow-500',
+      desc: 'Mechanics, Heat, and Properties of Matter.'
     },
     {
       id: 'chm101',
       code: 'CHM 101',
       title: 'General Chemistry I',
-      desc: 'Atoms, Bonding, States of Matter, and Stoichiometry. The central science explained.',
-      icon: <FlaskConical className="w-6 h-6 text-teal-400"/>,
-      link: '/exam/chm101',
-      theme: 'teal'
+      icon: <FlaskConical className="w-6 h-6 text-teal-500" />,
+      color: 'border-teal-500/20 bg-teal-500/5 hover:border-teal-500',
+      text: 'text-teal-500',
+      desc: 'Atomic structure, Stoichiometry, and Bonding.'
+    },
+    {
+      id: 'bio101',
+      code: 'BIO 101',
+      title: 'Introductory Biology I',
+      icon: <Leaf className="w-6 h-6 text-green-500" />,
+      color: 'border-green-500/20 bg-green-500/5 hover:border-green-500',
+      text: 'text-green-500',
+      desc: 'Cell Biology, Genetics, and Evolution.'
+    },
+    {
+      id: 'cos101',
+      code: 'COS 101',
+      title: 'Introduction to Computing',
+      icon: <Cpu className="w-6 h-6 text-blue-500" />,
+      color: 'border-blue-500/20 bg-blue-500/5 hover:border-blue-500',
+      text: 'text-blue-500',
+      desc: 'Computer history, Hardware, Software, and Logic.'
+    },
+    // ✅ NEW COURSE ADDED: GLY 101
+    {
+      id: 'gly101',
+      code: 'GLY 101',
+      title: 'Introduction to Geology',
+      icon: <Mountain className="w-6 h-6 text-amber-500" />,
+      color: 'border-amber-500/20 bg-amber-500/5 hover:border-amber-500',
+      text: 'text-amber-500',
+      desc: 'Earth structure, Rocks, Minerals, and Tectonics.'
+    },
+    {
+      id: 'sta111',
+      code: 'STA 111',
+      title: 'Descriptive Statistics',
+      icon: <BarChart3 className="w-6 h-6 text-cyan-500" />,
+      color: 'border-cyan-500/20 bg-cyan-500/5 hover:border-cyan-500',
+      text: 'text-cyan-500',
+      desc: 'Data presentation, Measures of central tendency.'
+    },
+    {
+      id: 'gst101',
+      code: 'GST 101',
+      title: 'Use of English I',
+      icon: <BookOpen className="w-6 h-6 text-pink-500" />,
+      color: 'border-pink-500/20 bg-pink-500/5 hover:border-pink-500',
+      text: 'text-pink-500',
+      desc: 'Grammar, Reading comprehension, and Writing.'
+    },
+    {
+      id: 'gst103',
+      code: 'GST 103',
+      title: 'Use of Library & ICT',
+      icon: <BookOpen className="w-6 h-6 text-purple-500" />,
+      color: 'border-purple-500/20 bg-purple-500/5 hover:border-purple-500',
+      text: 'text-purple-500',
+      desc: 'Library skills, Information literacy, and ICT tools.'
+    },
+    {
+      id: 'ent101',
+      code: 'ENT 101',
+      title: 'Entrepreneurship',
+      icon: <Briefcase className="w-6 h-6 text-orange-500" />,
+      color: 'border-orange-500/20 bg-orange-500/5 hover:border-orange-500',
+      text: 'text-orange-500',
+      desc: 'Business ideas, Innovation, and Opportunity.'
     }
   ];
 
-  const filteredCourses = courses.filter(c => 
-    c.code.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    c.title.toLowerCase().includes(searchTerm.toLowerCase())
+  if (loading) return <div className="h-screen bg-[#09090b] flex items-center justify-center text-white"><Loader2 className="animate-spin mr-2"/> Loading Courses...</div>;
+
+  const filtered = courses.filter(c => 
+    c.code.toLowerCase().includes(search.toLowerCase()) || 
+    c.title.toLowerCase().includes(search.toLowerCase())
   );
 
   return (
-    <div className="min-h-screen bg-[#09090b] text-white font-sans pb-24 selection:bg-purple-500/30">
-      
-      {/* HEADER */}
-      <div className="p-6 pt-12 flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold text-white">Course Catalog</h1>
-          <p className="text-zinc-500 text-xs mt-1">Select an exam to begin practicing.</p>
+    <div className="min-h-screen bg-[#09090b] text-white p-6 md:p-10 font-sans">
+      <div className="max-w-6xl mx-auto">
+        
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-10">
+           <div>
+             <button onClick={() => router.push('/dashboard')} className="flex items-center text-zinc-400 hover:text-white mb-2 text-sm font-bold transition-colors">
+               <ArrowLeft className="w-4 h-4 mr-2"/> Back to Dashboard
+             </button>
+             <h1 className="text-3xl font-bold">Course Catalog</h1>
+             <p className="text-zinc-500 text-sm mt-1">Select a course to start your practice exam.</p>
+           </div>
+           
+           <div className="relative w-full md:w-64">
+             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500"/>
+             <input 
+               type="text" 
+               placeholder="Search courses..." 
+               value={search}
+               onChange={(e) => setSearch(e.target.value)}
+               className="w-full bg-[#111113] border border-zinc-800 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:border-white transition-colors"
+             />
+           </div>
         </div>
-        <div className="p-3 bg-zinc-900 rounded-full border border-zinc-800">
-            <BookOpen className="w-5 h-5 text-zinc-400"/>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+           {filtered.map((course) => (
+             <Link href={`/exam/${course.id}`} key={course.id} className="group">
+               <div className={`h-full p-6 rounded-2xl border transition-all duration-300 ${course.color}`}>
+                  <div className="flex justify-between items-start mb-4">
+                     <div className={`p-3 rounded-xl bg-black/40 border border-white/5`}>
+                        {course.icon}
+                     </div>
+                     <span className={`text-xs font-bold px-2 py-1 rounded-md bg-black/20 ${course.text}`}>3 Units</span>
+                  </div>
+                  <h3 className="text-xl font-bold mb-1 group-hover:underline decoration-2 underline-offset-4">{course.code}</h3>
+                  <p className="text-sm font-medium text-zinc-300 mb-2">{course.title}</p>
+                  <p className="text-xs text-zinc-500 leading-relaxed">{course.desc}</p>
+               </div>
+             </Link>
+           ))}
         </div>
-      </div>
 
-      {/* SEARCH BAR */}
-      <div className="px-6 mb-6">
-        <div className="relative">
-            <Search className="absolute left-4 top-3.5 w-5 h-5 text-zinc-500"/>
-            <input 
-              type="text" 
-              placeholder="Search (e.g. MTH 101)" 
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-[#111113] border border-zinc-800 text-white pl-12 pr-4 py-3.5 rounded-2xl focus:outline-none focus:border-purple-500/50 transition-all placeholder:text-zinc-600 text-sm"
-            />
-        </div>
-      </div>
-
-      {/* COURSE LIST */}
-      <div className="px-6 space-y-4">
-        {filteredCourses.length > 0 ? (
-            filteredCourses.map((course) => (
-                <div key={course.id} className="bg-[#111113] border border-zinc-800 p-5 rounded-3xl relative overflow-hidden group hover:border-zinc-700 transition-all">
-                    
-                    {/* Badge */}
-                    <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider mb-3 ${
-                        course.theme === 'blue' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' : 
-                        course.theme === 'green' ? 'bg-green-500/10 text-green-400 border border-green-500/20' :
-                        course.theme === 'orange' ? 'bg-orange-500/10 text-orange-400 border border-orange-500/20' :
-                        course.theme === 'pink' ? 'bg-pink-500/10 text-pink-400 border border-pink-500/20' :
-                        course.theme === 'cyan' ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20' :
-                        course.theme === 'yellow' ? 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20' :
-                        course.theme === 'red' ? 'bg-red-500/10 text-red-400 border border-red-500/20' :
-                        course.theme === 'teal' ? 'bg-teal-500/10 text-teal-400 border border-teal-500/20' :
-                        'bg-purple-500/10 text-purple-400 border border-purple-500/20'
-                    }`}>
-                        {course.code}
-                    </div>
-
-                    <h2 className="text-lg font-bold text-white mb-2">{course.title}</h2>
-                    <p className="text-zinc-500 text-xs leading-relaxed mb-6 max-w-[90%]">
-                        {course.desc}
-                    </p>
-
-                    <Link href={course.link}>
-                        <button className={`w-full py-3 text-black font-bold text-sm rounded-xl flex items-center justify-center gap-2 transition-transform active:scale-95 ${
-                            course.theme === 'blue' ? 'bg-white hover:bg-blue-50' : 
-                            course.theme === 'green' ? 'bg-white hover:bg-green-50' :
-                            course.theme === 'orange' ? 'bg-white hover:bg-orange-50' :
-                            course.theme === 'pink' ? 'bg-white hover:bg-pink-50' :
-                            course.theme === 'cyan' ? 'bg-white hover:bg-cyan-50' :
-                            course.theme === 'yellow' ? 'bg-white hover:bg-yellow-50' :
-                            course.theme === 'red' ? 'bg-white hover:bg-red-50' :
-                            course.theme === 'teal' ? 'bg-white hover:bg-teal-50' :
-                            'bg-white hover:bg-purple-50'
-                        }`}>
-                            Start Exam <ChevronRight className="w-4 h-4"/>
-                        </button>
-                    </Link>
-
-                    {/* Floating Duration Label - UPDATED TO 35m */}
-                    <div className="absolute top-5 right-5 flex items-center gap-1 text-zinc-500 text-[10px] font-bold">
-                        <Clock className="w-3 h-3"/> 35m
-                    </div>
-                </div>
-            ))
-        ) : (
-            <div className="text-center py-12">
-                <p className="text-zinc-500 text-sm">No courses found matching "{searchTerm}"</p>
-            </div>
+        {filtered.length === 0 && (
+           <div className="text-center py-20 text-zinc-500">
+              <p>No courses found matching "{search}"</p>
+           </div>
         )}
-      </div>
 
-      <BottomNav active="browse" />
+      </div>
     </div>
   );
-      }
+        }
       
