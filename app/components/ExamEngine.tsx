@@ -5,320 +5,252 @@ import { createClient } from "@supabase/supabase-js";
 import Link from "next/link";
 import { 
   Timer, ChevronLeft, ChevronRight, CheckCircle, 
-  AlertTriangle, Loader2 
+  AlertTriangle, Loader2, Calculator, X, Grid, Lock, LogOut, AlertOctagon 
 } from "lucide-react";
 
-// --- SUPABASE CLIENT ---
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+// --- CALCULATOR COMPONENT (Your Original) ---
+const SciCalculator = ({ onClose }: { onClose: () => void }) => {
+  const [display, setDisplay] = useState("");
+  const [minimized, setMinimized] = useState(false);
+  const btn = (val: string) => setDisplay(p => p + val);
+  const clear = () => setDisplay("");
+  const calc = () => { try { setDisplay(eval(display.replace(/\^/g, '**')).toString().substring(0, 12)); } catch { setDisplay("Error"); } };
+
+  if (minimized) return <button onClick={() => setMinimized(false)} className="fixed bottom-24 right-4 bg-purple-500 text-white font-bold p-4 rounded-full shadow-2xl z-50 animate-bounce"><Calculator className="w-6 h-6" /></button>;
+
+  return (
+    <div className="fixed top-24 left-4 right-4 md:left-auto md:right-10 md:w-72 bg-[#1a1a1a] border border-white/20 rounded-3xl shadow-2xl z-50 animate-fade-in-up overflow-hidden">
+      <div className="bg-gradient-to-r from-purple-500/20 to-blue-500/20 p-3 flex justify-between items-center border-b border-white/10">
+        <span className="text-xs font-bold text-purple-400 tracking-widest">PULSAR FX-991</span>
+        <div className="flex gap-3"><button onClick={() => setMinimized(true)} className="text-white/70 hover:text-white font-bold text-lg leading-none">_</button><button onClick={onClose}><X className="w-5 h-5 text-white/70 hover:text-white" /></button></div>
+      </div>
+      <div className="p-4 bg-black/60 text-right text-2xl font-mono text-green-400 h-20 flex items-center justify-end border-b border-white/10 break-all">{display || "0"}</div>
+      <div className="grid grid-cols-4 gap-1 p-2 bg-[#252525]">
+        {['sin','cos','tan','log','ln','√','^','('].map(b => (<button key={b} onClick={() => btn(b === '√' ? '√(' : b === '^' ? '**' : b + '(')} className="p-2 text-[10px] font-bold bg-white/5 text-gray-400 rounded hover:bg-white/10">{b}</button>))}
+        {['7','8','9','/','4','5','6','*','1','2','3','-','.','0',')','+'].map(b => (<button key={b} onClick={() => b === '=' ? calc() : btn(b)} className={`p-3 text-sm font-bold rounded ${b === '=' ? 'bg-purple-600 text-white' : 'bg-zinc-800 text-white'}`}>{b}</button>))}
+        <button onClick={clear} className="col-span-2 p-3 bg-red-500/20 text-red-500 font-bold rounded text-xs">AC</button>
+        <button onClick={calc} className="col-span-2 p-3 bg-purple-600 text-white font-bold rounded shadow-[0_0_15px_rgba(160,108,213,0.4)]">=</button>
+      </div>
+    </div>
+  );
+};
+
+// --- START SCREEN COMPONENT (Your Original) ---
+const StartScreen = ({ examData, onStart }: { examData: any, onStart: () => void }) => (
+  <div className="fixed inset-0 z-50 bg-[#09090b] flex flex-col items-center justify-center p-6 text-center">
+    <div className="w-24 h-24 bg-purple-500/10 rounded-full flex items-center justify-center mb-6 animate-pulse"><Lock className="w-10 h-10 text-purple-500" /></div>
+    <h1 className="text-3xl font-bold text-white mb-2">{examData.course_code || "Exam"}</h1>
+    <p className="text-gray-400 mb-8">{examData.title}</p>
+    <div className="w-full max-w-md bg-[#111113] border border-white/10 rounded-2xl p-6 text-left space-y-4 mb-8">
+      <h3 className="text-white font-bold border-b border-white/10 pb-2 mb-2">Exam Instructions</h3>
+      <li className="text-sm text-gray-400">Duration: <span className="text-white">{examData.duration || 40} Minutes</span>.</li>
+      <li className="text-sm text-gray-400">Do not refresh the browser.</li>
+    </div>
+    <div className="flex gap-4 w-full max-w-md">
+       <Link href="/dashboard" className="flex-1 py-4 rounded-xl border border-white/10 text-gray-400 font-bold text-center hover:bg-white/5">Cancel</Link>
+       <button onClick={onStart} className="flex-[2] py-4 bg-purple-600 text-white font-bold rounded-xl shadow-lg hover:scale-105 transition-transform">Start Exam</button>
+    </div>
+  </div>
 );
 
-// --- TYPES ---
-interface Question {
-  id: number;
-  question_text: string;
-  options: string[];
-  correct_option: number;
-}
+// --- MAIN ENGINE ---
+const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
 
-type ThemeColor = 'purple' | 'blue' | 'green' | 'red' | 'orange' | 'cyan' | 'pink' | 'emerald' | 'indigo';
-
-interface ExamEngineProps {
-  title: string;
-  courseCode: string;
-  timeLimit: number;
-  themeColor?: ThemeColor;
-}
-
-export default function ExamEngine({ title, courseCode, timeLimit, themeColor = 'purple' }: ExamEngineProps) {
+export default function ExamEngine({ examId }: { examId: string }) {
   const router = useRouter();
-
-  // --- THEME CONFIGURATION ---
-  const colors = {
-    purple: { text: 'text-purple-500', bg: 'bg-purple-500', border: 'border-purple-500', soft: 'bg-purple-500/10' },
-    blue:   { text: 'text-blue-500',   bg: 'bg-blue-500',   border: 'border-blue-500',   soft: 'bg-blue-500/10' },
-    green:  { text: 'text-green-500',  bg: 'bg-green-500',  border: 'border-green-500',  soft: 'bg-green-500/10' },
-    red:    { text: 'text-red-500',    bg: 'bg-red-500',    border: 'border-red-500',    soft: 'bg-red-500/10' },
-    orange: { text: 'text-orange-500', bg: 'bg-orange-500', border: 'border-orange-500', soft: 'bg-orange-500/10' },
-    cyan:   { text: 'text-cyan-500',   bg: 'bg-cyan-500',   border: 'border-cyan-500',   soft: 'bg-cyan-500/10' },
-    pink:   { text: 'text-pink-500',   bg: 'bg-pink-500',   border: 'border-pink-500',   soft: 'bg-pink-500/10' },
-    emerald:{ text: 'text-emerald-500',bg: 'bg-emerald-500',border: 'border-emerald-500',soft: 'bg-emerald-500/10' },
-    indigo: { text: 'text-indigo-500', bg: 'bg-indigo-500', border: 'border-indigo-500', soft: 'bg-indigo-500/10' },
-  };
-
-  const theme = colors[themeColor];
-
-  // --- STATE ---
+  
+  // State
   const [loading, setLoading] = useState(true);
-  const [questions, setQuestions] = useState<Question[]>([]);
+  const [examData, setExamData] = useState<any>(null);
+  const [questions, setQuestions] = useState<any[]>([]);
   const [started, setStarted] = useState(false);
   const [finished, setFinished] = useState(false);
   const [currentQ, setCurrentQ] = useState(0);
-  const [answers, setAnswers] = useState<{[key: number]: number}>({});
-  const [timeLeft, setTimeLeft] = useState(timeLimit * 60);
-  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [answers, setAnswers] = useState<{[key: number]: string}>({});
+  const [timeLeft, setTimeLeft] = useState(0);
   const [score, setScore] = useState(0);
+  
+  // UI Toggles
+  const [showCalc, setShowCalc] = useState(false);
+  const [showGrid, setShowGrid] = useState(false);
+  const [showQuitModal, setShowQuitModal] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
 
-  // --- 1. FETCH QUESTIONS ---
+  // 1. Fetch Data
   useEffect(() => {
-    const fetchQuestions = async () => {
-      const { data, error } = await supabase
-        .from('questions') 
-        .select('*')
-        .eq('course_code', courseCode); 
-
-      if (!error && data) {
-        setQuestions(data);
-      } else {
-        console.error("Error loading questions:", error);
+    const fetchData = async () => {
+      // Fetch Exam Info
+      const { data: exam } = await supabase.from('exams').select('*').eq('id', examId).single();
+      
+      // Fetch Questions (Try filtering by exam_id first, fallback if needed)
+      let { data: qs } = await supabase.from('questions').select('*').eq('exam_id', examId);
+      
+      // If no questions found by ID, try finding by course_code string (Legacy support)
+      if (!qs || qs.length === 0) {
+         const { data: qsByCode } = await supabase.from('questions').select('*').eq('course_code', examId); // trying to match "mth101"
+         if (qsByCode) qs = qsByCode;
       }
+
+      if (exam) {
+        setExamData(exam);
+        setTimeLeft((exam.duration || 40) * 60);
+      } else {
+        // Fallback if exam table entry doesn't exist but we have questions
+        setExamData({ title: "Pulsar CBT", course_code: examId, duration: 40 });
+        setTimeLeft(40 * 60);
+      }
+
+      if (qs) setQuestions(qs);
       setLoading(false);
     };
+    fetchData();
+  }, [examId]);
 
-    fetchQuestions();
-  }, [courseCode]);
-
-  // --- 2. TIMER ---
+  // 2. Timer
   useEffect(() => {
     if (!started || finished) return;
-
-    if (timeLeft <= 0) {
-      handleSubmit();
-      return;
-    }
-
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => prev - 1);
-    }, 1000);
-
+    if (timeLeft <= 0) { handleSubmit(); return; }
+    const timer = setInterval(() => setTimeLeft(p => p - 1), 1000);
     return () => clearInterval(timer);
   }, [started, finished, timeLeft]);
 
-  const formatTime = (seconds: number) => {
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-  };
+  const formatTime = (s: number) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`;
 
-  // --- 3. SUBMIT LOGIC ---
+  // 3. Submit
   const handleAttemptSubmit = () => {
-    if (Object.keys(answers).length < questions.length) {
-      setShowConfirmModal(true);
-    } else {
-      handleSubmit();
-    }
+    if (Object.keys(answers).length < questions.length) setShowConfirmModal(true);
+    else handleSubmit();
   };
 
   const handleSubmit = () => {
     setShowConfirmModal(false);
-    let calculatedScore = 0;
-    questions.forEach((q, index) => {
-      if (answers[index] === q.correct_option) {
-        calculatedScore++;
+    let calcScore = 0;
+    questions.forEach((q, idx) => {
+      // Check if answer matches correct option (handling both index-based and string-based logic)
+      // Assuming your DB has 'correct_option' as string like "Option A" or just "A"
+      if (answers[idx] === q.correct_option || answers[idx] === q.correct_answer) {
+        calcScore++;
       }
     });
-    setScore(calculatedScore);
+    setScore(calcScore);
     setFinished(true);
   };
 
-  // --- RENDER: LOADING ---
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-[#09090b] text-white flex items-center justify-center">
-        <Loader2 className={`w-8 h-8 animate-spin ${theme.text}`} />
-        <span className="ml-3 font-bold">Loading Exam Data...</span>
-      </div>
-    );
-  }
+  if (loading) return <div className="min-h-screen bg-[#09090b] flex items-center justify-center"><Loader2 className="w-8 h-8 text-purple-500 animate-spin" /></div>;
 
-  // --- RENDER: RESULT SCREEN ---
-  if (finished) {
-    const percentage = questions.length > 0 ? Math.round((score / questions.length) * 100) : 0;
-    return (
-      <div className="min-h-screen bg-[#09090b] text-white flex items-center justify-center p-6">
-        <div className="max-w-md w-full bg-[#111113] border border-zinc-800 rounded-2xl p-8 text-center animate-fade-in-up">
-          <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 ${theme.soft}`}>
-            <CheckCircle className={`w-10 h-10 ${theme.text}`} />
-          </div>
-          <h2 className="text-3xl font-bold mb-2">Exam Submitted!</h2>
-          <p className="text-zinc-400 mb-8">Performance for {title}</p>
-          
-          <div className="bg-zinc-900 rounded-xl p-6 mb-8 border border-zinc-800">
-            <div className="text-sm text-zinc-500 uppercase font-bold tracking-widest mb-2">Your Score</div>
-            <div className="text-5xl font-bold text-white mb-2">{score} / {questions.length}</div>
-            <div className={`text-sm font-bold px-3 py-1 rounded-full inline-block ${percentage >= 50 ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
-              {percentage}% Accuracy
-            </div>
-          </div>
+  if (questions.length === 0) return (
+    <div className="min-h-screen bg-[#09090b] flex flex-col items-center justify-center p-6 text-center text-white">
+      <AlertOctagon className="w-16 h-16 text-gray-500 mb-4" />
+      <h1 className="text-2xl font-bold">No Questions Found</h1>
+      <p className="text-gray-400 mb-6">Could not load questions for {examId}.</p>
+      <Link href="/dashboard" className="px-6 py-3 bg-white/10 rounded-xl font-bold">Go Back</Link>
+    </div>
+  );
 
-          <Link href="/dashboard" className="block w-full py-3 bg-zinc-800 hover:bg-zinc-700 rounded-xl font-bold transition-colors">
-             Return Home
-          </Link>
+  if (!started) return <StartScreen examData={examData} onStart={() => setStarted(true)} />;
+
+  if (finished) return (
+    <div className="min-h-screen bg-[#09090b] text-white flex items-center justify-center p-6">
+      <div className="max-w-md w-full bg-[#111113] border border-zinc-800 rounded-2xl p-8 text-center animate-fade-in-up">
+        <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-6" />
+        <h2 className="text-3xl font-bold mb-2">Exam Submitted!</h2>
+        <div className="bg-zinc-900 rounded-xl p-6 mb-8 border border-zinc-800">
+          <div className="text-5xl font-bold text-white mb-2">{score} / {questions.length}</div>
+          <div className="text-purple-400 font-bold">{Math.round((score/questions.length)*100)}% Accuracy</div>
         </div>
+        <Link href="/dashboard" className="block w-full py-3 bg-zinc-800 rounded-xl font-bold">Return Home</Link>
       </div>
-    );
-  }
+    </div>
+  );
 
-  // --- RENDER: START SCREEN ---
-  if (!started) {
-    return (
-      <div className="min-h-screen bg-[#09090b] text-white flex items-center justify-center p-6">
-        <div className="max-w-2xl w-full bg-[#111113] border border-zinc-800 rounded-3xl p-8 md:p-12 text-center">
-            <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6 ${theme.soft}`}>
-              <Timer className={`w-8 h-8 ${theme.text}`} />
-            </div>
-            <h1 className="text-3xl md:text-4xl font-bold mb-6">{title}</h1>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10 text-left">
-              <div className="p-4 bg-zinc-900/50 rounded-xl border border-zinc-800/50">
-                <div className="text-xs text-zinc-500 font-bold uppercase mb-1">Duration</div>
-                <div className="text-lg font-bold">{timeLimit} Minutes</div>
-              </div>
-              <div className="p-4 bg-zinc-900/50 rounded-xl border border-zinc-800/50">
-                <div className="text-xs text-zinc-500 font-bold uppercase mb-1">Questions</div>
-                <div className="text-lg font-bold">{questions.length} Loaded</div>
-              </div>
-              <div className="p-4 bg-zinc-900/50 rounded-xl border border-zinc-800/50">
-                <div className="text-xs text-zinc-500 font-bold uppercase mb-1">Format</div>
-                <div className="text-lg font-bold">Multiple Choice</div>
-              </div>
-            </div>
-
-            <button 
-              onClick={() => setStarted(true)}
-              className="w-full py-4 bg-white text-black font-bold text-lg rounded-xl hover:bg-zinc-200 transition-all shadow-[0_0_20px_rgba(255,255,255,0.1)]"
-            >
-              Start Examination
-            </button>
-        </div>
-      </div>
-    );
-  }
-
-  // --- RENDER: ACTIVE EXAM ---
-  const question = questions[currentQ];
-  
-  // Safety check if no questions loaded
-  if (!question) return <div className="text-white text-center p-10">Error: No questions found for this course.</div>;
+  const q = questions[currentQ];
 
   return (
-    <div className="min-h-screen bg-[#09090b] text-white flex flex-col font-sans">
-      
+    <div className="fixed inset-0 bg-[#09090b] text-white font-sans flex flex-col h-[100dvh] w-screen overflow-hidden">
       {/* HEADER */}
-      <header className="fixed top-0 w-full bg-[#111113]/90 backdrop-blur-md border-b border-zinc-800 z-50 h-16 flex items-center justify-between px-4 md:px-8">
-        <div className="font-bold text-zinc-400 text-sm md:text-base truncate max-w-[150px] md:max-w-none">
-          {title}
+      <header className="h-16 flex-none bg-[#111113]/90 backdrop-blur-md border-b border-white/10 flex items-center justify-between px-4 z-30">
+        <div className="flex items-center gap-3">
+           <button onClick={() => setShowQuitModal(true)} className="p-2 bg-red-500/10 rounded-lg text-red-500"><LogOut className="w-5 h-5" /></button>
+           <span className="font-bold tracking-tight">{examData.course_code}</span>
         </div>
-        
-        <div className="flex items-center gap-4">
-          <div className={`flex items-center gap-2 px-4 py-1.5 rounded-full font-mono font-bold ${timeLeft < 60 ? 'bg-red-500/20 text-red-500 animate-pulse' : 'bg-zinc-800 text-white'}`}>
-            <Timer className="w-4 h-4" />
-            {formatTime(timeLeft)}
+        <div className="flex gap-3">
+          <div className={`px-4 py-1.5 rounded-lg border font-mono font-bold flex items-center gap-2 ${timeLeft < 300 ? 'bg-red-500/10 border-red-500 text-red-500 animate-pulse' : 'bg-black/30 border-white/10 text-white'}`}>
+            <Timer className="w-4 h-4"/> {formatTime(timeLeft)}
           </div>
-
-          <button 
-            onClick={handleAttemptSubmit}
-            className="px-4 py-1.5 bg-red-600 hover:bg-red-700 text-white text-sm font-bold rounded-lg transition-colors"
-          >
-            Submit
-          </button>
+          <button onClick={handleAttemptSubmit} className="px-4 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-sm font-bold rounded-lg">Submit</button>
         </div>
       </header>
 
-      {/* QUESTION AREA */}
-      <main className="flex-1 pt-24 pb-32 px-4 md:px-8 max-w-4xl mx-auto w-full">
-        <div className="flex justify-between items-end mb-6">
-           <span className={`text-sm font-bold uppercase tracking-widest ${theme.text}`}>Question {currentQ + 1} of {questions.length}</span>
-           <span className="text-xs text-zinc-500">Select the best option</span>
-        </div>
-
-        <div className="text-xl md:text-2xl font-medium leading-relaxed mb-10">
-          {question.question_text}
-        </div>
-
-        <div className="grid grid-cols-1 gap-3">
-          {question.options.map((opt, idx) => (
-            <button
-              key={idx}
-              onClick={() => setAnswers(prev => ({ ...prev, [currentQ]: idx }))}
-              className={`w-full p-5 rounded-xl border-2 text-left transition-all flex items-center gap-4 group ${
-                answers[currentQ] === idx 
-                  ? `${theme.border} ${theme.soft}` 
-                  : "border-zinc-800 bg-zinc-900/50 hover:border-zinc-600"
-              }`}
-            >
-              <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center font-bold text-sm transition-colors ${
-                 answers[currentQ] === idx ? `${theme.bg} ${theme.border} text-white` : "border-zinc-600 text-zinc-500 group-hover:border-zinc-400"
-              }`}>
-                {String.fromCharCode(65 + idx)}
-              </div>
-              <span className={answers[currentQ] === idx ? "text-white" : "text-zinc-400 group-hover:text-white"}>
-                {opt}
-              </span>
-            </button>
-          ))}
+      {/* QUESTION */}
+      <main className="flex-1 overflow-y-auto p-4 pb-40">
+        <div className="max-w-2xl mx-auto pt-4">
+          <div className="flex justify-between items-center mb-4">
+            <span className="text-xs font-bold text-purple-400 uppercase tracking-widest">Question {currentQ + 1}</span>
+            <span className="text-xs text-gray-500">{Object.keys(answers).length} / {questions.length} Answered</span>
+          </div>
+          <h2 className="text-xl md:text-2xl font-bold text-white leading-relaxed mb-6">{q.question_text}</h2>
+          <div className="space-y-3">
+            {[q.option_a, q.option_b, q.option_c, q.option_d].map((opt: string, idx: number) => {
+              if (!opt) return null; // Skip empty options
+              return (
+                <button key={idx} onClick={() => setAnswers(p => ({ ...p, [currentQ]: opt }))} className={`w-full p-4 rounded-xl border text-left flex items-center gap-4 transition-all ${answers[currentQ] === opt ? 'bg-purple-500/10 border-purple-500 text-white' : 'bg-[#111113] border-white/10 text-gray-400 hover:bg-white/5'}`}>
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs border ${answers[currentQ] === opt ? 'bg-purple-600 border-purple-600 text-white' : 'border-white/20'}`}>{['A','B','C','D'][idx]}</div>
+                  <span className="text-sm md:text-base">{opt}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
       </main>
 
       {/* FOOTER */}
-      <footer className="fixed bottom-0 w-full bg-[#111113] border-t border-zinc-800 p-4">
-        <div className="max-w-4xl mx-auto flex items-center justify-between">
-          <button 
-            onClick={() => setCurrentQ(prev => Math.max(0, prev - 1))}
-            disabled={currentQ === 0}
-            className="px-6 py-3 bg-zinc-800 text-white rounded-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-zinc-700 flex items-center gap-2"
-          >
-            <ChevronLeft className="w-4 h-4" /> Previous
-          </button>
-
-          <div className="text-sm text-zinc-500 font-bold hidden md:block">
-            {Object.keys(answers).length} answered
+      <footer className="h-auto flex-none bg-[#0a0a0f] border-t border-white/10 p-4 z-40 pb-safe">
+        <div className="flex justify-between items-center max-w-2xl mx-auto gap-4">
+          <button onClick={() => setCurrentQ(p => Math.max(0, p - 1))} disabled={currentQ === 0} className="w-12 h-12 flex items-center justify-center rounded-full border border-white/10 text-white disabled:opacity-30"><ChevronLeft className="w-5 h-5"/></button>
+          <div className="flex gap-3">
+             <button onClick={() => setShowCalc(!showCalc)} className={`px-4 py-2 rounded-lg border text-xs font-bold flex flex-col items-center gap-1 ${showCalc ? 'bg-white text-black border-white' : 'border-white/20 text-gray-400'}`}><Calculator className="w-4 h-4" /> Calc</button>
+             <button onClick={() => setShowGrid(!showGrid)} className={`px-4 py-2 rounded-lg border text-xs font-bold flex flex-col items-center gap-1 ${showGrid ? 'bg-purple-600 text-white border-purple-600' : 'border-white/20 text-gray-400'}`}><Grid className="w-4 h-4" /> Map</button>
           </div>
-
-          <button 
-            onClick={() => setCurrentQ(prev => Math.min(questions.length - 1, prev + 1))}
-            disabled={currentQ === questions.length - 1}
-            className="px-6 py-3 bg-white text-black rounded-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-zinc-200 flex items-center gap-2"
-          >
-            Next <ChevronRight className="w-4 h-4" />
-          </button>
+          <button onClick={() => setCurrentQ(p => Math.min(questions.length - 1, p + 1))} className="w-12 h-12 flex items-center justify-center rounded-full bg-purple-600 text-white shadow-lg"><ChevronRight className="w-5 h-5"/></button>
         </div>
       </footer>
 
-      {/* CONFIRM MODAL */}
-      {showConfirmModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <div className="bg-[#18181b] border border-zinc-700 w-full max-w-md rounded-2xl p-6 shadow-2xl">
-            <div className="flex items-center gap-3 mb-4 text-amber-500">
-              <AlertTriangle className="w-8 h-8" />
-              <h3 className="text-xl font-bold text-white">Unfinished Exam</h3>
-            </div>
-            
-            <p className="text-zinc-400 leading-relaxed mb-8">
-              You have only answered <strong className="text-white">{Object.keys(answers).length}</strong> of <strong className="text-white">{questions.length}</strong> questions.
-              <br/><br/>
-              Are you sure you want to submit?
-            </p>
+      {/* MODALS */}
+      {showCalc && <SciCalculator onClose={() => setShowCalc(false)} />}
+      
+      {/* Grid Modal */}
+      <div className={`fixed inset-x-0 bottom-0 bg-[#15151a] border-t border-white/20 rounded-t-3xl z-50 transition-transform duration-300 ${showGrid ? 'translate-y-0' : 'translate-y-full'} max-h-[60vh] flex flex-col`}>
+        <div className="p-4 border-b border-white/10 flex justify-between items-center bg-white/5 rounded-t-3xl"><span className="font-bold text-white text-sm">Question Map</span><button onClick={() => setShowGrid(false)}><X className="w-5 h-5 text-white"/></button></div>
+        <div className="p-4 grid grid-cols-5 gap-3 overflow-y-auto pb-8">
+          {questions.map((_, idx) => (
+             <button key={idx} onClick={() => { setCurrentQ(idx); setShowGrid(false); }} className={`h-10 rounded-lg text-xs font-bold ${idx === currentQ ? 'ring-2 ring-white bg-transparent text-white' : answers[idx] ? 'bg-purple-600 text-white' : 'bg-[#111113] border border-white/10 text-gray-500'}`}>{idx + 1}</button>
+          ))}
+        </div>
+      </div>
 
-            <div className="flex gap-3">
-              <button 
-                onClick={() => setShowConfirmModal(false)}
-                className="flex-1 py-3 bg-zinc-800 hover:bg-zinc-700 text-white font-bold rounded-xl transition-colors"
-              >
-                Keep Working
-              </button>
-              <button 
-                onClick={handleSubmit}
-                className="flex-1 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl transition-colors"
-              >
-                Yes, Submit
-              </button>
-            </div>
+      {/* Confirm Modal */}
+      {showConfirmModal && (
+        <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4">
+          <div className="bg-[#18181b] border border-zinc-700 w-full max-w-md rounded-2xl p-6">
+             <div className="flex items-center gap-3 mb-4 text-amber-500"><AlertTriangle className="w-8 h-8" /><h3 className="text-xl font-bold text-white">Unfinished Exam</h3></div>
+             <p className="text-gray-400 mb-8">You have answered {Object.keys(answers).length} of {questions.length}. Submit anyway?</p>
+             <div className="flex gap-3"><button onClick={() => setShowConfirmModal(false)} className="flex-1 py-3 bg-zinc-800 rounded-xl font-bold">Cancel</button><button onClick={handleSubmit} className="flex-1 py-3 bg-red-600 rounded-xl font-bold">Submit</button></div>
           </div>
         </div>
       )}
-
+      
+      {/* Quit Modal */}
+      {showQuitModal && (
+        <div className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center p-4">
+           <div className="w-full max-w-xs bg-[#18181b] border border-white/10 p-6 rounded-2xl text-center">
+             <AlertTriangle className="w-10 h-10 text-red-500 mx-auto mb-4" />
+             <h3 className="text-white font-bold mb-2">Quit Exam?</h3>
+             <p className="text-gray-400 text-xs mb-6">Progress will be lost.</p>
+             <div className="flex gap-3"><button onClick={() => setShowQuitModal(false)} className="flex-1 py-3 border border-white/10 rounded-xl text-white">Cancel</button><button onClick={() => router.push('/dashboard')} className="flex-1 py-3 bg-red-500 rounded-xl font-bold">Quit</button></div>
+           </div>
+        </div>
+      )}
     </div>
   );
-}
+          }
+          
