@@ -30,7 +30,7 @@ const REVIEWS = [
   {
     name: "Amuemoje Caleb",
     dept: "Computer Science",
-    img: "caleb.jpg", 
+    img: "caaleb.jpg", 
     quote: "PULSAR is the only platform that matches the actual speed of the FUOYE ICT center. No lag, no glitches. It’s a full simulation."
   },
   {
@@ -46,12 +46,12 @@ const TEAM = [
     name: "Majeed Abdulwali",
     role: "Founder & Visionary",
     img: "founder.jpg",
-    desc: "100L Computer Science student combining technical expertise with academic insight to build tools that matter."
+    desc: "100L Faculty of Computing Governor and also a Computer Science student combining technical expertise with academic insight to build tools that matter."
   },
   {
     name: "Amuemoje Caleb",
     role: "Co-Founder & Lead Dev",
-    img: "caleb.jpg",
+    img: "caaleb.jpg",
     desc: "A brilliant software architect ensuring PULSAR runs with military-grade precision and zero downtime."
   }
 ];
