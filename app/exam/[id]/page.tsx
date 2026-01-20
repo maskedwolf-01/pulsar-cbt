@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '../../lib/supabase'; 
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link'; // <--- THIS WAS MISSING
@@ -131,12 +131,69 @@ export default function DynamicExamPage() {
     fetchExam();
   }, [params.id, router]);
 
-  // Timer Logic
+  // Timer Logic and Auto-Submit
   useEffect(() => {
     if (!hasStarted) return;
-    const timer = setInterval(() => setTimeLeft((p) => p > 0 ? p - 1 : 0), 1000);
+
+    const timer = setInterval(() => {
+      setTimeLeft((prevTime) => {
+        if (prevTime === 1) { // If next tick will make it 0
+          clearInterval(timer); // Stop the interval
+          handleSubmit(); // Trigger submission
+          return 0; // Set time to 0
+        }
+        return prevTime - 1;
+      });
+    }, 1000);
+
+    // Cleanup function to clear interval on component unmount or when hasStarted changes
     return () => clearInterval(timer);
-  }, [hasStarted]);
+  }, [hasStarted, handleSubmit]);
+
+  // Function to handle exam submission and scoring
+  const handleSubmit = useCallback(async () => {
+    if (!params.id) return;
+    setLoading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        console.error("User not authenticated.");
+        router.push('/login');
+        return;
+      }
+      const userId = user.id;
+
+      let score = 0;
+      questions.forEach((q, index) => {
+        if (answers[index] === q.correct_answer) {
+          score++;
+        }
+      });
+
+      const { error: insertError } = await supabase
+        .from('results')
+        .insert([
+          { 
+            user_id: userId, 
+            exam_id: params.id, 
+            score: score,
+            total_questions: questions.length,
+          }
+        ]);
+
+      if (insertError) {
+        console.error("Error submitting results:", insertError);
+        alert("Failed to submit your exam. Please try again.");
+      } else {
+        router.push(`/app/exam/result/${params.id}`);
+      }
+    } catch (error) {
+      console.error("An unexpected error occurred during submission:", error);
+      alert("An unexpected error occurred. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  }, [params.id, questions, answers, router, setLoading]);
 
   const formatTime = (s: number) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`;
 
@@ -208,32 +265,40 @@ export default function DynamicExamPage() {
 
       {/* FOOTER */}
       <footer className="h-auto flex-none bg-[#0a0a0f] border-t border-white/10 p-4 z-40 pb-safe">
-        <div className="flex justify-between items-center max-w-2xl mx-auto gap-4">
-          <button 
-            onClick={() => setCurrentQIndex(p => Math.max(0, p - 1))} 
-            disabled={currentQIndex === 0}
-            className="w-12 h-12 flex items-center justify-center rounded-full border border-white/10 text-white disabled:opacity-30"
-          >
-            <ChevronLeft className="w-5 h-5"/>
-          </button>
-
-          <div className="flex gap-3">
-             <button onClick={() => setShowCalc(!showCalc)} className={`px-4 py-2 rounded-lg border text-xs font-bold flex flex-col items-center gap-1 ${showCalc ? 'bg-white text-black border-white' : 'border-white/20 text-subtext'}`}>
-               <Calculator className="w-4 h-4" /> Calc
-             </button>
-             <button onClick={() => setShowGrid(!showGrid)} className={`px-4 py-2 rounded-lg border text-xs font-bold flex flex-col items-center gap-1 ${showGrid ? 'bg-primary text-white border-primary' : 'border-white/20 text-subtext'}`}>
-               <Grid className="w-4 h-4" /> Map
-             </button>
-          </div>
-
-          <button 
-            onClick={() => setCurrentQIndex(p => Math.min(questions.length - 1, p + 1))} 
-            className="w-12 h-12 flex items-center justify-center rounded-full bg-primary text-white shadow-lg shadow-primary/20"
-          >
-            <ChevronRight className="w-5 h-5"/>
-          </button>
-        </div>
-      </footer>
+                  <div className="flex justify-between items-center max-w-2xl mx-auto gap-4">
+                    <button 
+                      onClick={() => setCurrentQIndex(p => Math.max(0, p - 1))} 
+                      disabled={currentQIndex === 0}
+                      className="w-12 h-12 flex items-center justify-center rounded-full border border-white/10 text-white disabled:opacity-30"
+                    >
+                      <ChevronLeft className="w-5 h-5"/>
+                    </button>
+        
+                    <div className="flex gap-3 items-center"> {/* Added items-center for alignment */}
+                       <button onClick={() => setShowCalc(!showCalc)} className={`px-4 py-2 rounded-lg border text-xs font-bold flex flex-col items-center gap-1 ${showCalc ? 'bg-white text-black border-white' : 'border-white/20 text-subtext'}`}>
+                         <Calculator className="w-4 h-4" /> Calc
+                       </button>
+                       <button onClick={() => setShowGrid(!showGrid)} className={`px-4 py-2 rounded-lg border text-xs font-bold flex flex-col items-center gap-1 ${showGrid ? 'bg-primary text-white border-primary' : 'border-white/20 text-subtext'}`}>
+                         <Grid className="w-4 h-4" /> Map
+                       </button>
+                       {/* Submit Button */}
+                       <button 
+                         onClick={handleSubmit} 
+                         disabled={loading} // Disable while submitting
+                         className={`px-5 py-3 rounded-lg font-bold text-sm flex items-center gap-2 ${loading ? 'bg-gray-600 text-gray-300' : 'bg-primary text-white shadow-lg shadow-primary/20'}`}
+                       >
+                         {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+                         Submit
+                       </button>
+                    </div>
+        
+                    <button 
+                      onClick={() => setCurrentQIndex(p => Math.min(questions.length - 1, p + 1))} 
+                      className="w-12 h-12 flex items-center justify-center rounded-full bg-primary text-white shadow-lg shadow-primary/20"
+                    >
+                      <ChevronRight className="w-5 h-5"/>
+                    </button>
+                  </div>      </footer>
 
       {/* OVERLAYS */}
       {showCalc && <SciCalculator onClose={() => setShowCalc(false)} />}
