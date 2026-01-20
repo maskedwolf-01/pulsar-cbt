@@ -1,14 +1,20 @@
 "use client";
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { createClient } from "@supabase/supabase-js";
-import Link from "next/link";
+import { useState, useEffect } from 'react';
+import { createClient } from "@supabase/supabase-js"; // Using standard client to be safe with paths
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { 
-  Timer, ChevronLeft, ChevronRight, CheckCircle, 
-  AlertTriangle, Loader2, Calculator, X, Grid, Lock, LogOut, AlertOctagon 
-} from "lucide-react";
+  Calculator, ChevronLeft, ChevronRight, 
+  AlertTriangle, CheckCircle, X, Grid, Lock, LogOut, Loader2, AlertOctagon, Timer
+} from 'lucide-react';
 
-// --- CALCULATOR COMPONENT (Your Original) ---
+// Initialize Supabase (Safe for components folder)
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
+
+// --- 1. CALCULATOR COMPONENT (Your exact code) ---
 const SciCalculator = ({ onClose }: { onClose: () => void }) => {
   const [display, setDisplay] = useState("");
   const [minimized, setMinimized] = useState(false);
@@ -16,7 +22,7 @@ const SciCalculator = ({ onClose }: { onClose: () => void }) => {
   const clear = () => setDisplay("");
   const calc = () => { try { setDisplay(eval(display.replace(/\^/g, '**')).toString().substring(0, 12)); } catch { setDisplay("Error"); } };
 
-  if (minimized) return <button onClick={() => setMinimized(false)} className="fixed bottom-24 right-4 bg-purple-500 text-white font-bold p-4 rounded-full shadow-2xl z-50 animate-bounce"><Calculator className="w-6 h-6" /></button>;
+  if (minimized) return <button onClick={() => setMinimized(false)} className="fixed bottom-24 right-4 bg-purple-600 text-white font-bold p-4 rounded-full shadow-2xl z-50 animate-bounce"><Calculator className="w-6 h-6" /></button>;
 
   return (
     <div className="fixed top-24 left-4 right-4 md:left-auto md:right-10 md:w-72 bg-[#1a1a1a] border border-white/20 rounded-3xl shadow-2xl z-50 animate-fade-in-up overflow-hidden">
@@ -35,16 +41,16 @@ const SciCalculator = ({ onClose }: { onClose: () => void }) => {
   );
 };
 
-// --- START SCREEN COMPONENT (Your Original) ---
+// --- 2. START SCREEN (Your exact code) ---
 const StartScreen = ({ examData, onStart }: { examData: any, onStart: () => void }) => (
   <div className="fixed inset-0 z-50 bg-[#09090b] flex flex-col items-center justify-center p-6 text-center">
     <div className="w-24 h-24 bg-purple-500/10 rounded-full flex items-center justify-center mb-6 animate-pulse"><Lock className="w-10 h-10 text-purple-500" /></div>
-    <h1 className="text-3xl font-bold text-white mb-2">{examData.course_code || "Exam"}</h1>
+    <h1 className="text-3xl font-bold text-white mb-2">{examData.course_code}</h1>
     <p className="text-gray-400 mb-8">{examData.title}</p>
     <div className="w-full max-w-md bg-[#111113] border border-white/10 rounded-2xl p-6 text-left space-y-4 mb-8">
       <h3 className="text-white font-bold border-b border-white/10 pb-2 mb-2">Exam Instructions</h3>
       <li className="text-sm text-gray-400">Duration: <span className="text-white">{examData.duration || 40} Minutes</span>.</li>
-      <li className="text-sm text-gray-400">Do not refresh the browser.</li>
+      <li className="text-sm text-gray-400 text-red-400">Do not refresh the browser.</li>
     </div>
     <div className="flex gap-4 w-full max-w-md">
        <Link href="/dashboard" className="flex-1 py-4 rounded-xl border border-white/10 text-gray-400 font-bold text-center hover:bg-white/5">Cancel</Link>
@@ -53,9 +59,7 @@ const StartScreen = ({ examData, onStart }: { examData: any, onStart: () => void
   </div>
 );
 
-// --- MAIN ENGINE ---
-const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
-
+// --- 3. THE ENGINE (Logic + Auto-Submit) ---
 export default function ExamEngine({ examId }: { examId: string }) {
   const router = useRouter();
   
@@ -76,18 +80,18 @@ export default function ExamEngine({ examId }: { examId: string }) {
   const [showQuitModal, setShowQuitModal] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
 
-  // 1. Fetch Data
+  // FETCH DATA
   useEffect(() => {
     const fetchData = async () => {
       // Fetch Exam Info
       const { data: exam } = await supabase.from('exams').select('*').eq('id', examId).single();
       
-      // Fetch Questions (Try filtering by exam_id first, fallback if needed)
+      // Fetch Questions
       let { data: qs } = await supabase.from('questions').select('*').eq('exam_id', examId);
       
-      // If no questions found by ID, try finding by course_code string (Legacy support)
+      // Fallback for Legacy IDs
       if (!qs || qs.length === 0) {
-         const { data: qsByCode } = await supabase.from('questions').select('*').eq('course_code', examId); // trying to match "mth101"
+         const { data: qsByCode } = await supabase.from('questions').select('*').eq('course_code', examId); 
          if (qsByCode) qs = qsByCode;
       }
 
@@ -95,7 +99,6 @@ export default function ExamEngine({ examId }: { examId: string }) {
         setExamData(exam);
         setTimeLeft((exam.duration || 40) * 60);
       } else {
-        // Fallback if exam table entry doesn't exist but we have questions
         setExamData({ title: "Pulsar CBT", course_code: examId, duration: 40 });
         setTimeLeft(40 * 60);
       }
@@ -106,17 +109,21 @@ export default function ExamEngine({ examId }: { examId: string }) {
     fetchData();
   }, [examId]);
 
-  // 2. Timer
+  // TIMER & AUTO-SUBMIT (Added this feature for you)
   useEffect(() => {
     if (!started || finished) return;
-    if (timeLeft <= 0) { handleSubmit(); return; }
+    
+    if (timeLeft <= 0) { 
+      handleSubmit(); // <--- This triggers auto-submit when time hits 0
+      return; 
+    }
+
     const timer = setInterval(() => setTimeLeft(p => p - 1), 1000);
     return () => clearInterval(timer);
   }, [started, finished, timeLeft]);
 
   const formatTime = (s: number) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`;
 
-  // 3. Submit
   const handleAttemptSubmit = () => {
     if (Object.keys(answers).length < questions.length) setShowConfirmModal(true);
     else handleSubmit();
@@ -126,8 +133,6 @@ export default function ExamEngine({ examId }: { examId: string }) {
     setShowConfirmModal(false);
     let calcScore = 0;
     questions.forEach((q, idx) => {
-      // Check if answer matches correct option (handling both index-based and string-based logic)
-      // Assuming your DB has 'correct_option' as string like "Option A" or just "A"
       if (answers[idx] === q.correct_option || answers[idx] === q.correct_answer) {
         calcScore++;
       }
@@ -167,7 +172,6 @@ export default function ExamEngine({ examId }: { examId: string }) {
 
   return (
     <div className="fixed inset-0 bg-[#09090b] text-white font-sans flex flex-col h-[100dvh] w-screen overflow-hidden">
-      {/* HEADER */}
       <header className="h-16 flex-none bg-[#111113]/90 backdrop-blur-md border-b border-white/10 flex items-center justify-between px-4 z-30">
         <div className="flex items-center gap-3">
            <button onClick={() => setShowQuitModal(true)} className="p-2 bg-red-500/10 rounded-lg text-red-500"><LogOut className="w-5 h-5" /></button>
@@ -181,7 +185,6 @@ export default function ExamEngine({ examId }: { examId: string }) {
         </div>
       </header>
 
-      {/* QUESTION */}
       <main className="flex-1 overflow-y-auto p-4 pb-40">
         <div className="max-w-2xl mx-auto pt-4">
           <div className="flex justify-between items-center mb-4">
@@ -191,7 +194,7 @@ export default function ExamEngine({ examId }: { examId: string }) {
           <h2 className="text-xl md:text-2xl font-bold text-white leading-relaxed mb-6">{q.question_text}</h2>
           <div className="space-y-3">
             {[q.option_a, q.option_b, q.option_c, q.option_d].map((opt: string, idx: number) => {
-              if (!opt) return null; // Skip empty options
+              if (!opt) return null;
               return (
                 <button key={idx} onClick={() => setAnswers(p => ({ ...p, [currentQ]: opt }))} className={`w-full p-4 rounded-xl border text-left flex items-center gap-4 transition-all ${answers[currentQ] === opt ? 'bg-purple-500/10 border-purple-500 text-white' : 'bg-[#111113] border-white/10 text-gray-400 hover:bg-white/5'}`}>
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs border ${answers[currentQ] === opt ? 'bg-purple-600 border-purple-600 text-white' : 'border-white/20'}`}>{['A','B','C','D'][idx]}</div>
@@ -203,7 +206,6 @@ export default function ExamEngine({ examId }: { examId: string }) {
         </div>
       </main>
 
-      {/* FOOTER */}
       <footer className="h-auto flex-none bg-[#0a0a0f] border-t border-white/10 p-4 z-40 pb-safe">
         <div className="flex justify-between items-center max-w-2xl mx-auto gap-4">
           <button onClick={() => setCurrentQ(p => Math.max(0, p - 1))} disabled={currentQ === 0} className="w-12 h-12 flex items-center justify-center rounded-full border border-white/10 text-white disabled:opacity-30"><ChevronLeft className="w-5 h-5"/></button>
@@ -215,7 +217,6 @@ export default function ExamEngine({ examId }: { examId: string }) {
         </div>
       </footer>
 
-      {/* MODALS */}
       {showCalc && <SciCalculator onClose={() => setShowCalc(false)} />}
       
       {/* Grid Modal */}
@@ -228,7 +229,6 @@ export default function ExamEngine({ examId }: { examId: string }) {
         </div>
       </div>
 
-      {/* Confirm Modal */}
       {showConfirmModal && (
         <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4">
           <div className="bg-[#18181b] border border-zinc-700 w-full max-w-md rounded-2xl p-6">
@@ -239,7 +239,6 @@ export default function ExamEngine({ examId }: { examId: string }) {
         </div>
       )}
       
-      {/* Quit Modal */}
       {showQuitModal && (
         <div className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center p-4">
            <div className="w-full max-w-xs bg-[#18181b] border border-white/10 p-6 rounded-2xl text-center">
@@ -252,5 +251,5 @@ export default function ExamEngine({ examId }: { examId: string }) {
       )}
     </div>
   );
-          }
-          
+  }
+                                             
