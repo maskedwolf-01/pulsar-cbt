@@ -3,19 +3,19 @@ import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import BottomNav from '../components/BottomNav'; // <--- IMPORTING THE REAL NAV
+import BottomNav from '../components/BottomNav';
 import { 
   ArrowLeft, User, BookOpen, LogOut, Save, 
   Loader2, Camera, CheckCircle, AlertTriangle, X
 } from 'lucide-react';
 
 const Toast = ({ message, type, onClose }: { message: string, type: 'success' | 'error', onClose: () => void }) => (
-  <div className={`fixed top-6 left-1/2 -translate-x-1/2 z-[200] flex items-center gap-3 px-6 py-4 rounded-2xl shadow-2xl backdrop-blur-md border animate-fade-in ${
-    type === 'success' ? 'bg-green-500/10 border-green-500 text-green-400' : 'bg-red-500/10 border-red-500 text-red-400'
+  <div className={`fixed top-8 left-1/2 -translate-x-1/2 z-[200] flex items-center gap-3 px-6 py-4 rounded-2xl shadow-2xl backdrop-blur-xl border animate-fade-in-up ${
+    type === 'success' ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-400' : 'bg-rose-500/10 border-rose-500/50 text-rose-400'
   }`}>
     {type === 'success' ? <CheckCircle className="w-5 h-5"/> : <AlertTriangle className="w-5 h-5"/>}
-    <span className="font-bold text-sm">{message}</span>
-    <button onClick={onClose}><X className="w-4 h-4 opacity-50 hover:opacity-100"/></button>
+    <span className="font-bold text-sm tracking-wide">{message}</span>
+    <button onClick={onClose} className="p-1 hover:bg-white/10 rounded-lg transition-colors ml-2"><X className="w-4 h-4"/></button>
   </div>
 );
 
@@ -51,8 +51,8 @@ export default function ProfilePage() {
         setLevel(profile.level || '100L');
         setAvatarUrl(profile.avatar_url || null);
       } else {
-        setFullName(user.user_metadata.full_name || '');
-        setDept(user.user_metadata.department || '');
+        setFullName(user.user_metadata?.full_name || '');
+        setDept(user.user_metadata?.department || '');
       }
       setLoading(false);
     };
@@ -73,7 +73,7 @@ export default function ProfilePage() {
       const { error: updateError } = await supabase.from('profiles').upsert({ id: user.id, avatar_url: publicUrl });
       if (updateError) throw updateError;
       setAvatarUrl(publicUrl);
-      setToast({ msg: "Profile picture updated!", type: 'success' });
+      setToast({ msg: "Profile picture successfully updated!", type: 'success' });
     } catch (error: any) {
       setToast({ msg: error.message, type: 'error' });
     } finally {
@@ -87,7 +87,7 @@ export default function ProfilePage() {
         id: user.id, email: user.email, full_name: fullName, department: dept, level: level, updated_at: new Date()
       });
     if (!error) {
-      setToast({ msg: "Profile details saved.", type: 'success' });
+      setToast({ msg: "Profile settings saved securely.", type: 'success' });
     } else {
       setToast({ msg: "Failed to save profile.", type: 'error' });
     }
@@ -99,80 +99,109 @@ export default function ProfilePage() {
     router.push('/login');
   };
 
-  if (loading) return <div className="min-h-screen bg-background flex items-center justify-center text-primary"><Loader2 className="w-8 h-8 animate-spin"/></div>;
+  if (loading) return <div className="min-h-screen bg-[#030305] flex items-center justify-center text-white"><Loader2 className="w-10 h-10 animate-spin text-indigo-500"/></div>;
 
   return (
-    <div className="min-h-screen bg-background text-text font-sans p-6 pb-24 relative">
+    <div className="min-h-screen bg-[#030305] text-white font-sans pb-24 relative selection:bg-indigo-500/30 overflow-x-hidden">
       {toast && <Toast message={toast.msg} type={toast.type} onClose={() => setToast(null)} />}
-      <header className="flex items-center justify-between mb-8 z-20 relative">
+      
+      {/* HEADER SECTION */}
+      <header className="px-6 pt-6 pb-4 flex items-center justify-between z-20 relative max-w-2xl mx-auto">
         <div className="flex items-center gap-4">
-          <Link href="/dashboard" className="p-2 bg-surface border border-white/10 rounded-full hover:bg-white/10 transition-colors">
-            <ArrowLeft className="w-5 h-5 text-white" />
+          <Link href="/dashboard" className="p-2.5 bg-[#0a0a0c] border border-white/5 rounded-xl hover:bg-white/5 transition-colors text-zinc-400 hover:text-white shadow-sm">
+            <ArrowLeft className="w-5 h-5" />
           </Link>
-          <h1 className="text-xl font-bold text-white">Settings</h1>
+          <h1 className="text-2xl font-bold text-white font-serif tracking-tight">Account Settings</h1>
         </div>
       </header>
-      <div className="flex flex-col items-center mb-8">
-        <div className="w-28 h-28 rounded-full bg-gradient-to-br from-primary to-secondary p-1 relative mb-4 shadow-2xl">
-          <div className="w-full h-full bg-surface rounded-full flex items-center justify-center text-4xl font-bold text-white overflow-hidden relative group">
-            {avatarUrl ? ( <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" /> ) : ( fullName ? fullName.charAt(0).toUpperCase() : <User className="w-10 h-10"/> )}
+
+      <main className="max-w-xl mx-auto px-6 pt-4 animate-fade-in">
+        
+        {/* AVATAR SECTION */}
+        <div className="flex flex-col items-center mb-10 relative">
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 bg-indigo-500/20 rounded-full blur-[60px] pointer-events-none"></div>
+          
+          <div className="w-32 h-32 rounded-3xl bg-gradient-to-br from-indigo-500 to-cyan-500 p-[2px] relative mb-5 shadow-[0_0_30px_rgba(99,102,241,0.2)] group">
+            <div className="w-full h-full bg-[#121216] rounded-[1.4rem] flex items-center justify-center text-4xl font-bold text-zinc-400 overflow-hidden relative">
+              {avatarUrl ? ( 
+                <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" /> 
+              ) : ( 
+                fullName ? fullName.charAt(0).toUpperCase() : <User className="w-12 h-12"/> 
+              )}
+            </div>
+            <button onClick={() => fileInputRef.current?.click()} className="absolute -bottom-3 -right-3 p-3 bg-indigo-600 text-white rounded-xl shadow-lg border-4 border-[#030305] hover:bg-indigo-500 hover:scale-105 transition-all active:scale-95">
+              <Camera className="w-5 h-5" />
+            </button>
+            <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleAvatarUpload} />
           </div>
-          <button onClick={() => fileInputRef.current?.click()} className="absolute bottom-0 right-0 p-2.5 bg-primary text-white rounded-full shadow-lg border-4 border-background hover:scale-110 transition-transform active:scale-95">
-            <Camera className="w-4 h-4" />
+          <h2 className="text-white font-bold text-2xl tracking-tight">{fullName || "Student"}</h2>
+          <p className="text-zinc-500 text-sm mt-1">{user?.email}</p>
+        </div>
+
+        {/* PROFILE FORM */}
+        <div className="space-y-6">
+          <div className="p-6 md:p-8 bg-[#0a0a0c] border border-white/5 rounded-3xl space-y-6 shadow-xl relative overflow-hidden">
+            
+            <div>
+              <label className="text-xs text-zinc-500 uppercase font-bold ml-1 mb-2 block tracking-wider">Full Name</label>
+              <div className="relative group">
+                <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600 group-focus-within:text-indigo-400 transition-colors" />
+                <input value={fullName} onChange={(e) => setFullName(e.target.value)} className="w-full bg-[#121216] border border-white/5 rounded-xl py-3.5 pl-11 pr-4 text-white text-sm focus:border-indigo-500/50 focus:outline-none focus:ring-1 focus:ring-indigo-500/50 transition-all placeholder-zinc-700" placeholder="Enter your full name" />
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs text-zinc-500 uppercase font-bold ml-1 mb-2 block tracking-wider">Department</label>
+              <div className="relative group">
+                <BookOpen className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600 group-focus-within:text-indigo-400 transition-colors" />
+                <input value={dept} onChange={(e) => setDept(e.target.value)} className="w-full bg-[#121216] border border-white/5 rounded-xl py-3.5 pl-11 pr-4 text-white text-sm focus:border-indigo-500/50 focus:outline-none focus:ring-1 focus:ring-indigo-500/50 transition-all placeholder-zinc-700" placeholder="e.g. Computer Science" />
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs text-zinc-500 uppercase font-bold ml-1 mb-3 block tracking-wider">Academic Level</label>
+              <div className="grid grid-cols-4 gap-2">
+                {['100L', '200L', '300L', '400L'].map((l) => (
+                  <button 
+                    key={l} 
+                    onClick={() => setLevel(l)} 
+                    className={`py-3 rounded-xl text-xs font-bold transition-all duration-300 ${level === l ? 'bg-indigo-600 text-white shadow-[0_0_15px_rgba(99,102,241,0.3)]' : 'bg-[#121216] text-zinc-500 border border-white/5 hover:border-white/20 hover:text-white'}`}
+                  > 
+                    {l} 
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <button onClick={handleUpdate} disabled={saving} className="w-full py-4 bg-white text-black font-bold rounded-xl flex items-center justify-center gap-2 hover:bg-zinc-200 transition-all shadow-[0_0_20px_rgba(255,255,255,0.1)] active:scale-95 disabled:opacity-70">
+            {saving ? <><Loader2 className="w-5 h-5 animate-spin text-black"/> Saving changes...</> : <><Save className="w-5 h-5"/> Save Profile Settings</>}
           </button>
-          <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleAvatarUpload} />
+          
+          <button onClick={() => setShowLogoutConfirm(true)} className="w-full py-4 bg-rose-500/10 text-rose-500 border border-rose-500/20 font-bold rounded-xl flex items-center justify-center gap-2 hover:bg-rose-500/20 transition-colors">
+            <LogOut className="w-5 h-5"/> Sign Out
+          </button>
         </div>
-        <h2 className="text-white font-bold text-xl">{fullName || "Student"}</h2>
-      </div>
-      <div className="space-y-6 max-w-md mx-auto">
-        <div className="p-6 bg-surface border border-white/10 rounded-3xl space-y-5">
-          <div>
-            <label className="text-[10px] text-subtext uppercase font-bold ml-1 mb-2 block tracking-widest">Display Name</label>
-            <div className="relative group">
-              <User className="absolute left-4 top-3.5 w-4 h-4 text-subtext group-focus-within:text-primary transition-colors" />
-              <input value={fullName} onChange={(e) => setFullName(e.target.value)} className="w-full bg-black/30 border border-white/10 rounded-xl p-3 pl-10 text-white text-sm focus:border-primary focus:outline-none transition-all" placeholder="Enter your name" />
-            </div>
-          </div>
-          <div>
-            <label className="text-[10px] text-subtext uppercase font-bold ml-1 mb-2 block tracking-widest">Department</label>
-            <div className="relative group">
-              <BookOpen className="absolute left-4 top-3.5 w-4 h-4 text-subtext group-focus-within:text-primary transition-colors" />
-              <input value={dept} onChange={(e) => setDept(e.target.value)} className="w-full bg-black/30 border border-white/10 rounded-xl p-3 pl-10 text-white text-sm focus:border-primary focus:outline-none transition-all" placeholder="e.g. Computer Science" />
-            </div>
-          </div>
-          <div>
-            <label className="text-[10px] text-subtext uppercase font-bold ml-1 mb-2 block tracking-widest">Academic Level</label>
-            <div className="grid grid-cols-4 gap-2">
-              {['100L', '200L', '300L', '400L'].map((l) => (
-                <button key={l} onClick={() => setLevel(l)} className={`py-2.5 rounded-xl text-xs font-bold transition-all ${level === l ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'bg-black/30 text-subtext border border-white/10 hover:border-white/30'}`}> {l} </button>
-              ))}
-            </div>
-          </div>
-        </div>
-        <button onClick={handleUpdate} disabled={saving} className="w-full py-4 bg-white text-black font-bold rounded-xl flex items-center justify-center gap-2 hover:bg-gray-200 transition-all shadow-[0_0_20px_rgba(255,255,255,0.1)] active:scale-95">
-          {saving ? <Loader2 className="w-5 h-5 animate-spin"/> : <><Save className="w-5 h-5"/> Save Profile</>}
-        </button>
-        <button onClick={() => setShowLogoutConfirm(true)} className="w-full py-4 bg-red-500/5 text-red-500 border border-red-500/20 font-bold rounded-xl flex items-center justify-center gap-2 hover:bg-red-500/10 transition-colors">
-          <LogOut className="w-5 h-5"/> Log Out
-        </button>
-      </div>
+      </main>
+
+      {/* LOGOUT CONFIRMATION MODAL */}
       {showLogoutConfirm && (
         <div className="fixed inset-0 z-[200] bg-black/80 backdrop-blur-sm flex items-center justify-center p-6 animate-fade-in">
-          <div className="w-full max-w-sm bg-surface border border-white/10 p-6 rounded-3xl text-center">
-            <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-            <h3 className="text-xl font-bold text-white mb-2">Sign Out?</h3>
-            <p className="text-subtext text-sm mb-6">You will need to sign in again to access your dashboard.</p>
+          <div className="w-full max-w-sm bg-[#0a0a0c] border border-white/10 p-8 rounded-3xl text-center shadow-2xl animate-fade-in-up">
+            <div className="w-16 h-16 bg-rose-500/10 border border-rose-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
+              <AlertTriangle className="w-8 h-8 text-rose-500" />
+            </div>
+            <h3 className="text-2xl font-bold text-white mb-2 font-serif tracking-tight">Sign Out?</h3>
+            <p className="text-zinc-400 text-sm mb-8 leading-relaxed">You will need to sign in again to access your dashboard and practice exams.</p>
             <div className="flex gap-3">
-              <button onClick={() => setShowLogoutConfirm(false)} className="flex-1 py-3 bg-white/5 border border-white/10 rounded-xl text-white font-bold">Cancel</button>
-              <button onClick={handleLogout} className="flex-1 py-3 bg-red-500 text-white font-bold rounded-xl shadow-lg shadow-red-500/20">Log Out</button>
+              <button onClick={() => setShowLogoutConfirm(false)} className="flex-1 py-3 bg-white/5 hover:bg-white/10 border border-white/5 rounded-xl text-white font-bold transition-colors">Cancel</button>
+              <button onClick={handleLogout} className="flex-1 py-3 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-xl shadow-[0_0_20px_rgba(225,29,72,0.3)] transition-colors">Log Out</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* 4. NEW BOTTOM NAV */}
       <BottomNav active="profile" />
     </div>
   );
-    }
-    
+}
