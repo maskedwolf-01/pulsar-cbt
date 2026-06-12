@@ -43,13 +43,12 @@ export default function Header({ title = "Terminal" }: { title?: string }) {
       .limit(5);
 
     // C. Merge Them
-    // We tag broadcasts with a special 'type' so we can style them differently if needed
     const formattedBroadcasts = (broadcasts || []).map(b => ({
-      id: `b-${b.id}`, // Unique ID for key
+      id: `b-${b.id}`,
       title: b.title,
       message: b.message,
       created_at: b.created_at,
-      is_read: false, // Broadcasts are always "new" until read logic is deeper
+      is_read: false, 
       link: '#',
       type: 'broadcast' 
     }));
@@ -78,23 +77,23 @@ export default function Header({ title = "Terminal" }: { title?: string }) {
   return (
     <>
       {/* NAVBAR */}
-      <nav className="sticky top-0 z-[100] bg-[#0a0a0f]/80 backdrop-blur-xl border-b border-white/5 px-6 h-16 flex items-center justify-between transition-all duration-300">
-        <div className="font-bold text-lg text-white tracking-tight">{title}</div>
+      <nav className="sticky top-0 z-[100] bg-[#030305]/80 backdrop-blur-xl border-b border-white/5 px-6 h-20 flex items-center justify-between transition-all duration-300">
+        <div className="font-bold text-xl text-white tracking-tight font-serif">{title}</div>
         
-        <div className="flex items-center gap-4">
-          <button onClick={() => setShowNotifs(true)} className="relative p-2 text-subtext hover:text-white transition-colors">
+        <div className="flex items-center gap-5">
+          <button onClick={() => setShowNotifs(true)} className="relative p-2 text-zinc-400 hover:text-white hover:bg-white/5 rounded-full transition-all">
             <Bell className="w-6 h-6" />
             {unreadCount > 0 && (
-              <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-[#0a0a0f] animate-pulse"></span>
+              <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-[#030305] animate-pulse shadow-[0_0_8px_rgba(244,63,94,0.8)]"></span>
             )}
           </button>
           
-          <Link href="/profile" className="w-9 h-9 rounded-full bg-gradient-to-br from-secondary to-primary p-[1px] shadow-lg overflow-hidden">
-             <div className="w-full h-full rounded-full bg-black flex items-center justify-center">
+          <Link href="/profile" className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-cyan-500 p-[2px] shadow-lg shadow-indigo-500/20 overflow-hidden hover:scale-105 transition-transform">
+             <div className="w-full h-full rounded-full bg-[#121216] flex items-center justify-center overflow-hidden">
                {profile?.avatar_url ? (
                  <img src={profile.avatar_url} alt="Profile" className="w-full h-full object-cover rounded-full" />
                ) : (
-                 <span className="text-white text-xs font-bold">{profile?.full_name?.charAt(0) || 'U'}</span>
+                 <span className="text-white text-sm font-bold">{profile?.full_name?.charAt(0) || 'U'}</span>
                )}
              </div>
           </Link>
@@ -108,48 +107,54 @@ export default function Header({ title = "Terminal" }: { title?: string }) {
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fade-in" onClick={() => setShowNotifs(false)}></div>
           
           {/* Panel */}
-          <div className="relative w-full max-w-md h-full bg-[#050508] border-l border-white/10 shadow-2xl animate-slide-in-right flex flex-col">
+          <div className="relative w-full max-w-md h-full bg-[#0a0a0c] border-l border-white/10 shadow-2xl animate-slide-in-right flex flex-col">
             
-            {/* Neon Line */}
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary via-purple-500 to-secondary"></div>
+            {/* V2 Neon Line */}
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-cyan-500"></div>
             
             <div className="p-6 border-b border-white/5 flex justify-between items-center bg-white/[0.02]">
-              <h2 className="text-xl font-bold text-white tracking-tight">Transmission Log</h2>
-              <button onClick={() => setShowNotifs(false)} className="p-2 bg-white/5 rounded-full hover:bg-white/10 text-white"><X className="w-5 h-5"/></button>
+              <h2 className="text-xl font-bold text-white tracking-tight font-serif">Transmission Log</h2>
+              <button onClick={() => setShowNotifs(false)} className="p-2 bg-white/5 rounded-xl hover:bg-white/10 text-zinc-400 hover:text-white transition-colors"><X className="w-5 h-5"/></button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
+            <div className="flex-1 overflow-y-auto p-5 space-y-4 custom-scrollbar">
               {notifs.length === 0 ? (
-                <div className="h-full flex flex-col items-center justify-center text-subtext opacity-50">
-                  <Bell className="w-12 h-12 mb-4" />
-                  <p className="text-sm">No transmissions received.</p>
+                <div className="h-full flex flex-col items-center justify-center text-zinc-600">
+                  <Bell className="w-12 h-12 mb-4 opacity-50" />
+                  <p className="text-sm font-medium">No transmissions received.</p>
                 </div>
               ) : (
                 notifs.map((n) => (
                   <div 
                     key={n.id} 
                     onClick={() => { if(n.link !== '#') router.push(n.link); }}
-                    className={`p-4 rounded-xl border transition-all ${
+                    className={`p-5 rounded-2xl border transition-all cursor-pointer ${
                       n.type === 'broadcast' 
-                      ? 'bg-purple-500/10 border-purple-500/30' 
-                      : !n.is_read ? 'bg-primary/5 border-primary/30' : 'bg-surface border-white/5 opacity-70'
+                      ? 'bg-indigo-500/10 border-indigo-500/30 hover:border-indigo-500/50' 
+                      : !n.is_read 
+                        ? 'bg-white/5 border-white/20 hover:bg-white/10' 
+                        : 'bg-transparent border-white/5 opacity-60 hover:opacity-100'
                     }`}
                   >
-                    <div className="flex justify-between mb-2">
-                      <span className={`text-xs font-bold uppercase tracking-wider flex items-center gap-2 ${n.type === 'broadcast' ? 'text-purple-400' : !n.is_read ? 'text-primary' : 'text-subtext'}`}>
-                        {n.type === 'broadcast' && <span className="w-2 h-2 rounded-full bg-purple-500 animate-pulse"></span>}
+                    <div className="flex justify-between items-start mb-3">
+                      <span className={`text-xs font-bold uppercase tracking-wider flex items-center gap-2 ${n.type === 'broadcast' ? 'text-indigo-400' : !n.is_read ? 'text-white' : 'text-zinc-500'}`}>
+                        {n.type === 'broadcast' && <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse shadow-[0_0_8px_rgba(99,102,241,0.8)]"></span>}
                         {n.title}
                       </span>
-                      <span className="text-[10px] text-subtext">{new Date(n.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                      <span className="text-[10px] text-zinc-500 font-mono">{new Date(n.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
                     </div>
-                    <p className="text-sm text-white leading-relaxed">{n.message}</p>
+                    <p className="text-sm text-zinc-300 leading-relaxed">{n.message}</p>
                   </div>
                 ))
               )}
             </div>
 
-            <div className="p-6 border-t border-white/5 bg-white/[0.02]">
-              <button onClick={markAllRead} disabled={unreadCount === 0} className="w-full py-4 rounded-xl bg-white text-black font-bold text-sm hover:bg-gray-200 disabled:opacity-50 flex items-center justify-center gap-2">
+            <div className="p-6 border-t border-white/5 bg-[#030305]">
+              <button 
+                onClick={markAllRead} 
+                disabled={unreadCount === 0} 
+                className="w-full py-4 rounded-xl bg-white text-black font-bold text-sm hover:bg-zinc-200 disabled:opacity-30 disabled:hover:bg-white transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(255,255,255,0.1)]"
+              >
                 <CheckCircle className="w-4 h-4"/> Mark all as Read
               </button>
             </div>
@@ -158,5 +163,4 @@ export default function Header({ title = "Terminal" }: { title?: string }) {
       )}
     </>
   );
-            }
-    
+}
