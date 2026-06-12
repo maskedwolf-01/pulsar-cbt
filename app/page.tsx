@@ -4,9 +4,9 @@ import Link from 'next/link';
 import { 
   Zap, Target, BookOpen, ArrowRight, CheckCircle, 
   Copy, ExternalLink, Star, Mail, Phone, Check, 
-  BrainCircuit, XCircle, Lightbulb, ChevronRight
+  BrainCircuit, XCircle, Lightbulb, ChevronRight,
+  Quote, Laptop, Smartphone // <-- Added the missing icons here!
 } from 'lucide-react';
-
 // --- V2.0 DATA CONFIGURATION ---
 const EXAM_LINKS = [
   { code: "MTH 102", title: "Calculus & Geometry", link: "/exam/mth102" },
