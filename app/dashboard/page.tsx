@@ -15,7 +15,6 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-// --- V2.0 QUICK START COURSES ---
 const SEMESTER_2_COURSES = [
   { code: "MTH 102", name: "Calculus & Geometry", icon: <CalculatorIcon />, color: "from-cyan-500 to-blue-500", shadow: "shadow-cyan-500/20" },
   { code: "PHY 102", name: "General Physics II", icon: <Zap className="w-5 h-5 text-amber-400"/>, color: "from-amber-500 to-orange-500", shadow: "shadow-amber-500/20" },
@@ -33,7 +32,6 @@ export default function Dashboard() {
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
   
-  // V2.0 Data States
   const [recentResults, setRecentResults] = useState<any[]>([]);
   const [greeting, setGreeting] = useState("Welcome");
   const [analytics, setAnalytics] = useState({
@@ -44,7 +42,6 @@ export default function Dashboard() {
     weakest: "N/A"
   });
 
-  /* ---------------- DYNAMIC GREETING ---------------- */
   useEffect(() => {
     const hour = new Date().getHours();
     if (hour < 5) setGreeting("Up late");
@@ -53,7 +50,6 @@ export default function Dashboard() {
     else setGreeting("Good evening");
   }, []);
 
-  /* ---------------- FETCH DATA ---------------- */
   useEffect(() => {
     const fetchDashboard = async () => {
       const { data: sessionData } = await supabase.auth.getSession();
@@ -66,7 +62,6 @@ export default function Dashboard() {
 
       setUser(session.user);
 
-      // 1. Get Profile
       const { data: profileData } = await supabase
         .from("profiles")
         .select("*")
@@ -75,7 +70,6 @@ export default function Dashboard() {
 
       setProfile(profileData || session.user.user_metadata);
 
-      // 2. Get Results & Calculate Analytics
       const { data: results } = await supabase
         .from("results")
         .select("*")
@@ -88,7 +82,6 @@ export default function Dashboard() {
         const totalScore = results.reduce((sum, r) => sum + (r.score || 0), 0);
         const avg = totalScore / results.length;
         
-        // Find Strongest and Weakest Modules
         let highest = results[0];
         let lowest = results[0];
         results.forEach(r => {
@@ -110,7 +103,6 @@ export default function Dashboard() {
     fetchDashboard();
   }, [router]);
 
-  /* ---------------- RENDER ---------------- */
   if (loading) {
     return (
       <div className="min-h-screen bg-[#030305] flex items-center justify-center">
@@ -124,22 +116,20 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-[#030305] text-white overflow-x-hidden pb-24 font-sans selection:bg-indigo-500/30">
       
-      <Header title="Command Center" />
+      {/* Friendly Header Title */}
+      <Header title="Student Dashboard" />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 pt-6 animate-fade-in">
         
-        {/* 1. GREETING */}
         <div className="mb-8">
           <h1 className="text-2xl md:text-3xl font-bold text-white mb-1 tracking-tight font-serif">
             {greeting}, {firstName}.
           </h1>
-          <p className="text-zinc-500 text-sm">Semester 2 Engine is fully operational.</p>
+          <p className="text-zinc-500 text-sm">Ready to practice for your second-semester exams?</p>
         </div>
 
-        {/* 2. TARGETED ANALYTICS (The V2 Hub) */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10">
           
-          {/* Main Accuracy Ring */}
           <div className="md:col-span-2 p-6 rounded-3xl bg-[#0a0a0c] border border-white/5 relative overflow-hidden shadow-xl group hover:border-indigo-500/30 transition-all duration-300">
             <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/3 group-hover:bg-indigo-500/20 transition-all"></div>
             
@@ -147,14 +137,14 @@ export default function Dashboard() {
               <div>
                 <div className="flex items-center gap-2 mb-1">
                   <Target className="w-4 h-4 text-indigo-400" />
-                  <h2 className="text-sm font-bold text-zinc-400 uppercase tracking-widest">Global Accuracy</h2>
+                  <h2 className="text-sm font-bold text-zinc-400 uppercase tracking-widest">Average Score</h2>
                 </div>
                 <div className="flex items-baseline gap-2 mt-2">
                   <span className="text-5xl font-black text-white tracking-tighter">{analytics.accuracy}</span>
                   <span className="text-xl text-zinc-500 font-bold">%</span>
                 </div>
                 <p className="text-xs text-indigo-400 font-medium mt-2 flex items-center gap-1">
-                  <Activity className="w-3 h-3" /> Est. CGPA: {analytics.cgpa.toFixed(2)}
+                  <Activity className="w-3 h-3" /> Estimated CGPA: {analytics.cgpa.toFixed(2)}
                 </p>
               </div>
               
@@ -165,33 +155,31 @@ export default function Dashboard() {
 
             <div className="mt-8 grid grid-cols-2 gap-4 relative z-10">
               <div className="p-4 rounded-2xl bg-[#121216] border border-white/5">
-                <div className="text-xs text-zinc-500 mb-1 uppercase tracking-wider font-bold">Strongest Module</div>
+                <div className="text-xs text-zinc-500 mb-1 uppercase tracking-wider font-bold">Best Subject</div>
                 <div className="font-bold text-emerald-400 text-lg">{analytics.strongest}</div>
               </div>
               <div className="p-4 rounded-2xl bg-[#121216] border border-white/5">
-                <div className="text-xs text-zinc-500 mb-1 uppercase tracking-wider font-bold">Requires Review</div>
+                <div className="text-xs text-zinc-500 mb-1 uppercase tracking-wider font-bold">Needs Work</div>
                 <div className="font-bold text-rose-400 text-lg">{analytics.weakest}</div>
               </div>
             </div>
           </div>
 
-          {/* Quick Engine Status */}
           <div className="p-6 rounded-3xl bg-gradient-to-br from-indigo-900/20 to-cyan-900/10 border border-indigo-500/20 flex flex-col justify-center relative overflow-hidden">
             <Activity className="w-8 h-8 text-cyan-400 mb-4" />
-            <h3 className="text-lg font-bold text-white mb-1">Simulations Run</h3>
-            <div className="text-4xl font-black text-white mb-6">{analytics.examsTaken}</div>
+            <h3 className="text-lg font-bold text-white mb-1">Practice Progress</h3>
+            <div className="text-4xl font-black text-white mb-6">{analytics.examsTaken} <span className="text-sm font-normal text-indigo-200/70">Exams taken</span></div>
             <Link href="/courses" className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold rounded-xl text-center transition-all shadow-[0_0_20px_rgba(99,102,241,0.3)]">
-              Start New Drill
+              Take a Practice Exam
             </Link>
           </div>
         </div>
 
-        {/* 3. SEMESTER 2 QUICK START */}
         <div className="mb-10">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold text-white font-serif">Priority Modules</h2>
+            <h2 className="text-lg font-bold text-white font-serif">Quick Start</h2>
             <Link href="/courses" className="text-sm text-indigo-400 font-bold hover:text-indigo-300 flex items-center gap-1 transition-colors">
-              View Catalog <ChevronRight className="w-4 h-4" />
+              View All Courses <ChevronRight className="w-4 h-4" />
             </Link>
           </div>
           
@@ -216,29 +204,27 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* 4. RECENT TRANSMISSIONS (Dynamic History) */}
         <div>
-          <h2 className="text-lg font-bold text-white mb-4 font-serif">Transmission Logs</h2>
+          <h2 className="text-lg font-bold text-white mb-4 font-serif">Recent Results</h2>
           
           {recentResults.length === 0 ? (
             <div className="bg-[#0a0a0c] border border-white/5 rounded-3xl p-10 text-center flex flex-col items-center shadow-lg">
               <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mb-4">
                  <FileText className="w-6 h-6 text-zinc-500" />
               </div>
-              <h3 className="font-bold text-white text-lg">No Records Found</h3>
+              <h3 className="font-bold text-white text-lg">No Practice History</h3>
               <p className="text-sm text-zinc-500 mt-2 mb-6 max-w-xs">
-                You haven’t completed any CBT simulations yet. Your results will be securely logged here.
+                You haven’t taken any practice exams yet. Your scores will appear right here.
               </p>
               <Link href="/courses">
                 <button className="px-8 py-3 bg-white text-black hover:bg-zinc-200 rounded-xl font-bold text-sm transition-colors shadow-lg">
-                  Access Terminal
+                  Browse Courses
                 </button>
               </Link>
             </div>
           ) : (
             <div className="space-y-3">
               {recentResults.slice(0, 5).map((r) => {
-                // V2.0 Color Logic
                 let statusColor = "text-indigo-400";
                 let statusBg = "bg-indigo-500/10 border-indigo-500/20";
                 let icon = <Zap className="w-5 h-5 text-indigo-400"/>;
@@ -267,7 +253,7 @@ export default function Dashboard() {
                         </div>
                         <div>
                           <h4 className="font-bold text-white text-sm md:text-base group-hover:text-indigo-300 transition-colors">
-                            {r.course_code} <span className="text-zinc-600 font-normal ml-1 hidden sm:inline">Simulation</span>
+                            {r.course_code}
                           </h4>
                           <p className="text-xs text-zinc-500 flex items-center gap-1 mt-1 font-mono">
                             <Clock className="w-3 h-3"/> 
