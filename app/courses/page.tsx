@@ -14,38 +14,38 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-// --- UNIFIED V2.0 COURSE DATABASE ---
+// Added "duration" property (15 or 27) based on the course code
 const COURSE_CATALOG = [
   // === FIRST SEMESTER ===
-  { id: 'mth101', semester: 1, code: 'MTH 101', title: 'Elementary Mathematics I', unit: 3, type: 'Core', color: "from-rose-500 to-red-500", icon: <Calculator className="w-5 h-5 text-rose-400"/> },
-  { id: 'phy101', semester: 1, code: 'PHY 101', title: 'General Physics I', unit: 3, type: 'Core', color: "from-amber-500 to-yellow-500", icon: <Atom className="w-5 h-5 text-amber-400"/> },
-  { id: 'chm101', semester: 1, code: 'CHM 101', title: 'General Chemistry I', unit: 3, type: 'Core', color: "from-teal-500 to-emerald-500", icon: <FlaskConical className="w-5 h-5 text-teal-400"/> },
-  { id: 'bio101', semester: 1, code: 'BIO 101', title: 'Introductory Biology I', unit: 3, type: 'Core', color: "from-green-500 to-emerald-500", icon: <Leaf className="w-5 h-5 text-green-400"/> },
-  { id: 'cos101', semester: 1, code: 'COS 101', title: 'Introduction to Computing', unit: 3, type: 'Core', color: "from-blue-500 to-indigo-500", icon: <Cpu className="w-5 h-5 text-blue-400"/> },
-  { id: 'gly101', semester: 1, code: 'GLY 101', title: 'Introduction to Geology', unit: 3, type: 'Core', color: "from-stone-500 to-zinc-500", icon: <Mountain className="w-5 h-5 text-stone-400"/> },
-  { id: 'sta111', semester: 1, code: 'STA 111', title: 'Descriptive Statistics', unit: 3, type: 'Core', color: "from-cyan-500 to-blue-500", icon: <BarChart3 className="w-5 h-5 text-cyan-400"/> },
-  { id: 'gst101', semester: 1, code: 'GST 101', title: 'Use of English I', unit: 2, type: 'Core', color: "from-pink-500 to-rose-500", icon: <BookOpen className="w-5 h-5 text-pink-400"/> },
-  { id: 'gst103', semester: 1, code: 'GST 103', title: 'Use of Library & ICT', unit: 2, type: 'Core', color: "from-purple-500 to-fuchsia-500", icon: <BookOpen className="w-5 h-5 text-purple-400"/> },
-  { id: 'ent101', semester: 1, code: 'ENT 101', title: 'Entrepreneurship', unit: 2, type: 'Core', color: "from-orange-500 to-amber-500", icon: <Briefcase className="w-5 h-5 text-orange-400"/> },
+  { id: 'mth101', semester: 1, code: 'MTH 101', title: 'Elementary Mathematics I', unit: 3, duration: 27, type: 'Core', color: "from-rose-500 to-red-500", icon: <Calculator className="w-5 h-5 text-rose-400"/> },
+  { id: 'phy101', semester: 1, code: 'PHY 101', title: 'General Physics I', unit: 3, duration: 27, type: 'Core', color: "from-amber-500 to-yellow-500", icon: <Atom className="w-5 h-5 text-amber-400"/> },
+  { id: 'chm101', semester: 1, code: 'CHM 101', title: 'General Chemistry I', unit: 3, duration: 15, type: 'Core', color: "from-teal-500 to-emerald-500", icon: <FlaskConical className="w-5 h-5 text-teal-400"/> },
+  { id: 'bio101', semester: 1, code: 'BIO 101', title: 'Introductory Biology I', unit: 3, duration: 15, type: 'Core', color: "from-green-500 to-emerald-500", icon: <Leaf className="w-5 h-5 text-green-400"/> },
+  { id: 'cos101', semester: 1, code: 'COS 101', title: 'Introduction to Computing', unit: 3, duration: 15, type: 'Core', color: "from-blue-500 to-indigo-500", icon: <Cpu className="w-5 h-5 text-blue-400"/> },
+  { id: 'gly101', semester: 1, code: 'GLY 101', title: 'Introduction to Geology', unit: 3, duration: 15, type: 'Core', color: "from-stone-500 to-zinc-500", icon: <Mountain className="w-5 h-5 text-stone-400"/> },
+  { id: 'sta111', semester: 1, code: 'STA 111', title: 'Descriptive Statistics', unit: 3, duration: 27, type: 'Core', color: "from-cyan-500 to-blue-500", icon: <BarChart3 className="w-5 h-5 text-cyan-400"/> },
+  { id: 'gst101', semester: 1, code: 'GST 101', title: 'Use of English I', unit: 2, duration: 15, type: 'Core', color: "from-pink-500 to-rose-500", icon: <BookOpen className="w-5 h-5 text-pink-400"/> },
+  { id: 'gst103', semester: 1, code: 'GST 103', title: 'Use of Library & ICT', unit: 2, duration: 15, type: 'Core', color: "from-purple-500 to-fuchsia-500", icon: <BookOpen className="w-5 h-5 text-purple-400"/> },
+  { id: 'ent101', semester: 1, code: 'ENT 101', title: 'Entrepreneurship', unit: 2, duration: 15, type: 'Core', color: "from-orange-500 to-amber-500", icon: <Briefcase className="w-5 h-5 text-orange-400"/> },
 
   // === SECOND SEMESTER ===
-  { id: 'cos102', semester: 2, code: "COS 102", title: "Problem Solving", unit: 3, type: 'Core', color: "from-indigo-500 to-blue-500", icon: <BrainCircuit className="w-5 h-5 text-indigo-400"/> },
-  { id: 'mth102', semester: 2, code: "MTH 102", title: "Elementary Mathematics II", unit: 2, type: 'Core', color: "from-cyan-500 to-blue-500", icon: <Calculator className="w-5 h-5 text-cyan-400"/> },
-  { id: 'phy102', semester: 2, code: "PHY 102", title: "General Physics II", unit: 2, type: 'Required', color: "from-amber-500 to-orange-500", icon: <Zap className="w-5 h-5 text-amber-400"/> },
-  { id: 'chm102', semester: 2, code: "CHM 102", title: "General Chemistry II", unit: 2, type: 'Required', color: "from-emerald-500 to-teal-500", icon: <FlaskConical className="w-5 h-5 text-emerald-400"/> },
-  { id: 'bio102', semester: 2, code: "BIO 102", title: "General Biology II", unit: 2, type: 'Required', color: "from-green-500 to-emerald-500", icon: <Leaf className="w-5 h-5 text-green-400"/> },
-  { id: 'gly102', semester: 2, code: "GLY 102", title: "Introduction To Geology II", unit: 2, type: 'Core', color: "from-stone-500 to-zinc-500", icon: <Mountain className="w-5 h-5 text-stone-400"/> },
-  { id: 'sta112', semester: 2, code: "STA 112", title: "Probability Theory", unit: 2, type: 'Core', color: "from-purple-500 to-pink-500", icon: <Activity className="w-5 h-5 text-purple-400"/> },
-  { id: 'gst102', semester: 2, code: "GST 102", title: "Communication In English II", unit: 2, type: 'Core', color: "from-rose-500 to-red-500", icon: <BookOpen className="w-5 h-5 text-rose-400"/> },
-  { id: 'gst104', semester: 2, code: "GST 104", title: "Nigeria People And Culture", unit: 2, type: 'Core', color: "from-yellow-500 to-amber-500", icon: <BookOpen className="w-5 h-5 text-yellow-400"/> },
-  { id: 'ent102', semester: 2, code: "ENT 102", title: "Evaluation Of Business Concepts", unit: 1, type: 'Core', color: "from-blue-500 to-indigo-500", icon: <Briefcase className="w-5 h-5 text-blue-400"/> },
+  { id: 'cos102', semester: 2, code: "COS 102", title: "Problem Solving", unit: 3, duration: 15, type: 'Core', color: "from-indigo-500 to-blue-500", icon: <BrainCircuit className="w-5 h-5 text-indigo-400"/> },
+  { id: 'mth102', semester: 2, code: "MTH 102", title: "Elementary Mathematics II", unit: 2, duration: 27, type: 'Core', color: "from-cyan-500 to-blue-500", icon: <Calculator className="w-5 h-5 text-cyan-400"/> },
+  { id: 'phy102', semester: 2, code: "PHY 102", title: "General Physics II", unit: 2, duration: 27, type: 'Required', color: "from-amber-500 to-orange-500", icon: <Zap className="w-5 h-5 text-amber-400"/> },
+  { id: 'chm102', semester: 2, code: "CHM 102", title: "General Chemistry II", unit: 2, duration: 15, type: 'Required', color: "from-emerald-500 to-teal-500", icon: <FlaskConical className="w-5 h-5 text-emerald-400"/> },
+  { id: 'bio102', semester: 2, code: "BIO 102", title: "General Biology II", unit: 2, duration: 15, type: 'Required', color: "from-green-500 to-emerald-500", icon: <Leaf className="w-5 h-5 text-green-400"/> },
+  { id: 'gly102', semester: 2, code: "GLY 102", title: "Introduction To Geology II", unit: 2, duration: 15, type: 'Core', color: "from-stone-500 to-zinc-500", icon: <Mountain className="w-5 h-5 text-stone-400"/> },
+  { id: 'sta112', semester: 2, code: "STA 112", title: "Probability Theory", unit: 2, duration: 27, type: 'Core', color: "from-purple-500 to-pink-500", icon: <Activity className="w-5 h-5 text-purple-400"/> },
+  { id: 'gst102', semester: 2, code: "GST 102", title: "Communication In English II", unit: 2, duration: 15, type: 'Core', color: "from-rose-500 to-red-500", icon: <BookOpen className="w-5 h-5 text-rose-400"/> },
+  { id: 'gst104', semester: 2, code: "GST 104", title: "Nigeria People And Culture", unit: 2, duration: 15, type: 'Core', color: "from-yellow-500 to-amber-500", icon: <BookOpen className="w-5 h-5 text-yellow-400"/> },
+  { id: 'ent102', semester: 2, code: "ENT 102", title: "Evaluation Of Business Concepts", unit: 1, duration: 15, type: 'Core', color: "from-blue-500 to-indigo-500", icon: <Briefcase className="w-5 h-5 text-blue-400"/> },
 ];
 
 export default function CoursesPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [activeSemester, setActiveSemester] = useState(2); // Defaults to current semester
+  const [activeSemester, setActiveSemester] = useState(2);
 
   useEffect(() => {
     const checkUser = async () => {
@@ -56,7 +56,6 @@ export default function CoursesPage() {
     checkUser();
   }, [router]);
 
-  // Filter Logic: Filter by Semester FIRST, then by Search Query
   const filteredCourses = COURSE_CATALOG.filter(c => 
     c.semester === activeSemester &&
     (c.code.toLowerCase().includes(search.toLowerCase()) || 
@@ -69,14 +68,13 @@ export default function CoursesPage() {
     <div className="min-h-screen bg-[#030305] text-white p-6 md:p-10 font-sans selection:bg-indigo-500/30">
       <div className="max-w-6xl mx-auto">
         
-        {/* HEADER AREA */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-10 border-b border-white/5 pb-8">
            <div>
              <button onClick={() => router.push('/dashboard')} className="flex items-center text-zinc-500 hover:text-white mb-4 text-xs font-bold uppercase tracking-widest transition-colors">
                <ArrowLeft className="w-4 h-4 mr-2"/> Return to Dashboard
              </button>
-             <h1 className="text-3xl md:text-4xl font-bold font-serif tracking-tight">Course Catalog</h1>
-             <p className="text-zinc-500 text-sm mt-2">Select a module to initiate the V2.0 Simulation Engine.</p>
+             <h1 className="text-3xl md:text-4xl font-bold font-serif tracking-tight">Available Courses</h1>
+             <p className="text-zinc-500 text-sm mt-2">Choose a subject to start your practice test.</p>
            </div>
            
            <div className="w-full md:w-auto flex flex-col gap-4">
@@ -96,12 +94,11 @@ export default function CoursesPage() {
                </button>
              </div>
 
-             {/* SEARCH BAR */}
              <div className="relative w-full md:w-72">
                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500"/>
                <input 
                  type="text" 
-                 placeholder="Search courses..." 
+                 placeholder="Search by course code or title..." 
                  value={search}
                  onChange={(e) => setSearch(e.target.value)}
                  className="w-full bg-[#0a0a0c] border border-white/10 rounded-xl pl-11 pr-4 py-3 text-sm focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all shadow-inner"
@@ -110,13 +107,11 @@ export default function CoursesPage() {
            </div>
         </div>
 
-        {/* COURSE GRID */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
            {filteredCourses.map((course) => (
              <Link href={`/exam/${course.id}`} key={course.id} className="group">
                <div className="h-full p-6 rounded-3xl bg-[#0a0a0c] border border-white/5 hover:border-indigo-500/30 transition-all duration-300 relative overflow-hidden flex flex-col shadow-lg hover:shadow-indigo-500/10 hover:-translate-y-1">
                   
-                  {/* Background Glow */}
                   <div className={`absolute -right-10 -top-10 w-32 h-32 bg-gradient-to-br ${course.color} rounded-full blur-[60px] opacity-10 group-hover:opacity-20 transition-opacity`}></div>
                   
                   <div className="flex justify-between items-start mb-6 relative z-10">
@@ -137,11 +132,11 @@ export default function CoursesPage() {
                      <p className="text-sm font-medium text-zinc-400 line-clamp-2">{course.title}</p>
                   </div>
 
-                  {/* V2 Engine Specs */}
                   <div className="mt-8 pt-4 border-t border-white/5 flex items-center justify-between relative z-10">
                      <div className="flex items-center gap-4 text-xs font-bold text-zinc-500">
                         <div className="flex items-center gap-1.5"><Target className="w-4 h-4 text-indigo-400"/> 60 Qs</div>
-                        <div className="flex items-center gap-1.5"><Clock className="w-4 h-4 text-emerald-400"/> 40 Mins</div>
+                        {/* Dynamically uses the new 15 or 27 min property */}
+                        <div className="flex items-center gap-1.5"><Clock className="w-4 h-4 text-emerald-400"/> {course.duration} Mins</div>
                      </div>
                      <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-indigo-600 transition-colors">
                         <ChevronRight className="w-4 h-4 text-zinc-400 group-hover:text-white" />
@@ -152,7 +147,6 @@ export default function CoursesPage() {
            ))}
         </div>
 
-        {/* EMPTY STATE */}
         {filteredCourses.length === 0 && (
            <div className="text-center py-24 bg-[#0a0a0c] rounded-3xl border border-white/5 mt-4">
               <Search className="w-12 h-12 text-zinc-700 mx-auto mb-4" />
