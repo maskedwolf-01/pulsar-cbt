@@ -6,9 +6,8 @@ import Link from 'next/link';
 import { 
   ArrowLeft, Mail, Lock, Loader2, User, BookOpen, 
   CheckCircle, X, Calculator, Atom, FlaskConical, 
-  Cpu, BrainCircuit, Zap, Globe, Activity, Microscope
+  Cpu, BrainCircuit, Zap, Globe, Activity, Microscope, AlertTriangle // <--- Added here
 } from 'lucide-react';
-
 export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
