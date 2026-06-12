@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { 
   Search, Calculator, FlaskConical, Cpu, BookOpen, 
   Briefcase, Atom, BarChart3, Leaf, Mountain, 
-  ChevronRight, Target, Clock, Loader2, ArrowLeft, Zap, Activity
+  ChevronRight, Target, Clock, Loader2, ArrowLeft, BrainCircuit, Zap, Activity
 } from 'lucide-react';
 import { createClient } from '@supabase/supabase-js';
 
