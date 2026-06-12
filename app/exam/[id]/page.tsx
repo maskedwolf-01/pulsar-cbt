@@ -1,6 +1,8 @@
 "use client";
 import { useParams } from 'next/navigation';
-import ExamEngine from "../../../components/ExamEngine";
+
+// FIXED: Went up exactly 2 levels to the 'app' folder, then down into 'components'
+import ExamEngine from "../../components/ExamEngine";
 
 export default function ExamPage() {
   const params = useParams();
