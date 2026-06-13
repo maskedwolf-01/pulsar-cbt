@@ -3,10 +3,11 @@ import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import Link from 'next/link';
 import {
-  Send, Bot, Plus, MessageSquare, Menu, Loader2, Sparkles, Trash2, Edit2, ArrowLeft, User
+  Send, Bot, Plus, MessageSquare, Menu, Loader2, Sparkles, Trash2, Edit2, ArrowLeft, User, Cpu
 } from 'lucide-react';
+import BottomNav from '../components/BottomNav';
 
-// --- MARKDOWN RENDERER (Fixed Width Issue) ---
+// --- V2.0 MARKDOWN RENDERER ---
 const MarkdownRenderer = ({ text }: { text: string }) => {
   const lines = text.split('\n');
   const renderedContent = [];
@@ -19,16 +20,16 @@ const MarkdownRenderer = ({ text }: { text: string }) => {
     const rows = tableBuffer.slice(2).map(row => row.split('|').filter(c => c.trim()).map(c => c.trim()));
 
     return (
-      <div key={`table-${key}`} className="my-4 w-full overflow-x-auto rounded-xl border border-zinc-700 bg-black/40 shadow-inner">
+      <div key={`table-${key}`} className="my-4 w-full overflow-x-auto rounded-xl border border-white/10 bg-[#0a0a0c] shadow-inner">
         <table className="w-full text-left text-sm border-collapse min-w-[400px]">
           <thead>
-            <tr className="bg-zinc-800/50 text-purple-300">
-              {headers.map((h, i) => <th key={i} className="p-3 border-b border-zinc-700 font-bold whitespace-nowrap">{h}</th>)}
+            <tr className="bg-white/5 text-indigo-300">
+              {headers.map((h, i) => <th key={i} className="p-3 border-b border-white/10 font-bold whitespace-nowrap">{h}</th>)}
             </tr>
           </thead>
           <tbody>
             {rows.map((row, i) => (
-              <tr key={i} className="border-b border-zinc-700/30 last:border-0 hover:bg-zinc-800/20">
+              <tr key={i} className="border-b border-white/5 last:border-0 hover:bg-white/5 transition-colors">
                 {row.map((cell, j) => <td key={j} className="p-3 align-top text-zinc-300 break-words" dangerouslySetInnerHTML={{__html: formatBold(cell)}}></td>)}
               </tr>
             ))}
@@ -46,34 +47,35 @@ const MarkdownRenderer = ({ text }: { text: string }) => {
       if (inTable) { renderedContent.push(flushTable(i)); tableBuffer = []; inTable = false; }
       
       // HEADERS
-      if (line.startsWith('### ')) renderedContent.push(<h3 key={i} className="text-purple-300 font-bold text-lg mt-4 mb-2 break-words">{line.replace('### ', '')}</h3>);
-      else if (line.startsWith('## ')) renderedContent.push(<h2 key={i} className="text-purple-400 font-bold text-xl mt-5 mb-3 border-b border-zinc-700 pb-2 break-words">{line.replace('## ', '')}</h2>);
+      if (line.startsWith('### ')) renderedContent.push(<h3 key={i} className="text-indigo-300 font-bold text-lg mt-4 mb-2 break-words">{line.replace('### ', '')}</h3>);
+      else if (line.startsWith('## ')) renderedContent.push(<h2 key={i} className="text-indigo-400 font-bold text-xl mt-5 mb-3 border-b border-white/10 pb-2 break-words">{line.replace('## ', '')}</h2>);
       
       // LISTS
-      else if (line.startsWith('* ')) renderedContent.push(<div key={i} className="flex gap-2 ml-1 my-1"><span className="text-purple-500 font-bold">•</span><span className="break-words" dangerouslySetInnerHTML={{ __html: formatBold(line.replace('* ', '')) }}></span></div>);
+      else if (line.startsWith('* ')) renderedContent.push(<div key={i} className="flex gap-2 ml-1 my-1"><span className="text-indigo-500 font-bold">•</span><span className="break-words text-zinc-300" dangerouslySetInnerHTML={{ __html: formatBold(line.replace('* ', '')) }}></span></div>);
+      else if (line.startsWith('- ')) renderedContent.push(<div key={i} className="flex gap-2 ml-1 my-1"><span className="text-indigo-500 font-bold">•</span><span className="break-words text-zinc-300" dangerouslySetInnerHTML={{ __html: formatBold(line.replace('- ', '')) }}></span></div>);
       
-      // STANDARD TEXT (Added break-words and whitespace-pre-wrap)
+      // STANDARD TEXT
       else if (line === '') renderedContent.push(<div key={i} className="h-2"></div>);
-      else renderedContent.push(<p key={i} className="leading-relaxed break-words whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: formatBold(line) }}></p>);
+      else renderedContent.push(<p key={i} className="leading-relaxed break-words whitespace-pre-wrap text-zinc-300" dangerouslySetInnerHTML={{ __html: formatBold(line) }}></p>);
     }
   }
   if (inTable) renderedContent.push(flushTable(lines.length));
   return <div className="space-y-1 w-full">{renderedContent}</div>;
 };
 
-const formatBold = (text: string) => text ? text.replace(/\*\*(.*?)\*\*/g, '<strong class="text-purple-300 font-semibold">$1</strong>') : "";
+const formatBold = (text: string) => text ? text.replace(/\*\*(.*?)\*\*/g, '<strong class="text-white font-bold">$1</strong>') : "";
 
-// --- DYNAMIC LOADER ---
+// --- V2.0 DYNAMIC LOADER ---
 const DynamicLoader = ({ attempt }: { attempt: number }) => {
-  const states = ["Analyzing...", "Searching...", "Refining...", "Optimizing..."];
+  const states = ["Analyzing...", "Searching Database...", "Refining Answer...", "Optimizing..."];
   const [index, setIndex] = useState(0);
   useEffect(() => { const t = setInterval(() => setIndex(prev => (prev + 1) % states.length), 1500); return () => clearInterval(t); }, []);
   
   return (
-    <div className="flex items-center gap-3 text-xs text-purple-400 bg-purple-500/5 px-4 py-2 rounded-full border border-purple-500/20 w-fit animate-pulse">
-      <Loader2 className="w-3 h-3 animate-spin"/>
+    <div className="flex items-center gap-3 text-xs text-indigo-400 bg-indigo-500/10 px-4 py-2.5 rounded-full border border-indigo-500/20 w-fit shadow-inner">
+      <Loader2 className="w-3.5 h-3.5 animate-spin"/>
       <span className="uppercase tracking-widest font-bold">
-        {attempt > 0 ? `Traffic High... Retrying (${attempt}/3)` : states[index]}
+        {attempt > 0 ? `High Traffic... Retrying (${attempt}/3)` : states[index]}
       </span>
     </div>
   );
@@ -107,7 +109,7 @@ export default function ChatPage() {
   const createSession = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
-        const { data } = await supabase.from('chat_sessions').insert({ user_id: user.id, title: 'New Chat' }).select().single();
+        const { data } = await supabase.from('chat_sessions').insert({ user_id: user.id, title: 'New Conversation' }).select().single();
         if(data) { setSessions([data, ...sessions]); setSessionId(data.id); setMessages([]); setSidebarOpen(false); }
     }
   };
@@ -115,6 +117,7 @@ export default function ChatPage() {
   const fetchMessages = async (id: string) => {
     const { data } = await supabase.from('chat_history').select('*').eq('session_id', id).order('created_at', { ascending: true });
     setMessages(data ? data.map(d => ({ role: d.role === 'model' ? 'ai' : 'user', text: d.message })) : []);
+    setTimeout(() => scrollRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
   };
 
   const renameSession = async (id: string) => {
@@ -134,13 +137,14 @@ export default function ChatPage() {
     }
   };
 
-  // --- RETRY LOGIC (Slower Wait Time) ---
-  const sendRequestWithRetry = async (text: string, currentId: string, attempt = 0): Promise<string | null> => {
+  // --- RETRY LOGIC (Points to the new Groq /api/chat route) ---
+  const sendRequestWithRetry = async (text: string, currentHistory: any[], currentId: string, attempt = 0): Promise<string | null> => {
     setRetryCount(attempt);
     try {
-        const res = await fetch('/api/ai', { 
-            method: 'POST', 
-            body: JSON.stringify({ prompt: text, type: 'chat' }) 
+        const res = await fetch('/api/chat', { 
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: text, history: currentHistory }) 
         });
         
         if (res.status === 429) throw new Error("QUOTA_HIT");
@@ -149,10 +153,10 @@ export default function ChatPage() {
         return data.reply;
 
     } catch (error: any) {
-        // Wait 8 Seconds if Quota Hit (Allows Free Tier to Reset)
+        // Wait 8 Seconds if Quota Hit
         if (error.message === "QUOTA_HIT" && attempt < 3) {
             await new Promise(resolve => setTimeout(resolve, 8000));
-            return sendRequestWithRetry(text, currentId, attempt + 1);
+            return sendRequestWithRetry(text, currentHistory, currentId, attempt + 1);
         }
         return null; 
     }
@@ -164,61 +168,80 @@ export default function ChatPage() {
     const { data: { user } } = await supabase.auth.getUser();
     
     if (!currentId && user) {
-      const { data } = await supabase.from('chat_sessions').insert({ user_id: user.id, title: input.slice(0, 20) }).select().single();
+      const { data } = await supabase.from('chat_sessions').insert({ user_id: user.id, title: input.slice(0, 25) }).select().single();
       if(data) { setSessions([data, ...sessions]); setSessionId(data.id); currentId = data.id; }
     }
 
-    const text = input; setInput(''); setLoading(true); setRetryCount(0);
+    const text = input; 
+    setInput(''); 
+    setLoading(true); 
+    setRetryCount(0);
+    
+    // Format history for the new API
+    const historyForAPI = messages.map(m => ({ role: m.role, content: m.text }));
+    
     setMessages(prev => [...prev, { role: 'user', text }]);
     if(user && currentId) await supabase.from('chat_history').insert({ user_id: user.id, session_id: currentId, role: 'user', message: text });
 
-    const reply = await sendRequestWithRetry(text, currentId || '');
+    setTimeout(() => scrollRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
+
+    const reply = await sendRequestWithRetry(text, historyForAPI, currentId || '');
 
     if (reply) {
         setMessages(prev => [...prev, { role: 'ai', text: reply }]);
         if(user && currentId) await supabase.from('chat_history').insert({ user_id: user.id, session_id: currentId, role: 'model', message: reply });
     } else {
-        setMessages(prev => [...prev, { role: 'ai', text: "⚠️ Server busy. Please wait 1 minute." }]);
+        setMessages(prev => [...prev, { role: 'ai', text: "⚠️ The AI server is currently busy. Please wait a moment and try again." }]);
     }
-    setLoading(false); setRetryCount(0);
-    scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
+    setLoading(false); 
+    setRetryCount(0);
+    setTimeout(() => scrollRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
   };
 
   return (
-    <div className="flex h-[100dvh] bg-[#09090b] text-zinc-200 font-sans overflow-hidden relative">
+    <div className="flex h-[100dvh] bg-[#030305] text-white font-sans overflow-hidden relative selection:bg-indigo-500/30">
       
+      {/* V2 DELETE MODAL */}
       {showDeleteModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-          <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-3xl w-full max-w-sm shadow-2xl">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
+          <div className="bg-[#0a0a0c] border border-white/10 p-8 rounded-[2rem] w-full max-w-sm shadow-2xl animate-fade-in-up">
             <div className="flex flex-col items-center text-center mb-6">
-              <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mb-4 border border-red-500/20"><Trash2 className="w-8 h-8 text-red-500"/></div>
-              <h3 className="text-xl font-bold text-white">Delete Chat?</h3>
-              <p className="text-sm text-zinc-400 mt-2">This cannot be undone.</p>
+              <div className="w-16 h-16 bg-rose-500/10 rounded-full flex items-center justify-center mb-4 border border-rose-500/20"><Trash2 className="w-8 h-8 text-rose-500"/></div>
+              <h3 className="text-2xl font-bold text-white font-serif tracking-tight">Delete Chat?</h3>
+              <p className="text-sm text-zinc-400 mt-2">This conversation will be permanently removed.</p>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <button onClick={() => setShowDeleteModal(false)} className="py-3 rounded-xl bg-zinc-800 font-bold text-sm text-white">Cancel</button>
-              <button onClick={executeDelete} className="py-3 rounded-xl bg-red-600 font-bold text-sm text-white">Delete</button>
+            <div className="flex gap-3">
+              <button onClick={() => setShowDeleteModal(false)} className="flex-1 py-3.5 rounded-xl bg-white/5 hover:bg-white/10 font-bold text-sm text-white transition-colors">Cancel</button>
+              <button onClick={executeDelete} className="flex-1 py-3.5 rounded-xl bg-rose-600 hover:bg-rose-500 font-bold text-sm text-white transition-all shadow-[0_0_15px_rgba(225,29,72,0.3)]">Delete</button>
             </div>
           </div>
         </div>
       )}
 
-      <div className={`fixed inset-y-0 left-0 z-50 w-72 bg-zinc-900 border-r border-zinc-800 transform transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:relative md:translate-x-0`}>
-        <div className="p-4 flex flex-col h-full">
-          <div className="flex items-center gap-2 mb-6">
-            <Link href="/dashboard" className="p-2 hover:bg-zinc-800 rounded-full"><ArrowLeft className="w-5 h-5"/></Link>
-            <button onClick={createSession} className="flex-1 flex items-center gap-2 bg-purple-600/20 text-purple-400 hover:bg-purple-600/30 p-3 rounded-xl text-sm font-bold justify-center transition-colors"><Plus className="w-4 h-4" /> New Chat</button>
+      {/* SIDEBAR (HISTORY) */}
+      <div className={`fixed inset-y-0 left-0 z-50 w-72 bg-[#0a0a0c] border-r border-white/5 transform transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:relative md:translate-x-0 flex flex-col`}>
+        <div className="p-4 md:p-6 flex flex-col h-full">
+          <div className="flex items-center gap-3 mb-6">
+            <Link href="/dashboard" className="p-2.5 bg-white/5 border border-white/5 rounded-xl hover:bg-white/10 transition-colors text-zinc-400 hover:text-white"><ArrowLeft className="w-4 h-4"/></Link>
+            <button onClick={createSession} className="flex-1 flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white p-2.5 rounded-xl text-sm font-bold transition-all shadow-lg shadow-indigo-500/20">
+              <Plus className="w-4 h-4" /> New Chat
+            </button>
           </div>
-          <div className="flex-1 overflow-y-auto custom-scrollbar space-y-1">
-            <div className="text-[10px] text-zinc-500 uppercase font-bold tracking-widest pl-2 mb-2">History</div>
+          <div className="flex-1 overflow-y-auto custom-scrollbar space-y-1.5 pr-2">
+            <div className="text-[10px] text-zinc-500 uppercase font-bold tracking-widest pl-2 mb-3">Chat History</div>
             {sessions.map(s => (
-              <div key={s.id} onClick={() => { setSessionId(s.id); setSidebarOpen(false); }} className={`group w-full text-left p-3 rounded-xl flex justify-between items-center cursor-pointer transition-all ${sessionId === s.id ? 'bg-zinc-800 text-white' : 'text-zinc-400 hover:bg-zinc-800/50'}`}>
+              <div key={s.id} onClick={() => { setSessionId(s.id); setSidebarOpen(false); }} className={`group w-full text-left p-3 rounded-xl flex justify-between items-center cursor-pointer transition-all border ${sessionId === s.id ? 'bg-[#121216] border-white/10 shadow-inner' : 'bg-transparent border-transparent hover:bg-white/5'}`}>
                 {editingId === s.id ? (
-                  <input autoFocus className="bg-black border border-zinc-700 rounded px-2 py-1 w-full text-xs text-white" value={editTitle} onChange={e => setEditTitle(e.target.value)} onBlur={() => renameSession(s.id)} onKeyDown={e => e.key === 'Enter' && renameSession(s.id)} />
-                ) : ( <div className="flex items-center gap-3 truncate w-full"><MessageSquare className={`w-4 h-4 flex-shrink-0 ${sessionId === s.id?'text-purple-400':'text-zinc-600'}`}/><span className="text-sm truncate max-w-[130px]">{s.title}</span></div> )}
-                <div className="flex gap-1 md:opacity-0 md:group-hover:opacity-100 transition-opacity bg-zinc-900 pl-2">
-                  <button onClick={(e) => { e.stopPropagation(); setEditingId(s.id); setEditTitle(s.title); }} className="p-2 hover:bg-zinc-700 rounded-lg"><Edit2 className="w-3.5 h-3.5"/></button>
-                  <button onClick={(e) => confirmDelete(s.id, e)} className="p-2 hover:bg-red-500/10 rounded-lg text-red-500"><Trash2 className="w-3.5 h-3.5"/></button>
+                  <input autoFocus className="bg-[#030305] border border-indigo-500/50 rounded-lg px-3 py-1.5 w-full text-sm text-white focus:outline-none" value={editTitle} onChange={e => setEditTitle(e.target.value)} onBlur={() => renameSession(s.id)} onKeyDown={e => e.key === 'Enter' && renameSession(s.id)} />
+                ) : ( 
+                  <div className="flex items-center gap-3 truncate w-full">
+                    <MessageSquare className={`w-4 h-4 flex-shrink-0 ${sessionId === s.id ? 'text-indigo-400' : 'text-zinc-600'}`}/>
+                    <span className={`text-sm truncate max-w-[130px] ${sessionId === s.id ? 'text-white font-medium' : 'text-zinc-400'}`}>{s.title}</span>
+                  </div> 
+                )}
+                <div className="flex gap-1 md:opacity-0 md:group-hover:opacity-100 transition-opacity pl-2">
+                  <button onClick={(e) => { e.stopPropagation(); setEditingId(s.id); setEditTitle(s.title); }} className="p-1.5 hover:bg-white/10 rounded-lg text-zinc-400 hover:text-white transition-colors"><Edit2 className="w-3.5 h-3.5"/></button>
+                  <button onClick={(e) => confirmDelete(s.id, e)} className="p-1.5 hover:bg-rose-500/10 rounded-lg text-rose-500 transition-colors"><Trash2 className="w-3.5 h-3.5"/></button>
                 </div>
               </div>
             ))}
@@ -226,53 +249,113 @@ export default function ChatPage() {
         </div>
       </div>
 
-      {sidebarOpen && <div onClick={() => setSidebarOpen(false)} className="fixed inset-0 bg-black/80 z-40 md:hidden"></div>}
+      {sidebarOpen && <div onClick={() => setSidebarOpen(false)} className="fixed inset-0 bg-black/80 backdrop-blur-sm z-40 md:hidden animate-fade-in"></div>}
 
-      <div className="flex-1 flex flex-col relative h-full">
-        <header className="md:hidden flex items-center justify-between p-4 bg-zinc-900 border-b border-zinc-800 z-30 flex-none">
-          <div className="flex items-center gap-4"><button onClick={() => setSidebarOpen(true)}><Menu className="w-6 h-6"/></button><span className="font-bold text-purple-400">Nexus 1.0</span></div>
+      {/* MAIN CHAT AREA */}
+      <div className="flex-1 flex flex-col relative h-full bg-[#030305]">
+        
+        {/* MOBILE HEADER */}
+        <header className="md:hidden flex items-center justify-between p-4 bg-[#0a0a0c]/80 backdrop-blur-xl border-b border-white/5 z-30 flex-none">
+          <div className="flex items-center gap-4">
+            <button onClick={() => setSidebarOpen(true)} className="text-zinc-400 hover:text-white"><Menu className="w-6 h-6"/></button>
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-indigo-500/10 border border-indigo-500/20 rounded-lg flex items-center justify-center">
+                 <Cpu className="w-4 h-4 text-indigo-400" />
+              </div>
+              <span className="font-bold text-white font-serif tracking-tight">Nexus AI Tutor</span>
+            </div>
+          </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
+        {/* MESSAGES */}
+        <div className="flex-1 overflow-y-auto p-4 md:p-6 custom-scrollbar relative">
+          <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[500px] h-[500px] bg-indigo-500/5 rounded-full blur-[100px] pointer-events-none"></div>
+
           {messages.length === 0 ? (
-            <div className="h-full flex flex-col items-center justify-center opacity-50">
-              <div className="w-16 h-16 bg-zinc-800 rounded-2xl flex items-center justify-center mb-4"><Sparkles className="w-8 h-8 text-purple-500"/></div>
-              <h1 className="text-2xl font-bold text-white">Hello, Scholar</h1>
-              <p className="text-zinc-500 mt-2">Ready to assist.</p>
+            <div className="h-full flex flex-col items-center justify-center opacity-80 relative z-10 animate-fade-in-up">
+              <div className="w-20 h-20 bg-indigo-500/10 border border-indigo-500/20 rounded-[2rem] flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(99,102,241,0.15)]">
+                <Sparkles className="w-10 h-10 text-indigo-400"/>
+              </div>
+              <h1 className="text-3xl font-bold text-white font-serif tracking-tight">Hello, Scholar.</h1>
+              <p className="text-zinc-500 mt-2 text-center max-w-sm leading-relaxed">I am your AI study assistant. Ask me to explain a concept or solve a problem.</p>
             </div>
           ) : (
-            messages.map((msg, i) => (
-              <div key={i} className={`flex gap-4 mb-6 max-w-3xl mx-auto ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                {msg.role === 'ai' && <div className="w-8 h-8 rounded-full bg-purple-600/20 flex items-center justify-center mt-1 flex-shrink-0"><Bot className="w-4 h-4 text-purple-400"/></div>}
-                
-                {/* --- CHAT BUBBLE (Break Words Added Here) --- */}
-                <div className={`p-4 rounded-2xl text-sm leading-relaxed shadow-sm max-w-[95%] md:max-w-[85%] break-words ${
-                  msg.role === 'ai' 
-                  ? 'bg-transparent text-zinc-300' 
-                  : 'bg-zinc-800 text-white rounded-tr-none'
-                }`}>
-                  {msg.role === 'ai' ? <MarkdownRenderer text={msg.text} /> : msg.text}
-                </div>
+            <div className="space-y-6 relative z-10 max-w-3xl mx-auto w-full">
+              {messages.map((msg, i) => (
+                <div key={i} className={`flex gap-3 md:gap-4 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                  
+                  {msg.role === 'ai' && (
+                    <div className="w-8 h-8 md:w-10 md:h-10 rounded-xl bg-[#121216] border border-white/10 flex items-center justify-center mt-1 flex-shrink-0 shadow-lg">
+                      <Cpu className="w-4 h-4 md:w-5 md:h-5 text-indigo-400"/>
+                    </div>
+                  )}
+                  
+                  <div className={`p-4 md:p-5 rounded-3xl text-sm md:text-base leading-relaxed shadow-lg max-w-[90%] md:max-w-[85%] break-words ${
+                    msg.role === 'ai' 
+                    ? 'bg-[#0a0a0c] border border-white/5 text-zinc-300 rounded-tl-sm' 
+                    : 'bg-indigo-600 text-white rounded-tr-sm shadow-[0_0_15px_rgba(99,102,241,0.2)]'
+                  }`}>
+                    {msg.role === 'ai' ? <MarkdownRenderer text={msg.text} /> : msg.text}
+                  </div>
 
-                {msg.role === 'user' && <div className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center mt-1 flex-shrink-0"><User className="w-4 h-4 text-zinc-400"/></div>}
-              </div>
-            ))
+                  {msg.role === 'user' && (
+                    <div className="w-8 h-8 md:w-10 md:h-10 rounded-xl bg-[#121216] border border-white/10 flex items-center justify-center mt-1 flex-shrink-0 shadow-lg">
+                      <User className="w-4 h-4 md:w-5 md:h-5 text-zinc-400"/>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
           )}
           
-          {loading && <div className="flex gap-4 mb-6 max-w-3xl mx-auto"><div className="w-8 h-8 rounded-full bg-purple-600/10 flex items-center justify-center"><Bot className="w-4 h-4 text-purple-500"/></div><DynamicLoader attempt={retryCount} /></div>}
+          {loading && (
+            <div className="flex gap-4 mt-6 max-w-3xl mx-auto w-full relative z-10">
+              <div className="w-8 h-8 md:w-10 md:h-10 rounded-xl bg-[#121216] border border-white/10 flex items-center justify-center flex-shrink-0 shadow-lg">
+                <Cpu className="w-4 h-4 md:w-5 md:h-5 text-indigo-400"/>
+              </div>
+              <DynamicLoader attempt={retryCount} />
+            </div>
+          )}
           
-          <div ref={scrollRef}></div>
-          <div className="h-24"></div>
+          <div ref={scrollRef} className="h-4"></div>
+          {/* Extra padding on mobile to clear the bottom input and nav */}
+          <div className="h-32 md:h-24"></div> 
         </div>
 
-        <div className="p-4 bg-gradient-to-t from-black via-zinc-950 to-transparent z-20 flex-none pb-8 md:pb-4">
-          <div className="max-w-3xl mx-auto bg-zinc-900 border border-zinc-800 rounded-2xl p-2 flex items-center shadow-2xl">
-            <input value={input} onChange={(e) => setInput(e.target.value)} placeholder="Ask Nexus anything..." className="flex-1 bg-transparent border-none text-white px-4 py-3 focus:outline-none placeholder:text-zinc-600" onKeyDown={(e) => e.key === 'Enter' && handleSend()}/>
-            <button onClick={handleSend} disabled={!input.trim() || loading} className={`p-3 rounded-xl transition-all ${input.trim() ? 'bg-white text-black' : 'bg-zinc-800 text-zinc-600'}`}><Send className="w-5 h-5"/></button>
+        {/* INPUT AREA */}
+        <div className="absolute bottom-[72px] md:bottom-0 left-0 w-full bg-gradient-to-t from-[#030305] via-[#030305]/95 to-transparent z-40 p-4 pt-10">
+          <div className="max-w-3xl mx-auto relative">
+            <div className="bg-[#0a0a0c] border border-white/10 rounded-2xl p-2 flex items-center shadow-2xl relative z-10">
+              <input 
+                value={input} 
+                onChange={(e) => setInput(e.target.value)} 
+                placeholder="Ask Nexus anything..." 
+                className="flex-1 bg-transparent border-none text-white px-4 py-3 text-sm focus:outline-none placeholder:text-zinc-600" 
+                onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+                disabled={loading}
+              />
+              <button 
+                onClick={handleSend} 
+                disabled={!input.trim() || loading} 
+                className={`w-12 h-12 flex items-center justify-center rounded-xl transition-all flex-shrink-0 ${
+                  input.trim() && !loading 
+                  ? 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-[0_0_15px_rgba(99,102,241,0.4)]' 
+                  : 'bg-[#121216] text-zinc-600'
+                }`}
+              >
+                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5"/>}
+              </button>
+            </div>
+            <div className="text-center mt-2 pb-2 md:pb-4 hidden md:block">
+               <span className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest">Powered by Llama 3</span>
+            </div>
           </div>
         </div>
+        
       </div>
+      
+      {/* Required so bottom nav displays on mobile below the chat input */}
+      <BottomNav active="chat" />
     </div>
   );
-                      }
-          
+}
