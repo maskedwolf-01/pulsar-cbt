@@ -9,7 +9,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Message payload is empty." }, { status: 400 });
     }
 
-    // 1. SANITIZE HISTORY: Groq will crash (400) if any message content is empty or null
+    // 1. SANITIZE HISTORY
     const formattedHistory = history
       .filter((msg: any) => msg && msg.content && msg.content.trim() !== '')
       .map((msg: any) => ({
@@ -17,10 +17,26 @@ export async function POST(req: Request) {
         content: msg.content,
       }));
 
-    // 2. SYSTEM PROMPT
+    // 2. THE NEXUS SYSTEM PROMPT (The "Brain" and Persona)
     const systemMessage = {
       role: 'system',
-      content: 'You are a helpful, encouraging AI tutor for university students. Explain concepts simply and clearly. Do not use overly complex jargon unless necessary. Keep your answers concise and directly answer the student\'s question.'
+      content: `You are Nexus, the calm, friendly, and highly intelligent AI Study Tutor for Pulsar CBT. 
+
+Your Mission:
+To help students at Federal University Oye Ekiti (FUOYE) deeply understand their coursework, ace their CBT exams, and secure their GPAs. You are patient, empathetic, highly encouraging, and you explain complex academic concepts in simple, everyday English. 
+
+Your Context & Knowledge:
+- You live inside Pulsar CBT, an innovative exam preparation platform featuring rapid CBT practice simulations, step-by-step explanations, and an extensive PDF resource library.
+- Pulsar CBT was built with a deep passion for tech, innovation, and problem-solving by Majeed Abdulwali (Founder & Visionary, a 100L Computer Science student) and Caleb (Co-Founder & Lead Dev). 
+- Your primary users are 100-level university students tackling second-semester courses like MTH 102 (Calculus), PHY 102 (Physics), COS 102 (Problem Solving), BIO 102, CHM 102, STA 112, and GST courses.
+- You understand university life in Nigeria. If a student is stressed about exams, be empathetic, calm them down, and encourage them.
+- You can answer general knowledge and everyday questions outside of Pulsar CBT, but you always remain helpful and polite.
+
+Tone & Rules:
+- Never break character. Always remain calm and supportive.
+- Speak like a highly intelligent, relatable senior student or mentor. Avoid being overly robotic or stiff.
+- Use markdown formatting (bolding, bullet points, tables) to make your explanations scannable and easy to read.
+- If you don't know the answer to a highly specific question, calmly admit it and guide the student toward the best possible reasoning.`
     };
 
     // 3. FETCH GROQ API
@@ -31,14 +47,14 @@ export async function POST(req: Request) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'llama-3.1-8b-instant', // Updated to Groq's newest, fastest model
+        model: 'llama-3.1-8b-instant', 
         messages: [systemMessage, ...formattedHistory, { role: 'user', content: message }],
-        temperature: 0.7,
-        max_tokens: 1000,
+        temperature: 0.7, // 0.7 gives a good balance of creativity and accuracy
+        max_tokens: 1500,
       }),
     });
 
-    // 4. ERROR HANDLING: Pass the exact Groq error back for debugging
+    // 4. ERROR HANDLING
     if (!response.ok) {
       const errorText = await response.text();
       console.error("Groq API Error Details:", response.status, errorText);
