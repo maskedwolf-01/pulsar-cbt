@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { message, history = [] } = body;
+    const { message, history = [], userName = 'Scholar', userDept = 'Student' } = body;
 
     if (!message) {
       return NextResponse.json({ error: "Message payload is empty." }, { status: 400 });
@@ -17,55 +17,85 @@ export async function POST(req: Request) {
         content: msg.content,
       }));
 
-    // 2. THE NEXUS SYSTEM PROMPT (The "Brain" and Persona)
+    // 2. THE PERSONALIZED SYSTEM PROMPT
     const systemMessage = {
       role: 'system',
       content: `You are Nexus, the calm, friendly, and highly intelligent AI Study Tutor for Pulsar CBT. 
 
-Your Mission:
-To help students at Federal University Oye Ekiti (FUOYE) deeply understand their coursework, ace their CBT exams, and secure their GPAs. You are patient, empathetic, highly encouraging, and you explain complex academic concepts in simple, everyday English. 
+Your Current Student:
+You are speaking directly to ${userName}, a student in the ${userDept} department at Federal University Oye Ekiti (FUOYE). 
+- Occasionally use their name to make the conversation feel personal and warm.
+- If they ask for examples, try to tailor them to ${userDept} if it makes sense.
 
-Your Context & Knowledge:
-- You live inside Pulsar CBT, an innovative exam preparation platform featuring rapid CBT practice simulations, step-by-step explanations, and an extensive PDF resource library.
-- Pulsar CBT was built with a deep passion for tech, innovation, and problem-solving by Majeed Abdulwali (Founder & Visionary, a 100L Computer Science student) and Caleb (Co-Founder & Lead Dev). 
-- Your primary users are 100-level university students tackling second-semester courses like MTH 102 (Calculus), PHY 102 (Physics), COS 102 (Problem Solving), BIO 102, CHM 102, STA 112, and GST courses.
-- You understand university life in Nigeria. If a student is stressed about exams, be empathetic, calm them down, and encourage them.
-- You can answer general knowledge and everyday questions outside of Pulsar CBT, but you always remain helpful and polite.
+Your Mission:
+To help students deeply understand their coursework, ace their CBT exams, and secure their GPAs. You are patient, empathetic, and highly encouraging. Explain complex academic concepts in simple, everyday English. 
+
+Your Context:
+- You live inside Pulsar CBT, built with a deep passion for tech and innovation by Majeed Abdulwali (Founder & 100L Computing Governor) and Caleb (Co-Founder & Lead Dev). 
+- Primary subjects: MTH 102, PHY 102, COS 102, BIO 102, CHM 102, STA 112, and GST courses.
+- You understand Nigerian university life. Calm the student down if they are stressed about exams.
 
 Tone & Rules:
-- Never break character. Always remain calm and supportive.
-- Speak like a highly intelligent, relatable senior student or mentor. Avoid being overly robotic or stiff.
-- Use markdown formatting (bolding, bullet points, tables) to make your explanations scannable and easy to read.
-- If you don't know the answer to a highly specific question, calmly admit it and guide the student toward the best possible reasoning.`
+- Never break character. Speak like a highly intelligent, relatable senior student/mentor.
+- Use markdown formatting (bolding, bullet points, tables) to make your explanations scannable.
+- If you don't know the answer, calmly admit it and guide them toward the best possible reasoning.`
     };
 
-    // 3. FETCH GROQ API
-    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.GROQ_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'llama-3.1-8b-instant', 
-        messages: [systemMessage, ...formattedHistory, { role: 'user', content: message }],
-        temperature: 0.7, // 0.7 gives a good balance of creativity and accuracy
-        max_tokens: 1500,
-      }),
-    });
+    // 3. THE FAILOVER CASCADE (Load Balancing)
+    // Grabs a comma-separated list of keys from your environment variables
+    const rawKeys = process.env.GROQ_API_KEYS || process.env.GROQ_API_KEY || '';
+    const apiKeys = rawKeys.split(',').map(k => k.trim()).filter(k => k.length > 0);
 
-    // 4. ERROR HANDLING
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("Groq API Error Details:", response.status, errorText);
-      return NextResponse.json(
-        { error: `Groq Error (${response.status}): ${errorText}` },
-        { status: response.status }
-      );
+    if (apiKeys.length === 0) {
+      return NextResponse.json({ error: "API keys are not configured." }, { status: 500 });
     }
 
-    const data = await response.json();
-    const aiReply = data.choices[0].message.content;
+    let aiReply = null;
+
+    // Loop through the keys until one succeeds
+    for (let i = 0; i < apiKeys.length; i++) {
+      const currentKey = apiKeys[i];
+      
+      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${currentKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'llama-3.1-8b-instant', 
+          messages: [systemMessage, ...formattedHistory, { role: 'user', content: message }],
+          temperature: 0.7, 
+          max_tokens: 1500,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        aiReply = data.choices[0].message.content;
+        break; // Success! Break out of the loop.
+      } else if (response.status === 429) {
+        // Rate limit hit! Skip to the next key invisibly.
+        console.warn(`Key ${i + 1} hit rate limit (429). Failing over to next key...`);
+        continue; 
+      } else {
+        // A hard error (like a bad prompt). Throw it immediately.
+        const errorText = await response.text();
+        console.error(`Groq API Error on key ${i + 1}:`, response.status, errorText);
+        return NextResponse.json(
+          { error: `Groq Error (${response.status}): ${errorText}` },
+          { status: response.status }
+        );
+      }
+    }
+
+    // If we looped through ALL keys and aiReply is still null, all servers are maxed out.
+    if (!aiReply) {
+      return NextResponse.json(
+        { error: 'All AI servers are currently at maximum capacity. Please wait 10 seconds and try again.' },
+        { status: 429 }
+      );
+    }
 
     return NextResponse.json({ reply: aiReply });
 
