@@ -93,9 +93,25 @@ export default function ChatPage() {
   const [chatToDelete, setChatToDelete] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState('');
+  const [userData, setUserData] = useState({ name: 'Scholar', dept: 'Student' });
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => { fetchSessions(); }, []);
+  useEffect(() => {
+    const initData = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+        if (profile) {
+          setUserData({ name: profile.full_name || 'Scholar', dept: profile.department || 'Student' });
+        } else {
+          setUserData({ name: user.user_metadata?.full_name || 'Scholar', dept: user.user_metadata?.department || 'Student' });
+        }
+      }
+    };
+    initData();
+    fetchSessions(); 
+  }, []);
+
   useEffect(() => { if(sessionId) fetchMessages(sessionId); }, [sessionId]);
 
   const fetchSessions = async () => {
@@ -137,14 +153,19 @@ export default function ChatPage() {
     }
   };
 
-  // --- RETRY LOGIC (Points to the new Groq /api/chat route) ---
+  // --- RETRY LOGIC (Includes Profile Data for Groq backend) ---
   const sendRequestWithRetry = async (text: string, currentHistory: any[], currentId: string, attempt = 0): Promise<string | null> => {
     setRetryCount(attempt);
     try {
         const res = await fetch('/api/chat', { 
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ message: text, history: currentHistory }) 
+            body: JSON.stringify({ 
+              message: text, 
+              history: currentHistory,
+              userName: userData.name,
+              userDept: userData.dept 
+            }) 
         });
         
         if (res.status === 429) throw new Error("QUOTA_HIT");
@@ -153,7 +174,6 @@ export default function ChatPage() {
         return data.reply;
 
     } catch (error: any) {
-        // Wait 8 Seconds if Quota Hit
         if (error.message === "QUOTA_HIT" && attempt < 3) {
             await new Promise(resolve => setTimeout(resolve, 8000));
             return sendRequestWithRetry(text, currentHistory, currentId, attempt + 1);
@@ -276,7 +296,7 @@ export default function ChatPage() {
               <div className="w-20 h-20 bg-indigo-500/10 border border-indigo-500/20 rounded-[2rem] flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(99,102,241,0.15)]">
                 <Sparkles className="w-10 h-10 text-indigo-400"/>
               </div>
-              <h1 className="text-3xl font-bold text-white font-serif tracking-tight">Hello, Scholar.</h1>
+              <h1 className="text-3xl font-bold text-white font-serif tracking-tight">Hello, {userData.name.split(' ')[0]}.</h1>
               <p className="text-zinc-500 mt-2 text-center max-w-sm leading-relaxed">I am your AI study assistant. Ask me to explain a concept or solve a problem.</p>
             </div>
           ) : (
